@@ -20,6 +20,11 @@
 - `Syndicate`: close three co-investment deals.
 - `Phoenix`: recover from liquidation and place top 2.
 - `Mentor`: explain a deal to a new player.
+- `Liquidity Left The Chat`: lose a futures trade to slippage.
+- `Trust Issues`: betray investors and still survive the match.
+- `Actually Useful Course`: turn a weird expense into a profitable synergy.
+- `Vibe Shipper`: launch a mini-app with AI/operator support.
+- `Adult Supervision`: hire an accountant before tax audit.
 
 ## Ranking
 
@@ -58,3 +63,10 @@ Forbidden direction:
 6. Challenge/rematch/chat invite.
 7. Ranked unlock after 2 finished matches.
 
+## Social Triggers
+
+- Player can challenge someone from rating.
+- Player can invite Telegram chat to vote on next room volatility.
+- Player can share a funny recap title.
+- Players can form temporary fund/syndicate in chaos/private mode.
+- Trust/reputation creates social memory: people remember who paid out and who did not.

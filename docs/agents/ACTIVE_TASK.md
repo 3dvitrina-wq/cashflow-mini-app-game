@@ -2,29 +2,30 @@
 
 ## Session
 
-- Date: 2026-05-22
-- Session log: `docs/agents/sessions/2026-05-22.md`
+- Date: 2026-05-23
+- Session log: `docs/agents/sessions/2026-05-23.md`
 
 ## Task
 
-Initialize a separate project and second brain for a Telegram Mini App financial strategy game.
+Capture feature vision for risk comedy, modern earning paths, assistants, social trust, and volatility modes.
 
 ## Goal
 
-Create a clean agent-ready structure: GSD planning, agent docs, research, MVP intent, mechanics, AI host plan, economy plan, retention/monetization hooks, and risk map.
+Turn the user's raw feature ideas into organized design memory that can drive Phase 1/2 engine planning.
 
 ## Scope
 
-- Documentation and project skeleton only.
-- No production game implementation yet.
-- No changes to Covariant runtime code.
+- Documentation/design memory only.
+- No production implementation yet.
+- Keep futures/scam mechanics fictional and educational.
 
 ## Decisions
 
-- Project root: `/Users/dzmitrysiarou/Documents/cashflow-mini-app-game`.
-- Existing `/Users/dzmitrysiarou/Documents/cashflow` remains separate booking/site project.
-- MVP order: engine -> Telegram room -> bot replacement -> AI text host -> audio/video.
+- Futures are risk-comedy, not casino: funny lag/ping animation with hostile expected value.
+- Assistants/staff market become a main scaling layer.
+- Modern earning paths include mini-apps, creator economy, vibe-coding, AI operators, local services.
+- Trust/reputation must affect deals if scam/fund mechanics exist.
 
 ## Next Step
 
-Collect user's desired features as short feature cards, then plan Phase 1 deterministic game engine. New research note added: avoid 3-4 hour live-hosted online Cashflow clone; make the core Telegram-native, shorter, and host-independent.
+Convert feature intake into engine data model: card effect DSL, volatility mode, assistant slots, trust state, futures mini-game resolution.

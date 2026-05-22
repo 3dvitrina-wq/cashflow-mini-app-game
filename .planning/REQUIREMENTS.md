@@ -28,6 +28,7 @@
 - [ ] **DEAL-03**: Engine validates split ownership, loan, buyout, and side payment terms.
 - [ ] **DEAL-04**: MVP negotiation uses structured offers, not freeform AI interpretation.
 - [ ] **DEAL-05**: Game log explains why a deal succeeded, failed, or was rejected.
+- [ ] **DEAL-06**: Trust/reputation changes available deal terms and collateral expectations.
 
 ### Economy
 
@@ -36,6 +37,9 @@
 - [ ] **ECO-03**: Assistants and trading bots consume slots or subscriptions and provide bounded automation.
 - [ ] **ECO-04**: Crypto/futures are fictional leveraged instruments with margin, liquidation, and event risk.
 - [ ] **ECO-05**: Non-obvious deals can be good only under certain player states, not universally good.
+- [ ] **ECO-06**: Room volatility setting changes frequency/severity of market events.
+- [ ] **ECO-07**: Expenses can become latent assets when paired with later opportunity cards.
+- [ ] **ECO-08**: Futures use fictional markets, deterministic resolution, and anti-gambling guardrails.
 
 ### AI Host
 
@@ -72,6 +76,8 @@
 - **ADV-01**: Scenario packs for different countries/ages/business cultures.
 - **ADV-02**: Asynchronous match mode.
 - **ADV-03**: AI training coach after match.
+- **ADV-04**: Fund/broker/scam mechanics for chaos/private modes with persistent trust consequences.
+- **ADV-05**: Staff market with hiring, firing, training, and specialist roles.
 
 ## Out of Scope
 
@@ -88,18 +94,17 @@
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | ENG-01..05 | Phase 1 | Pending |
-| ECO-01..05 | Phase 2 | Pending |
-| DEAL-01..05 | Phase 3 | Pending |
+| ECO-01..08 | Phase 2 | Pending |
+| DEAL-01..06 | Phase 3 | Pending |
 | MP-01..05 | Phase 4 | Pending |
 | AIH-01..05 | Phase 5 | Pending |
 | GRW-01..05 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 30 total
-- Mapped to phases: 30
+- v1 requirements: 34 total
+- Mapped to phases: 34
 - Unmapped: 0
 
 ---
-*Last updated: 2026-05-22 after project initialization.*
-
+*Last updated: 2026-05-23 after feature intake.*

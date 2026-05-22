@@ -1,0 +1,121 @@
+# Feature Intake 2026-05-23
+
+## User Intent
+
+Make the game sticky, funny, modern, and a little cruel in the right way: players should feel the absurdity of financial decisions, not just read advice. The vibe is "Cashflow in the age of uncertainty, AI, crypto, fake gurus, mini-apps, vibe-coding, creator economy, leverage, and social trust."
+
+## Core Feature Ideas
+
+### Futures Anti-Gambling Moment
+
+- Player chooses short or long.
+- Chart jumps around with flashy animation.
+- Player must tap during volatility.
+- At tap moment the chart pings, buffers, freezes, or loads.
+- Then price suddenly shoots the opposite direction or occasionally rewards the player.
+- System should win most of the time, e.g. 80 percent, to make the lesson funny and painful.
+- Purpose: show that futures are hostile, laggy, system-biased, and emotionally addictive.
+
+### Small Business Slots and Assistants
+
+- Base player can hold up to 3 small businesses.
+- Hiring assistants increases capacity and unlocks perks.
+- Assistants cost monthly cashflow.
+- Suggested levels:
+  - Basic assistant: 500/month, +2 small business slots.
+  - Advanced assistant: 1000/month, +3 slots and chance of +50 percent efficiency on one business.
+  - Star assistant: 1500/month, +5 slots and 2-3 businesses may double profit under favorable rolls.
+- Assistants can be hired, fired, trained, upgraded.
+- Market has pseudo-vacancies.
+
+### Professions and AI Agents
+
+- Player can learn professions and form a helper team.
+- AI agents can become tools/professions: analyst, vibe-coder, prompt operator, ad buyer, content editor.
+- Accountant can reduce audit/tax risk or speed up risk calculations.
+- Team-building becomes a scaling path, not just card flavor.
+
+### Market Frustration and Regulation Events
+
+- Tax audit.
+- Crypto/exchange ban.
+- Exchange freeze.
+- Market panic.
+- Influencer scandal.
+- Bank changes terms.
+- Hiring market overheats.
+- Platform algorithm changes.
+
+### AI Host Personalities
+
+- Judge: strict, clean, rules-first.
+- Provocateur: teases risky players.
+- Joker: ironic and absurd.
+- Coach: explains mistakes after action.
+- Broker: persuasive, suspiciously optimistic.
+
+### Personal Telegram Recap
+
+- After match, player receives personal analysis in Telegram DM.
+- Recap includes mistakes, funny title, achievements, risk style, and suggested rematch challenge.
+
+### Game Formats
+
+- Short sprint.
+- Normal ranked.
+- Long chaos.
+- No card/money exchange mode.
+- Full negotiation mode with money/cards/conditions.
+- High-volatility "financial rollercoaster" mode.
+- Room creator or players vote on volatility level.
+
+### Fund/Broker/Social Trust
+
+- Player can create a fund, act as broker, collect money from others, sell shares.
+- Player may choose not to pay everyone.
+- Consequences:
+  - scammer/low-trust status;
+  - blocked from some deals;
+  - special achievements;
+  - other players demand collateral;
+  - AI host roasts them.
+
+### Funny Expenses That Become Assets
+
+- Expense cards can later become useful.
+- Examples: welding machine, stylist course, garage tools, camera kit, coding bootcamp, old van, sewing machine, 3D printer, barista course.
+- Later cards create synergies:
+  - garage + welding machine = repair income;
+  - stylist course + blog = creator brand income;
+  - camera kit + YouTube channel = higher content revenue;
+  - coding course + mini-app opportunity = lower launch cost.
+
+### Modern Earning World
+
+- Blog.
+- YouTube-like channel.
+- Mini-apps.
+- Vibe-coding as profession.
+- AI agency.
+- Trading bot subscription.
+- Marketplace shop.
+- Niche course.
+- Community subscription.
+- Automation studio.
+
+## Product Tone
+
+- Funny and ironic.
+- Not moralizing.
+- Player should be allowed to make dumb choices safely.
+- Mistakes are tools for learning.
+- The game should simulate "this is not the end, recover and adapt."
+
+## Immediate Design Questions
+
+- Should futures be a pure negative-expectation mini-game or sometimes a valid high-risk strategy?
+- Should trust status persist across matches or only within a session?
+- Should scam mechanics be allowed in ranked, or only chaos/private mode?
+- How many assistant types belong in MVP?
+- How much randomness should volatility mode change: card frequency, market events, futures odds, or all of them?
+

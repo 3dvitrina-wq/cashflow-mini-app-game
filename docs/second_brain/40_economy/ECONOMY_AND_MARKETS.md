@@ -21,6 +21,8 @@
 | Assistants | Operator, analyst, negotiator | Subscription |
 | Trading bots | Grid bot, risk bot | Malfunction, fees |
 
+See also `MODERN_EARNING_PATHS.md` for creator economy, mini-apps, vibe-coding, AI agencies, and expense-to-asset synergies.
+
 ## Market Pulse Deck
 
 Events should affect multiple strategies:
@@ -33,6 +35,12 @@ Events should affect multiple strategies:
 - AI tools productivity wave.
 - Exchange outage.
 - Consumer demand spike.
+- Platform algorithm change.
+- Tax audit.
+- Crypto/exchange ban.
+- Hiring market overheats.
+- Influencer scandal.
+- Hosting bill spike.
 
 ## Balancing Hypothesis
 
@@ -45,3 +53,10 @@ Win strategies:
 
 No strategy should exceed 35 percent win rate in bot simulations after tuning.
 
+## Volatility Setting
+
+Room creator or player vote can choose financial rollercoaster level:
+
+- Calm: fewer shocks, lower leverage appeal, stronger safe strategies.
+- Normal: balanced events.
+- Chaos: more regulation shocks, scams, exchange outages, viral booms, and liquidation comedy.

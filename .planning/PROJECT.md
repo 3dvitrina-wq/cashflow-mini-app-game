@@ -21,6 +21,8 @@ Players feel, in one 25-45 minute match, how cashflow, leverage, risk, timing, n
 - [ ] Provide bot replacement when a player drops.
 - [ ] Make player-to-player deals button-driven in MVP, with optional chat/social layer around it.
 - [ ] Model deposits, business slots, assistants, trading bots, crypto/futures, non-obvious deals, and market events as fictional educational mechanics.
+- [ ] Make modern earning paths part of the economy: creator channels, mini-apps, vibe-coding, AI operators, staff markets, and expense-to-asset synergies.
+- [ ] Include risk-comedy mechanics that make leverage and futures feel tempting but structurally hostile.
 - [ ] Add AI host only as bounded commentator, referee, and explainer with deterministic fallbacks.
 - [ ] Design retention hooks ethically: achievements, ranking, rematches, challenge invites, Telegram chat loops.
 
@@ -57,7 +59,8 @@ Players feel, in one 25-45 minute match, how cashflow, leverage, risk, timing, n
 | Button-driven deal intent in MVP | Privacy-safe, mobile-friendly, easier to verify than AI listening | Pending |
 | Bot takeover for disconnects | Multiplayer games die if one player blocks the table | Pending |
 | Fictional markets | Enables crypto/futures mechanics without real advice | Pending |
+| Risk comedy for futures | Makes the anti-gambling lesson emotional and memorable | Pending |
+| Trust as gameplay state | Lets social betrayal exist with consequences instead of becoming pure toxicity | Pending |
 
 ---
 *Last updated: 2026-05-22 after project initialization.*
-

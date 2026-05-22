@@ -29,6 +29,14 @@ The AI host does not decide rules in MVP.
 - `voice`: future.
 - `video`: future.
 
+## Host Personalities
+
+- Judge: strict, concise, rules-first.
+- Provocateur: teases risky players and pushes table drama.
+- Joker: absurd, meme-friendly, ideal for chaos mode.
+- Coach: explains mistakes and recovery paths after action.
+- Broker: suspiciously optimistic, good for satire around funds and leverage.
+
 ## Does AI Listen?
 
 MVP: no.
@@ -63,3 +71,13 @@ Gate:
 
 - Only add voice/video after Phase 5 text host works and match retention is proven.
 
+## Telegram Personal Recap
+
+After match, host can send a private Telegram recap:
+
+- risk style;
+- funniest mistake;
+- best decision;
+- trust/reputation impact;
+- achievement/title;
+- suggested rematch or challenge target.

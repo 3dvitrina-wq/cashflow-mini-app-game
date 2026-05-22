@@ -57,6 +57,7 @@ Fictional instruments only:
 - Liquidation can happen from market pulse.
 - Funding fee drains cashflow.
 - AI host must explain: "This is a fictional risk lesson, not a real signal."
+- Futures include a short risk-comedy mini-game: player selects long/short, taps during chart jumps, sees a ping/loading execution hiccup, then wins or loses from server-authoritative seeded resolution. See `RISK_COMEDY_AND_FUTURES.md`.
 
 ## Trading Bots and Assistants
 
@@ -73,6 +74,14 @@ Assistant:
 - Improves deal discovery.
 - Adds one focus token.
 - Cannot guarantee profit.
+
+Assistant levels:
+
+- Basic: 500/month, +2 small business slots.
+- Advanced: 1000/month, +3 slots and chance of +50 percent business efficiency.
+- Star: 1500/month, +5 slots and chance for 2-3 businesses to double output.
+
+Staff market can also include accountant, AI operator, mechanic, content editor, lawyer, and tax consultant.
 
 ## Non-Obvious Deals
 
@@ -108,3 +117,19 @@ When player disconnects:
 - Player can reclaim seat at next decision boundary.
 - Ranked penalties apply only after repeated abandonment.
 
+## Trust and Scam Mechanics
+
+Private/chaos modes can allow fund/broker actions:
+
+- player creates fund;
+- collects money from others;
+- sells shares;
+- may repay correctly or betray investors.
+
+Consequences must be mechanical:
+
+- trust score drops;
+- scammer or low-trust status appears;
+- other players require collateral;
+- some deals are unavailable;
+- special achievements exist but are double-edged.
