@@ -41,6 +41,9 @@ Events should affect multiple strategies:
 - Hiring market overheats.
 - Influencer scandal.
 - Hosting bill spike.
+- Burnout wave.
+- Insurance claim.
+- Lawsuit threat.
 
 ## Balancing Hypothesis
 
@@ -60,3 +63,5 @@ Room creator or player vote can choose financial rollercoaster level:
 - Calm: fewer shocks, lower leverage appeal, stronger safe strategies.
 - Normal: balanced events.
 - Chaos: more regulation shocks, scams, exchange outages, viral booms, and liquidation comedy.
+
+Epoch packs can override the event mix: Crypto Winter, AI Boom, Banks Squeeze Rates, Marketplaces Cut Sellers, Tax Office Wakes Up, Creator Gold Rush.

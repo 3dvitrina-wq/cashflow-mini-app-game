@@ -131,3 +131,12 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - Deal entry conditions should be offered as presets and later customizable sliders.
 - Turn timer can be 1/2/3 minutes.
 - Need a clear rule for whether players wait for each other or submit asynchronous intents.
+
+## Confirmed Ideas To Consolidate
+
+- Stress/burnout: too many businesses, futures, employees, and debts reduce decision quality and increase mistakes.
+- Insurance/lawyers: boring cards that save from tax, court, accidents, platform blocks.
+- Reputation as currency: betrayal is possible, but collateral/deal access/AI tone get worse.
+- Epoch packs: Crypto Winter, AI Boom, Banks Squeeze Rates, Marketplaces Cut Sellers, Tax Office Wakes Up.
+- Post-match Telegram recap: risk style, best decision, funniest failure, revenge challenge.
+- Room modes: Calm, Normal, Financial Rollercoaster, Chaos; creator or vote before start.

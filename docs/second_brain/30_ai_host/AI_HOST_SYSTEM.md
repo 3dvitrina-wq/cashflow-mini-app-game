@@ -81,3 +81,12 @@ After match, host can send a private Telegram recap:
 - trust/reputation impact;
 - achievement/title;
 - suggested rematch or challenge target.
+
+Suggested labels:
+
+- chaotic speculator;
+- boring genius;
+- overworked operator;
+- trustworthy landlord;
+- cardboard-box survivor;
+- suspiciously optimistic broker.

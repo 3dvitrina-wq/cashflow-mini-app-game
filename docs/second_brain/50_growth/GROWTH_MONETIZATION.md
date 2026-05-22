@@ -70,3 +70,10 @@ Forbidden direction:
 - Player can share a funny recap title.
 - Players can form temporary fund/syndicate in chaos/private mode.
 - Trust/reputation creates social memory: people remember who paid out and who did not.
+
+## Room Mode Hooks
+
+- Calm rooms are good onboarding.
+- Normal rooms feed ranked.
+- Financial Rollercoaster rooms create shareable chaos.
+- Chaos rooms are best for friend groups, betrayal mechanics, and funny recaps.

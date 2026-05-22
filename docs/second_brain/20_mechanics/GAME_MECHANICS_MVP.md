@@ -26,6 +26,9 @@
 - Life state/avatar state.
 - Housing state.
 - Trust score.
+- Stress/burnout.
+- Active protections: insurance/legal/accounting.
+- Epoch/room mode modifiers.
 
 ## Business Slot Rule
 
@@ -139,6 +142,10 @@ Room can choose 1/2/3 minute turns.
 
 - With waiting: all players can negotiate/react during active player's turn.
 - Without waiting: non-active players submit structured intents asynchronously and expired offers auto-resolve.
+
+## Stress, Insurance, Reputation, Epochs
+
+Stress, insurance, lawyers, reputation, epoch packs, post-match recap tags, and room modes are core state fields even if the first content set is small. See `STRESS_INSURANCE_REPUTATION_MODES.md`.
 
 ## Trust and Scam Mechanics
 

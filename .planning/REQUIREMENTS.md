@@ -43,6 +43,9 @@
 - [ ] **ECO-07**: Expenses can become latent assets when paired with later opportunity cards.
 - [ ] **ECO-08**: Futures use fictional markets, deterministic resolution, and anti-gambling guardrails.
 - [ ] **ECO-09**: Crisis states unlock recovery actions such as help, room rental, relocation, mortgage, and debt restructuring.
+- [ ] **ECO-10**: Stress/burnout increases mistakes and can be reduced through delegation, simplification, or protection cards.
+- [ ] **ECO-11**: Insurance/legal/accounting protections can mitigate tax, court, accident, and platform-block events.
+- [ ] **ECO-12**: Epoch packs change market event distribution and available opportunity types.
 
 ### AI Host
 
@@ -59,6 +62,7 @@
 - [ ] **GRW-03**: Telegram chat invite/share loop exists after match.
 - [ ] **GRW-04**: Rematch and revenge-match flows are one tap.
 - [ ] **GRW-05**: Monetization is cosmetic/convenience/social, not pay-to-win.
+- [ ] **GRW-06**: Private Telegram recap gives player style label, best decision, funniest failure, and challenge suggestion.
 
 ## v2 Requirements
 
@@ -96,16 +100,16 @@
 
 | Requirement | Phase | Status |
 | ENG-01..05 | Phase 1 | Pending |
-| ECO-01..09 | Phase 2 | Pending |
+| ECO-01..12 | Phase 2 | Pending |
 | DEAL-01..07 | Phase 3 | Pending |
 | MP-01..06 | Phase 4 | Pending |
 | AIH-01..05 | Phase 5 | Pending |
-| GRW-01..05 | Phase 6 | Pending |
+| GRW-01..06 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 37 total
-- Mapped to phases: 37
+- v1 requirements: 41 total
+- Mapped to phases: 41
 - Unmapped: 0
 
 ---
