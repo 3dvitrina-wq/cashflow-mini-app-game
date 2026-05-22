@@ -1,4 +1,6 @@
-# Cashflow Mini App Game
+# DYOR
+
+Temporary working title: `DYOR`.
 
 Telegram Mini App for a social financial strategy game inspired by personal finance board games, negotiation games, auction games, and modern mobile retention loops, without copying any existing game's protected rules, art, names, cards, or board.
 
@@ -23,4 +25,3 @@ The first product goal is not "AI video host." The first product goal is a stabl
 3. Bot replacement for absent players.
 4. AI host as text commentary with strict templates and fallbacks.
 5. Audio/video only after retention and game stability are proven.
-

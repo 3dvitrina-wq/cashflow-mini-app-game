@@ -1,8 +1,8 @@
-# Cashflow Mini App Game
+# DYOR
 
 ## What This Is
 
-Telegram Mini App for a multiplayer financial strategy game: players build income, negotiate deals, survive market shocks, and race toward freedom goals in fictional markets. It borrows broad lessons from successful economic games, but must not copy Cashflow, Monopoly, Stockpile, Acquire, or any other protected product.
+`DYOR` is the temporary working title for a Telegram Mini App multiplayer financial strategy game: players build income, negotiate deals, survive market shocks, and race toward freedom goals in fictional markets. It borrows broad lessons from successful economic games, but must not copy Cashflow, Monopoly, Stockpile, Acquire, or any other protected product.
 
 ## Core Value
 
@@ -61,6 +61,7 @@ Players feel, in one 25-45 minute match, how cashflow, leverage, risk, timing, n
 | Fictional markets | Enables crypto/futures mechanics without real advice | Pending |
 | Risk comedy for futures | Makes the anti-gambling lesson emotional and memorable | Pending |
 | Trust as gameplay state | Lets social betrayal exist with consequences instead of becoming pure toxicity | Pending |
+| Working title: `DYOR` | Crypto-native phrase meaning "Do Your Own Research"; fits satire and "not financial advice" tone | Pending brand/legal check |
 
 ---
 *Last updated: 2026-05-22 after project initialization.*

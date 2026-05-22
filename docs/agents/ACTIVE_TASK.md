@@ -21,6 +21,7 @@ Lock the extensible card/effect engine principle and security boundaries before 
 
 ## Decisions
 
+- Temporary working title is `DYOR`.
 - Futures are risk-comedy, not casino: funny lag/ping animation with hostile expected value.
 - Assistants/staff market become a main scaling layer.
 - Modern earning paths include mini-apps, creator economy, vibe-coding, AI operators, local services.
