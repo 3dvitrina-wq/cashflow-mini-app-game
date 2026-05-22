@@ -57,6 +57,8 @@
 - [ ] **AIH-03**: Host can explain risk/reward without giving real-world financial advice.
 - [ ] **AIH-04**: Host can call attention to stalled turns and invite decisions.
 - [ ] **AIH-05**: Voice/video host is disabled by default until latency/cost/moderation gates pass.
+- [ ] **AIH-06**: Host supports selectable personality packs with deterministic fallback text.
+- [ ] **AIH-07**: TTS/audio host can only speak approved text and falls back to visible text.
 
 ### Growth
 
@@ -66,6 +68,8 @@
 - [ ] **GRW-04**: Rematch and revenge-match flows are one tap.
 - [ ] **GRW-05**: Monetization is cosmetic/convenience/social, not pay-to-win.
 - [ ] **GRW-06**: Private Telegram recap gives player style label, best decision, funniest failure, and challenge suggestion.
+- [ ] **GRW-07**: Digital goods use Telegram Stars entitlement flow and never grant pay-to-win advantage.
+- [ ] **GRW-08**: Product supports Russian and English localization architecture from MVP.
 
 ## v2 Requirements
 
@@ -107,13 +111,13 @@
 | ECO-01..14 | Phase 2 | Pending |
 | DEAL-01..08 | Phase 3 | Pending |
 | MP-01..06 | Phase 4 | Pending |
-| AIH-01..05 | Phase 5 | Pending |
-| GRW-01..06 | Phase 6 | Pending |
+| AIH-01..07 | Phase 5 | Pending |
+| GRW-01..08 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 44 total
-- Mapped to phases: 44
+- v1 requirements: 48 total
+- Mapped to phases: 48
 - Unmapped: 0
 
 ---

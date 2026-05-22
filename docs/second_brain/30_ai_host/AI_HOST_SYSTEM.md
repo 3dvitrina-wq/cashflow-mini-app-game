@@ -70,6 +70,7 @@ Main risks:
 Gate:
 
 - Only add voice/video after Phase 5 text host works and match retention is proven.
+- Monetization, voice modes, localization, Telegram payments/security, and AI model choices live in `AI_HOST_MONETIZATION_AND_TECH.md`.
 
 ## Telegram Personal Recap
 
