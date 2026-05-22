@@ -20,6 +20,7 @@
 - [ ] **MP-03**: Player who disconnects is replaced by a conservative bot after timeout.
 - [ ] **MP-04**: Returning player can reclaim seat from bot if match rules allow.
 - [ ] **MP-05**: Ranked match cannot be stalled indefinitely by inactive players.
+- [ ] **MP-06**: Room can choose 1/2/3 minute turn timers and waiting vs asynchronous intent behavior.
 
 ### Deals
 
@@ -29,6 +30,7 @@
 - [ ] **DEAL-04**: MVP negotiation uses structured offers, not freeform AI interpretation.
 - [ ] **DEAL-05**: Game log explains why a deal succeeded, failed, or was rejected.
 - [ ] **DEAL-06**: Trust/reputation changes available deal terms and collateral expectations.
+- [ ] **DEAL-07**: Co-owned property deals support presets for contribution, legal owner, payout split, and sale behavior.
 
 ### Economy
 
@@ -40,6 +42,7 @@
 - [ ] **ECO-06**: Room volatility setting changes frequency/severity of market events.
 - [ ] **ECO-07**: Expenses can become latent assets when paired with later opportunity cards.
 - [ ] **ECO-08**: Futures use fictional markets, deterministic resolution, and anti-gambling guardrails.
+- [ ] **ECO-09**: Crisis states unlock recovery actions such as help, room rental, relocation, mortgage, and debt restructuring.
 
 ### AI Host
 
@@ -92,18 +95,17 @@
 ## Traceability
 
 | Requirement | Phase | Status |
-|-------------|-------|--------|
 | ENG-01..05 | Phase 1 | Pending |
-| ECO-01..08 | Phase 2 | Pending |
-| DEAL-01..06 | Phase 3 | Pending |
-| MP-01..05 | Phase 4 | Pending |
+| ECO-01..09 | Phase 2 | Pending |
+| DEAL-01..07 | Phase 3 | Pending |
+| MP-01..06 | Phase 4 | Pending |
 | AIH-01..05 | Phase 5 | Pending |
 | GRW-01..05 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 34 total
-- Mapped to phases: 34
+- v1 requirements: 37 total
+- Mapped to phases: 37
 - Unmapped: 0
 
 ---

@@ -23,6 +23,9 @@
 - Business slots.
 - Assistant slots.
 - Focus tokens.
+- Life state/avatar state.
+- Housing state.
+- Trust score.
 
 ## Business Slot Rule
 
@@ -116,6 +119,26 @@ When player disconnects:
 - Bot policy prioritizes survival, debt payment, low-risk cashflow, no aggressive negotiation.
 - Player can reclaim seat at next decision boundary.
 - Ranked penalties apply only after repeated abandonment.
+
+## Crisis and Help Mechanics
+
+Failure should open new decisions instead of ending the game:
+
+- ask another player for help;
+- rent a room from another player's property;
+- relocate to a cheaper region;
+- mortgage property;
+- restructure debt;
+- join a co-owned asset deal.
+
+Avatar state should make crisis visible and funny, e.g. cardboard-box mode after housing collapse. See `SOCIAL_CRISIS_AND_COOWNERSHIP.md`.
+
+## Turn Timing
+
+Room can choose 1/2/3 minute turns.
+
+- With waiting: all players can negotiate/react during active player's turn.
+- Without waiting: non-active players submit structured intents asynchronously and expired offers auto-resolve.
 
 ## Trust and Scam Mechanics
 

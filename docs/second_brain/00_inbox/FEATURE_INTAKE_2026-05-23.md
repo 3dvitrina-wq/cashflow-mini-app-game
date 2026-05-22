@@ -119,3 +119,15 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - How many assistant types belong in MVP?
 - How much randomness should volatility mode change: card frequency, market events, futures odds, or all of them?
 
+## Follow-Up Intake: Crisis Comedy and Co-Ownership
+
+- Add year/season progression and avatar animation.
+- Avatar becomes a readable financial state: confident when stable, cardboard-box mode after overleveraged housing disaster.
+- Player can relocate to cheaper/hotter region such as Asia as a crisis response.
+- Other players can rent out rooms from their property assets.
+- Players can ask for help or offer help.
+- 2-3 players can buy one home together, while legal ownership is assigned to one player.
+- On sale, legal owner can pay everyone correctly, pay less, delay, or betray depending on mode.
+- Deal entry conditions should be offered as presets and later customizable sliders.
+- Turn timer can be 1/2/3 minutes.
+- Need a clear rule for whether players wait for each other or submit asynchronous intents.

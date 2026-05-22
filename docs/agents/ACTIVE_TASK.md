@@ -25,7 +25,8 @@ Turn the user's raw feature ideas into organized design memory that can drive Ph
 - Assistants/staff market become a main scaling layer.
 - Modern earning paths include mini-apps, creator economy, vibe-coding, AI operators, local services.
 - Trust/reputation must affect deals if scam/fund mechanics exist.
+- Crisis states should be playable and funny: avatar animation, room rental, relocation, co-owned assets, help/betrayal choices.
 
 ## Next Step
 
-Convert feature intake into engine data model: card effect DSL, volatility mode, assistant slots, trust state, futures mini-game resolution.
+Convert feature intake into engine data model: card effect DSL, volatility mode, assistant slots, trust state, housing/life state, co-ownership terms, futures mini-game resolution.
