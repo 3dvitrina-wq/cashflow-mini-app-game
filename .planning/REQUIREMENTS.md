@@ -12,6 +12,9 @@
 - [ ] **ENG-03**: Engine supports card decks with typed effects, eligibility, cost, risk, payoff, and follow-up events.
 - [ ] **ENG-04**: Engine records every state transition in an auditable event log.
 - [ ] **ENG-05**: Engine can run a full match in simulation without UI.
+- [ ] **ENG-06**: New cards can be added through existing typed effects without engine code changes.
+- [ ] **ENG-07**: Replay from seed plus event/command log reproduces final state.
+- [ ] **ENG-08**: Client commands are validated server-side and cannot directly mutate state.
 
 ### Multiplayer
 
@@ -107,7 +110,7 @@
 ## Traceability
 
 | Requirement | Phase | Status |
-| ENG-01..05 | Phase 1 | Pending |
+| ENG-01..08 | Phase 1 | Pending |
 | ECO-01..14 | Phase 2 | Pending |
 | DEAL-01..08 | Phase 3 | Pending |
 | MP-01..06 | Phase 4 | Pending |
@@ -116,8 +119,8 @@
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 48 total
-- Mapped to phases: 48
+- v1 requirements: 51 total
+- Mapped to phases: 51
 - Unmapped: 0
 
 ---

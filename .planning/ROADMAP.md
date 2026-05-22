@@ -21,13 +21,17 @@ Deliverables:
 - Match state model.
 - Command/event log.
 - Turn phases.
-- Card schema and 30-50 MVP cards.
+- Extensible card/effect schema and 30-50 MVP cards.
+- Effect registry, condition engine, deterministic randomness, and replay.
+- Security invariants: server authority, client command validation, event log, idempotency.
 - Bot policy interface.
 - Simulation tests for 1000 matches without invalid state.
 
 Exit gate:
 - Full match can finish from seed.
 - No rule depends on AI text.
+- Adding a new card with existing effect types requires no engine code change.
+- Replay from seed + log reproduces final state.
 
 ## Phase 2 - Economy and Cards MVP
 
@@ -111,4 +115,3 @@ Deliverables:
 
 Exit gate:
 - Cost, latency, moderation, and fallback are acceptable.
-

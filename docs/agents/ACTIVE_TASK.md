@@ -7,17 +7,17 @@
 
 ## Task
 
-Capture feature vision for risk comedy, modern earning paths, assistants, social trust, and volatility modes.
+Define Phase 1 engine architecture and security invariants.
 
 ## Goal
 
-Turn the user's raw feature ideas into organized design memory that can drive Phase 1/2 engine planning.
+Lock the extensible card/effect engine principle and security boundaries before implementation.
 
 ## Scope
 
-- Documentation/design memory only.
+- Documentation/planning only.
 - No production implementation yet.
-- Keep futures/scam mechanics fictional and educational.
+- Phase 1 must be simulation-first and server-authoritative.
 
 ## Decisions
 
@@ -28,7 +28,9 @@ Turn the user's raw feature ideas into organized design memory that can drive Ph
 - Crisis states should be playable and funny: avatar animation, room rental, relocation, co-owned assets, help/betrayal choices.
 - Stress/burnout, insurance/legal protection, epoch packs, post-match recaps, and room modes are core systems.
 - Life events and legal/social contracts include kids, pets, marriage/divorce, bankruptcy, guarantees, IOUs, written contracts, lawyer contracts.
+- Engine must be extensible through typed effects and resolvers, not hardcoded card IDs.
+- Client never resolves money, randomness, futures, contracts, bankruptcy, purchases, or ranking.
 
 ## Next Step
 
-Convert feature intake into engine data model: card effect DSL, enforcement levels, bankruptcy checks, volatility mode, assistant slots, trust state, stress, protections, epoch packs, housing/life state, co-ownership terms, futures mini-game resolution.
+Implement Phase 1 engine skeleton from `.planning/phases/PHASE_1_ENGINE_SPEC.md` and `.planning/phases/PHASE_1_SECURITY_INVARIANTS.md`.
