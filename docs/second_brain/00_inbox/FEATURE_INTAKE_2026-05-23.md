@@ -162,3 +162,12 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - Add state-level crypto bans/restrictions/exchange freezes.
 - Add migration/work friction: harder to get a job in another country, credential/banking/visa barriers.
 - Keep satire fictional/abstract to avoid hate toward real nationalities; focus on systems and paperwork.
+
+## Follow-Up Intake: Job Absurdity and Reaction Communication
+
+- Add funny job-search rejection reasons and employment friction.
+- Add passive-income threshold where player can quit normal job.
+- Add absurd resignation events: dramatic email, reply-all disaster, boss portrait darts, final meme.
+- Add reaction-only room mode where players cannot free-text and communicate by system actions, stickers, GIFs, and curated reactions.
+- Telegram GIF/sticker reactions would strongly increase emotion and humor.
+- Use original/licensed/user-cleared packs for film/actor-like reactions to avoid copyright dependency.

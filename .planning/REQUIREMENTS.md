@@ -24,6 +24,7 @@
 - [ ] **MP-04**: Returning player can reclaim seat from bot if match rules allow.
 - [ ] **MP-05**: Ranked match cannot be stalled indefinitely by inactive players.
 - [ ] **MP-06**: Room can choose 1/2/3 minute turn timers and waiting vs asynchronous intent behavior.
+- [ ] **MP-07**: Reaction-only room mode can restrict free text and allow structured actions plus curated GIF/sticker reactions.
 
 ### Deals
 
@@ -54,6 +55,7 @@
 - [ ] **ECO-14**: Optional life-event cards can model kids, pets, marriage, divorce, alimony, and family stress/recovery.
 - [ ] **ECO-15**: Macro profiles can modify taxes, crypto policy, employment friction, migration cost, and legal protection.
 - [ ] **ECO-16**: Election/policy events can change macro modifiers through short, non-stalling choices.
+- [ ] **ECO-17**: Job search and resignation events model employment friction, passive-income escape, and absurd rejection reasons.
 
 ### AI Host
 
@@ -75,6 +77,7 @@
 - [ ] **GRW-06**: Private Telegram recap gives player style label, best decision, funniest failure, and challenge suggestion.
 - [ ] **GRW-07**: Digital goods use Telegram Stars entitlement flow and never grant pay-to-win advantage.
 - [ ] **GRW-08**: Product supports Russian and English localization architecture from MVP.
+- [ ] **GRW-09**: Reaction/sticker/GIF packs are monetizable cosmetics with license/source metadata and moderation.
 
 ## v2 Requirements
 
@@ -113,16 +116,16 @@
 
 | Requirement | Phase | Status |
 | ENG-01..08 | Phase 1 | Pending |
-| ECO-01..16 | Phase 2 | Pending |
+| ECO-01..17 | Phase 2 | Pending |
 | DEAL-01..08 | Phase 3 | Pending |
-| MP-01..06 | Phase 4 | Pending |
+| MP-01..07 | Phase 4 | Pending |
 | AIH-01..07 | Phase 5 | Pending |
-| GRW-01..08 | Phase 6 | Pending |
+| GRW-01..09 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 53 total
-- Mapped to phases: 53
+- v1 requirements: 56 total
+- Mapped to phases: 56
 - Unmapped: 0
 
 ---

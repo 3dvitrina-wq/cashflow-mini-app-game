@@ -125,6 +125,8 @@ Migration is a crisis/recovery tool, but not free:
 
 Important framing: use fictional passports/regions or abstract foreign-worker friction to avoid targeting real nationalities. If a scenario wants "Russian in another country" satire, represent it as a fictional origin tag and focus on systems: paperwork, banking, employer risk, credential recognition.
 
+Job search comedy and resignation events live in `JOB_ABSURDITY_AND_REACTION_COMMS.md`.
+
 ## Cards / Events
 
 - Election Night.
@@ -166,4 +168,3 @@ Phase 2 content can start with three profiles:
 - Startup Republic.
 - Paperwork Empire.
 - Crypto Island.
-

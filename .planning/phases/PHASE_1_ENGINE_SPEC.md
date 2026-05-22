@@ -36,6 +36,7 @@ Only genuinely new mechanics add new effect resolvers.
 - epoch pack;
 - macro profile;
 - tax/crypto/employment policy modifiers;
+- communication mode;
 - timer settings;
 - players;
 - decks/discard piles;
@@ -95,6 +96,8 @@ An effect is typed and parameterized:
 - `market.event.apply`;
 - `macro.policy.apply`;
 - `election.resolve`;
+- `job.event.apply`;
+- `reaction.emit`;
 - `choice.open`;
 - `deal.window.open`.
 
@@ -157,6 +160,7 @@ Checks:
 - epoch pack;
 - macro profile;
 - tax/crypto/employment policy;
+- communication mode;
 - card tags;
 - active protections;
 - contract state.

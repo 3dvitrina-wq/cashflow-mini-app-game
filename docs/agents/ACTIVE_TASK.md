@@ -31,7 +31,8 @@ Lock the extensible card/effect engine principle and security boundaries before 
 - Engine must be extensible through typed effects and resolvers, not hardcoded card IDs.
 - Client never resolves money, randomness, futures, contracts, bankruptcy, purchases, or ranking.
 - Macro politics/elections/taxes/crypto/migration are allowed as fictional regime modifiers, not real-world hate.
+- Job-search absurdity, resignation events, and reaction-only GIF/sticker communication are planned social layers.
 
 ## Next Step
 
-Implement Phase 1 engine skeleton from `.planning/phases/PHASE_1_ENGINE_SPEC.md` and `.planning/phases/PHASE_1_SECURITY_INVARIANTS.md`, including macro profile fields.
+Implement Phase 1 engine skeleton from `.planning/phases/PHASE_1_ENGINE_SPEC.md` and `.planning/phases/PHASE_1_SECURITY_INVARIANTS.md`, including macro profile and communication mode fields.
