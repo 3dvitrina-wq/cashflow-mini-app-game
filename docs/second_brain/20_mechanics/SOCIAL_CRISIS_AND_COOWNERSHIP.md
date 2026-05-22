@@ -147,3 +147,4 @@ Defer:
 - legal dispute mini-game;
 - advanced relocation economy.
 
+See also `CRISIS_CARD_CONCEPTS.md` for absurd crisis-choice cards that convert money loss into migration, stress, legal risk, bad internet, or trust damage.

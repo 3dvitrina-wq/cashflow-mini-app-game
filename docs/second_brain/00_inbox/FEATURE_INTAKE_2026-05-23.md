@@ -171,3 +171,10 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - Add reaction-only room mode where players cannot free-text and communicate by system actions, stickers, GIFs, and curated reactions.
 - Telegram GIF/sticker reactions would strongly increase emotion and humor.
 - Use original/licensed/user-cleared packs for film/actor-like reactions to avoid copyright dependency.
+
+## Follow-Up Intake: Absurd Crisis Card
+
+- Add card where player loses all cash on hand.
+- Player can choose mitigation options: relocate, change passport/paperwork identity, plastic surgery gag.
+- These options should not remove punishment; they convert it into worse comfort: stress, migration friction, other country, no internet, legal risk, trust damage.
+- Ranked should use safer variants; full absurd version belongs to chaos/private mode first.

@@ -48,6 +48,7 @@
 - [ ] **ECO-07**: Expenses can become latent assets when paired with later opportunity cards.
 - [ ] **ECO-08**: Futures use fictional markets, deterministic resolution, and anti-gambling guardrails.
 - [ ] **ECO-09**: Crisis states unlock recovery actions such as help, room rental, relocation, mortgage, and debt restructuring.
+- [ ] **ECO-09A**: Crisis cards can offer mitigation choices that convert cash loss into stress, migration friction, legal risk, bad internet, or trust damage.
 - [ ] **ECO-10**: Stress/burnout increases mistakes and can be reduced through delegation, simplification, or protection cards.
 - [ ] **ECO-11**: Insurance/legal/accounting protections can mitigate tax, court, accident, and platform-block events.
 - [ ] **ECO-12**: Epoch packs change market event distribution and available opportunity types.

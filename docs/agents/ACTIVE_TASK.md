@@ -33,6 +33,7 @@ Lock the extensible card/effect engine principle and security boundaries before 
 - Client never resolves money, randomness, futures, contracts, bankruptcy, purchases, or ranking.
 - Macro politics/elections/taxes/crypto/migration are allowed as fictional regime modifiers, not real-world hate.
 - Job-search absurdity, resignation events, and reaction-only GIF/sticker communication are planned social layers.
+- Absurd crisis cards may offer mitigation choices, but they convert punishment into other disadvantages rather than erasing it.
 
 ## Next Step
 
