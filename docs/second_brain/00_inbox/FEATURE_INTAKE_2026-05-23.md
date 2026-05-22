@@ -153,3 +153,12 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - Add court/bankruptcy checks: recent transfers can be clawed back, guarantors can become liable, reputation collapses if abuse is detected.
 - Add enforcement levels for deals: honest word, IOU/receipt, written contract, lawyer contract.
 - Stronger paperwork costs money but lets the engine enforce payouts automatically instead of relying on player honesty.
+
+## Follow-Up Intake: Macro Politics and Elections
+
+- Add presidential/election mechanics as satirical macro events.
+- Add different country/regime modes: taxes, crypto policy, bureaucracy, employment difficulty.
+- Add tax burden and tax office pressure as gameplay modifiers.
+- Add state-level crypto bans/restrictions/exchange freezes.
+- Add migration/work friction: harder to get a job in another country, credential/banking/visa barriers.
+- Keep satire fictional/abstract to avoid hate toward real nationalities; focus on systems and paperwork.

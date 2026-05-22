@@ -52,6 +52,8 @@
 - [ ] **ECO-12**: Epoch packs change market event distribution and available opportunity types.
 - [ ] **ECO-13**: Bankruptcy tracks recent transfers, guarantees, protected assets, and reputation consequences.
 - [ ] **ECO-14**: Optional life-event cards can model kids, pets, marriage, divorce, alimony, and family stress/recovery.
+- [ ] **ECO-15**: Macro profiles can modify taxes, crypto policy, employment friction, migration cost, and legal protection.
+- [ ] **ECO-16**: Election/policy events can change macro modifiers through short, non-stalling choices.
 
 ### AI Host
 
@@ -111,7 +113,7 @@
 
 | Requirement | Phase | Status |
 | ENG-01..08 | Phase 1 | Pending |
-| ECO-01..14 | Phase 2 | Pending |
+| ECO-01..16 | Phase 2 | Pending |
 | DEAL-01..08 | Phase 3 | Pending |
 | MP-01..06 | Phase 4 | Pending |
 | AIH-01..07 | Phase 5 | Pending |
@@ -119,8 +121,8 @@
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 51 total
-- Mapped to phases: 51
+- v1 requirements: 53 total
+- Mapped to phases: 53
 - Unmapped: 0
 
 ---

@@ -65,3 +65,5 @@ Room creator or player vote can choose financial rollercoaster level:
 - Chaos: more regulation shocks, scams, exchange outages, viral booms, and liquidation comedy.
 
 Epoch packs can override the event mix: Crypto Winter, AI Boom, Banks Squeeze Rates, Marketplaces Cut Sellers, Tax Office Wakes Up, Creator Gold Rush.
+
+Macro politics can also override rules through fictional regime profiles, elections, tax policy, crypto policy, and migration/work friction. See `MACRO_POLITICS_AND_REGIME_SYSTEM.md`.

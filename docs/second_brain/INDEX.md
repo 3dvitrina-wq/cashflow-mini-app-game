@@ -11,6 +11,7 @@
 - `30_ai_host/AI_HOST_MONETIZATION_AND_TECH.md`
 - `30_ai_host/AI_HOST_SYSTEM.md`
 - `40_economy/ECONOMY_AND_MARKETS.md`
+- `40_economy/MACRO_POLITICS_AND_REGIME_SYSTEM.md`
 - `40_economy/MODERN_EARNING_PATHS.md`
 - `50_growth/GROWTH_MONETIZATION.md`
 - `60_risks/RISK_REGISTER.md`

@@ -34,6 +34,8 @@ Only genuinely new mechanics add new effect resolvers.
 - round/turn;
 - room mode;
 - epoch pack;
+- macro profile;
+- tax/crypto/employment policy modifiers;
 - timer settings;
 - players;
 - decks/discard piles;
@@ -91,6 +93,8 @@ An effect is typed and parameterized:
 - `bankruptcy.file`;
 - `protection.add`;
 - `market.event.apply`;
+- `macro.policy.apply`;
+- `election.resolve`;
 - `choice.open`;
 - `deal.window.open`.
 
@@ -151,6 +155,8 @@ Checks:
 - stress/trust thresholds;
 - room mode;
 - epoch pack;
+- macro profile;
+- tax/crypto/employment policy;
 - card tags;
 - active protections;
 - contract state.
@@ -255,4 +261,3 @@ Client cannot:
 - Adding a new card with existing effect types requires no engine code change.
 - Invalid client commands are rejected and logged.
 - AI host text has no authority over rules.
-
