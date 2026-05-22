@@ -38,3 +38,6 @@ A Telegram-native financial strategy table where 2-6 players try to escape fragi
 - AI host feed.
 - Endgame recap and challenge/rematch.
 
+## Explicit Non-Goal
+
+MVP is not a 3-4 hour online reproduction of an offline Cashflow session with a live video host. Human-hosted long games can become premium events later, but the core product must fit Telegram behavior: short, restartable, social, and playable without scheduling a webinar-sized block of life.

@@ -20,3 +20,8 @@
 
 The game wins if it feels like a smart social table: every player sees tempting shortcuts, but the best players learn to manage liquidity, timing, risk, and people.
 
+## Online Cashflow-Like Anti-Pattern
+
+Do not make the MVP a 3-4 hour online board-game stream with a real host. That format competes with webinars and meetings, not mobile games. Offline long sessions can work because the physical event supplies atmosphere and side-social energy; online, the same rules become downtime, video fatigue, scheduling friction, and accounting work.
+
+See: `ONLINE_CASHFLOW_FAILURES.md`.

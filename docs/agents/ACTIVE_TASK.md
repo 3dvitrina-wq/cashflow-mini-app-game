@@ -27,5 +27,4 @@ Create a clean agent-ready structure: GSD planning, agent docs, research, MVP in
 
 ## Next Step
 
-Plan Phase 1: deterministic game engine.
-
+Collect user's desired features as short feature cards, then plan Phase 1 deterministic game engine. New research note added: avoid 3-4 hour live-hosted online Cashflow clone; make the core Telegram-native, shorter, and host-independent.
