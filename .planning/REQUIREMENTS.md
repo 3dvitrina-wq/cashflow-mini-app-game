@@ -31,6 +31,7 @@
 - [ ] **DEAL-05**: Game log explains why a deal succeeded, failed, or was rejected.
 - [ ] **DEAL-06**: Trust/reputation changes available deal terms and collateral expectations.
 - [ ] **DEAL-07**: Co-owned property deals support presets for contribution, legal owner, payout split, and sale behavior.
+- [ ] **DEAL-08**: Deals support enforcement levels: honest word, IOU, written contract, lawyer contract.
 
 ### Economy
 
@@ -46,6 +47,8 @@
 - [ ] **ECO-10**: Stress/burnout increases mistakes and can be reduced through delegation, simplification, or protection cards.
 - [ ] **ECO-11**: Insurance/legal/accounting protections can mitigate tax, court, accident, and platform-block events.
 - [ ] **ECO-12**: Epoch packs change market event distribution and available opportunity types.
+- [ ] **ECO-13**: Bankruptcy tracks recent transfers, guarantees, protected assets, and reputation consequences.
+- [ ] **ECO-14**: Optional life-event cards can model kids, pets, marriage, divorce, alimony, and family stress/recovery.
 
 ### AI Host
 
@@ -85,6 +88,7 @@
 - **ADV-03**: AI training coach after match.
 - **ADV-04**: Fund/broker/scam mechanics for chaos/private modes with persistent trust consequences.
 - **ADV-05**: Staff market with hiring, firing, training, and specialist roles.
+- **ADV-06**: Player-to-player marriage and divorce in private/chaos modes with explicit consent and contract terms.
 
 ## Out of Scope
 
@@ -100,16 +104,16 @@
 
 | Requirement | Phase | Status |
 | ENG-01..05 | Phase 1 | Pending |
-| ECO-01..12 | Phase 2 | Pending |
-| DEAL-01..07 | Phase 3 | Pending |
+| ECO-01..14 | Phase 2 | Pending |
+| DEAL-01..08 | Phase 3 | Pending |
 | MP-01..06 | Phase 4 | Pending |
 | AIH-01..05 | Phase 5 | Pending |
 | GRW-01..06 | Phase 6 | Pending |
 | VID-01..03 | v2 | Deferred |
 
 **Coverage:**
-- v1 requirements: 41 total
-- Mapped to phases: 41
+- v1 requirements: 44 total
+- Mapped to phases: 44
 - Unmapped: 0
 
 ---

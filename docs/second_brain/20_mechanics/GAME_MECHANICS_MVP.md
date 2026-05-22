@@ -147,6 +147,17 @@ Room can choose 1/2/3 minute turns.
 
 Stress, insurance, lawyers, reputation, epoch packs, post-match recap tags, and room modes are core state fields even if the first content set is small. See `STRESS_INSURANCE_REPUTATION_MODES.md`.
 
+## Life Events and Social Contracts
+
+Family, pets, marriage, divorce, bankruptcy, guarantees, and contract enforcement can become optional social-life mechanics. MVP should at least support deal enforcement levels:
+
+- honest word;
+- IOU/receipt;
+- written contract;
+- lawyer contract.
+
+See `LIFE_EVENTS_AND_SOCIAL_CONTRACTS.md`.
+
 ## Trust and Scam Mechanics
 
 Private/chaos modes can allow fund/broker actions:

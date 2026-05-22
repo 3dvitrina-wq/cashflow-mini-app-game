@@ -4,6 +4,7 @@
 
 - `10_game_design/MVP_INTENT.md`
 - `20_mechanics/GAME_MECHANICS_MVP.md`
+- `20_mechanics/LIFE_EVENTS_AND_SOCIAL_CONTRACTS.md`
 - `20_mechanics/RISK_COMEDY_AND_FUTURES.md`
 - `20_mechanics/SOCIAL_CRISIS_AND_COOWNERSHIP.md`
 - `20_mechanics/STRESS_INSURANCE_REPUTATION_MODES.md`

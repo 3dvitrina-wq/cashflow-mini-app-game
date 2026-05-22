@@ -140,3 +140,16 @@ Make the game sticky, funny, modern, and a little cruel in the right way: player
 - Epoch packs: Crypto Winter, AI Boom, Banks Squeeze Rates, Marketplaces Cut Sellers, Tax Office Wakes Up.
 - Post-match Telegram recap: risk style, best decision, funniest failure, revenge challenge.
 - Room modes: Calm, Normal, Financial Rollercoaster, Chaos; creator or vote before start.
+
+## Follow-Up Intake: Family, Marriage, Bankruptcy, Contracts
+
+- Add kids as compressed family arcs, not literal 30-year growth in short matches.
+- Kids create expenses and stress, but can later become motivation, help, family-business boost, or rare gratitude reward.
+- Add pets as cost + responsibility + stress reduction + possible content/business synergy.
+- Add marriage/partnership; possibly between real players in private/chaos mode.
+- Marriage can create shared assets, shared expenses, divorce, alimony, child support, legal fees.
+- Add prenuptial agreement/lawyer protection so half the house is not automatically lost.
+- Add bankruptcy as a system with possible abuse attempts: transfer assets to players, borrow money, buy assets under another name, sign guarantees.
+- Add court/bankruptcy checks: recent transfers can be clawed back, guarantors can become liable, reputation collapses if abuse is detected.
+- Add enforcement levels for deals: honest word, IOU/receipt, written contract, lawyer contract.
+- Stronger paperwork costs money but lets the engine enforce payouts automatically instead of relying on player honesty.

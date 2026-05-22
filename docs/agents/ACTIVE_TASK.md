@@ -27,7 +27,8 @@ Turn the user's raw feature ideas into organized design memory that can drive Ph
 - Trust/reputation must affect deals if scam/fund mechanics exist.
 - Crisis states should be playable and funny: avatar animation, room rental, relocation, co-owned assets, help/betrayal choices.
 - Stress/burnout, insurance/legal protection, epoch packs, post-match recaps, and room modes are core systems.
+- Life events and legal/social contracts include kids, pets, marriage/divorce, bankruptcy, guarantees, IOUs, written contracts, lawyer contracts.
 
 ## Next Step
 
-Convert feature intake into engine data model: card effect DSL, volatility mode, assistant slots, trust state, stress, protections, epoch packs, housing/life state, co-ownership terms, futures mini-game resolution.
+Convert feature intake into engine data model: card effect DSL, enforcement levels, bankruptcy checks, volatility mode, assistant slots, trust state, stress, protections, epoch packs, housing/life state, co-ownership terms, futures mini-game resolution.
