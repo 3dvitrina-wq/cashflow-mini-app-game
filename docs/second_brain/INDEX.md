@@ -2,7 +2,9 @@
 
 ## Start
 
+- `10_game_design/CHARACTER_VISUAL_STYLE_PROMPT.md`
 - `10_game_design/MVP_INTENT.md`
+- `10_game_design/SATIRICAL_HOOKS_BACKLOG.md`
 - `20_mechanics/GAME_MECHANICS_MVP.md`
 - `20_mechanics/JOB_ABSURDITY_AND_REACTION_COMMS.md`
 - `20_mechanics/LIFE_EVENTS_AND_SOCIAL_CONTRACTS.md`

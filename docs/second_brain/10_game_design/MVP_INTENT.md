@@ -26,6 +26,7 @@ A Telegram-native financial strategy table where 2-6 players try to escape fragi
 - Fictional crypto/futures and trading bots exist, but the game teaches margin and liquidation risk.
 - Boring choices can win: deposits, diversification, insurance, low-risk businesses.
 - Non-obvious deals become great only for the right player at the right time.
+- Visual identity: satirical toy-comic avatars whose state changes with debt, stress, housing, tax panic, futures liquidation, and passive-income calm.
 
 ## MVP Screens
 
