@@ -1,0 +1,20 @@
+{
+  "name": "cashflow-mini-app-game",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Telegram Mini App financial strategy game with deterministic game logic and optional AI host.",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "sync": "python3 tools/agent_autosync.py",
+    "typecheck": "echo \"TODO: add TypeScript project refs\"",
+    "test": "echo \"TODO: add game-engine tests\"",
+    "sim": "echo \"TODO: run balancing simulations\""
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
+

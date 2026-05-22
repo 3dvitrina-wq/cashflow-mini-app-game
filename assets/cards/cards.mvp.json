@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "cards": [
+    {
+      "id": "DEP-001",
+      "type": "deposit",
+      "title": "Bank Promo Lock",
+      "summary": "Lock cash for 3 rounds at 2 percent yield, capped by league rules.",
+      "effects": ["cash_locked", "yield_2_percent"],
+      "risk": "low"
+    },
+    {
+      "id": "BUS-001",
+      "type": "business",
+      "title": "Weekend Logistics Route",
+      "summary": "Small recurring income, consumes 1 business slot, vulnerable to fuel shock.",
+      "effects": ["passive_income", "business_slot_1"],
+      "risk": "medium"
+    },
+    {
+      "id": "CRY-001",
+      "type": "crypto",
+      "title": "NEON Spot Entry",
+      "summary": "Buy fictional token exposure. Volatile, no leverage.",
+      "effects": ["volatile_asset"],
+      "risk": "high"
+    },
+    {
+      "id": "FUT-001",
+      "type": "futures",
+      "title": "DRIFT 2x Futures",
+      "summary": "Leveraged fictional contract with margin and liquidation.",
+      "effects": ["leverage_2x", "margin_call"],
+      "risk": "very_high"
+    },
+    {
+      "id": "AST-001",
+      "type": "assistant",
+      "title": "Operations Assistant",
+      "summary": "Reduces upkeep on one business, consumes assistant slot.",
+      "effects": ["upkeep_reduction", "assistant_slot_1"],
+      "risk": "low"
+    }
+  ]
+}
+

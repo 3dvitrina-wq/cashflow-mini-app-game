@@ -1,0 +1,12 @@
+node_modules/
+.env
+.env.local
+.turbo/
+.next/
+dist/
+coverage/
+*.log
+.DS_Store
+__pycache__/
+*.pyc
+docs/agents/AUTO_CONTEXT.md
