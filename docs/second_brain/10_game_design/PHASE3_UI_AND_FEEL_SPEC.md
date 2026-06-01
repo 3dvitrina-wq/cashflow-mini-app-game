@@ -95,15 +95,16 @@
    - `PASS` (gray, exit negotiation; non-owner can still be contacted by others)
 
 **Fairness Calculation** (engine-side, UI displays only):
+
+Pure net-value swing (decided by operator: net swing only, no enforcement cost deduction):
 ```
 Each player's "swing":
   = (asset value + passive income stream present value) 
-    - (cash paid by them) 
-    - (enforcement cost)
+    - (cash paid by them)
 
 If |ownerSwing - buyerSwing| > 20% of average, show warning.
 ```
-The warning is **informational only**, not a veto.
+The warning is **informational only**, not a veto. Enforcement level affects consequences (breach penalty), not fairness warning itself.
 
 **GameEvents mapped:**
 - `phase: 'deal_window'` → open modal, show both players' chips
@@ -154,6 +155,12 @@ After deal locks, asset appears in player dashboard with ownership marker:
 
 **Goal:** Show each player how many "premium interest actions" they have left this match.
 
+**Economy (decided by operator: baseline 1/round):**
+- Players earn **1 focus token per round** (baseline passive income)
+- Additional sources: synergy triggers grant +1 (rare bonus), achievements grant +1
+- Can be spent to override non-selection in interest window (if >3 players interested)
+- Max 10 tokens (soft cap, rolls over next season)
+
 #### UI: Focus Token Chip
 
 Appears in player strip or as a small badge on each player chip:
@@ -161,7 +168,7 @@ Appears in player strip or as a small badge on each player chip:
 ```
 Player Strip:
 ┌───────────────────────┐
-│ 🧠 ●●● ·· (3 left)  │  Focus tokens
+│ 🧠 ●●● ·· (3 left)  │  Focus tokens (earned this round)
 │ ◀ HUSTLER   $1500    │
 │ 😊 ▮▮░░░░░░ stress   │
 └───────────────────────┘
@@ -170,7 +177,7 @@ Player Strip:
 Or inline in the interest window:
 ```
 [INTERESTED]  You have 2 focus left this match
-                (spend 1 extra to bid anyway)
+                (spend 1 to bid even if not auto-selected)
 ```
 
 **When it matters:**
@@ -180,9 +187,10 @@ Or inline in the interest window:
 - B clicks "Spend Focus to Bid" → engine deducts 1 focus, adds B to negotiation pool
 
 **GameEvents mapped:**
-- `effect: 'synergy.trigger'` → grant +1 focus token (rare bonus from synergy combos)
+- `phase: 'settlement'` → award +1 focus token to each active player
+- `effect: 'synergy.trigger'` → grant +1 focus token (bonus from synergy combos)
 - `command_accepted: 'express_interest'` (when player has 0 focus) → deduct 1 focus, show toast
-- Settlement phase → show updated focus count to player
+- Dashboard update → display current focus count to player
 
 ---
 
@@ -321,24 +329,26 @@ No new engine mechanics. All moments are mapped to existing GameEvents.
 
 ### Tension Beat 5: Momentum Chain (Combo Feedback)
 
-**Goal:** If a player strings together positive moves in one round sequence, reward with visual momentum signal.
+**Goal:** If a player strings together **positive events only** in one round sequence, reward with visual momentum signal.
 
-**Definition of a "combo":**
+**Definition of a "combo" (decided by operator: only positive deltas):**
 - Successful deal acceptance → synergy unlock → passive income gain within the same round
-- OR: Player in crisis, accepts help → avatar recovers → trust from helper
+- **Only counts positive deltas.** Failed deals, rejected offers, passed turns do NOT break chain but don't add to count.
+- Must have ≥2 positive events to trigger combo UI
 
 **Visual Moment (600ms total):**
-1. First event resolves (deal accepted): baseline glow green
-2. Second event triggers (synergy): add gold halo around player chip
-3. Third event triggers (income boost): brief particle effect burst (coins/sparkles) at player position
+1. First positive event resolves (deal accepted): baseline glow green
+2. Second positive event triggers (synergy OR income): add gold halo around player chip
+3. Particle effect burst (coins/sparkles) at player position
 4. Pet reacts with excited state (if available)
-5. Host cue: "Three for three — you're cooking."
+5. Host cue: "Smart moves in a row — momentum building."
 
-**Cascade prevention:** Momentum only chains within one round's resolution phase. Next round resets.
+**Cascade prevention:** Momentum only chains within one round's resolution phase. Next round resets counter.
 
 **GameEvents mapped:**
-- Track consecutive successful `command_accepted` events (deal, synergy, income boost) in one phase
-- If ≥2 in sequence and all positive, emit synthetic `reaction: 'combo'` event
+- Track consecutive **positive delta** events: `command_accepted: 'accept_deal'`, `effect: 'synergy.trigger'`, `effect: 'income.add'`
+- If ≥2 positive deltas in sequence within same phase, emit synthetic `reaction: 'combo'` event
+- Ignore: rejections, passes, losses (no negative delta count)
 - UI subscribes to reaction events and plays sequence
 
 ---
@@ -347,16 +357,19 @@ No new engine mechanics. All moments are mapped to existing GameEvents.
 
 The turn timer is the glue that ties everything together. Every player is aware of the same timer.
 
-**Visual Rhythm:**
-- **Turns 0-30 sec:** normal, calm pulse (if timer is displayed, gentle breathing animation)
-- **Turns 30-60 sec:** slightly faster, yellow background if player is active
-- **Last 10 sec:** urgent red, beeping or haptic pulse (if enabled), player cannot start new deals after 5-sec mark
+**Visual Rhythm (decided by operator: moderate escalation = color + pulse, no sound/haptic):**
+- **Turns 0-30 sec:** calm (default colors, no animation)
+- **Turns 30-60 sec:** slightly faster (yellow background appears if player is active)
+- **Last 10 sec:** **moderate escalation** = color shift to red + subtle pulse animation (100-200ms, breathe-like)
+  - No beeping or haptic in base mode (can be enabled per room settings)
+  - Player cannot start new deals after 5-sec mark (gray out DEAL button)
 
-This creates **synchronous tension** across all players. Everyone is racing the clock together.
+This creates **synchronous tension** across all players. Everyone is racing the clock together, but escalation is visual-only in base config.
 
 **GameEvents mapped:**
 - `phase: 'intent_window'` + timer countdown → update UI timer element
-- Timer % < 20% → change timer color to red, enable haptic if available
+- Timer % between 20-30% → change timer color to yellow
+- Timer % < 20% → change timer color to red, apply pulse animation
 - Timer % === 0% → auto-pass any unresolved intents, show "Auto-pass: timeout"
 
 ---
@@ -371,10 +384,14 @@ Not every moment is intense. Release happens via:
    - Passive income tea-sip or coin-flip animation
    - Only play during `phase: 'settlement'` or between active player turns
 
-2. **Host line delivery** (2 sec window):
+2. **Host line delivery** (2 sec window, decided by operator: all three channels):
    - Template fallback: "Storage Pod is paying off. Nice."
+   - **Three UI channels** (for maximum impact on important moments):
+     1. Host bubble (always visible, left/right side)
+     2. Toast notification (top/center, fades after 3 sec)
+     3. Full-screen caption (only for major beats: synergy unlock, liquidation, comeback moment)
    - Delivered AFTER resolution is complete, gives players a beat to breathe
-   - AI host voice is optional; template text is sufficient
+   - AI host voice is optional; template text is sufficient in v1
 
 3. **Recap micro-moment** (3-5 sec between rounds):
    - Show last round's score change (green/red deltas)
@@ -419,18 +436,24 @@ Respect `prefers-reduced-motion` by substituting color changes for animation whe
 
 ---
 
-## Open Questions for Operator
+## Design Decisions (Operator-Decided)
 
-1. **Fairness calculation:** Is net-value-swing the right metric, or should fairness also account for deal enforcement level (lawyer contracts cost 50-100)?
-   - Options: [Yes, pure net swing] [No, include enforcement cost] [Both, show two metrics]
+✅ **1. Fairness calculation:** Pure net-value swing (no enforcement cost deduction)
+   - Enforcement level affects consequences (breach penalty), not fairness warning
 
-2. **Focus token economy:** Should players earn focus only from synergy, or also from: each turn (1 token/round), winning trust bonuses, achievements?
-   - Options: [Synergy only] [Synergy + 1/round baseline] [Multiple sources (see detailed breakdown)]
+✅ **2. Focus token economy:** Baseline 1 token/round, plus synergy bonuses (+1 each)
+   - Implemented in settlement phase: auto-grant +1 to each active player
+   - Max 10 tokens (soft cap), rolls over next season
 
-3. **Combo momentum:** Should a failed/rejected deal break the combo chain, or only count successful resolutions?
-   - Options: [Only success chains] [Any rapid sequence counts] [Only positive deltas count (ignore passes)]
+✅ **3. Combo momentum:** Only positive deltas count (failed/rejected deals don't break chain, just don't add)
+   - Minimum 2 positive events to trigger combo UI
+   - Resets each round
 
-4. **Host commentary placement:** Should host cues appear: [In a bubble only], [In bubble + popup toast], [Bubble + toast + full-screen caption]?
-   - This affects readability during fast sequences.
+✅ **4. Host commentary placement:** All three channels simultaneously
+   - Bubble (always), Toast notification (fade 3 sec), Full-screen caption (major moments only)
+   - Increases impact on synergy unlock, liquidation, comeback moments
 
-5. **Tension ramp:** How aggressive should the final-round escalation be? Suggestions: [Subtle (slight color shift)] [Moderate (color + timer pulse)] [Aggressive (color + sound + haptic + pet stress)]?
+✅ **5. Tension ramp:** Moderate escalation (color + pulse, no sound/haptic in base)
+   - 0-30 sec: calm
+   - 30-60 sec: yellow
+   - Last 10 sec: red + pulse animation (100-200ms breathe-like)
