@@ -46,6 +46,9 @@ interface MatchDetail {
   totalFuturesPositions: number;
   bankruptcies: number;
   allScores: number[];
+  // Phase 3 audit
+  fairnessChecks: number;
+  trustDeltaEvents: number;
 }
 
 function makeRoster(seed: number): NewPlayer[] {
@@ -254,6 +257,8 @@ function main(): void {
         totalFuturesPositions: scores.reduce((s, sc) => s + sc.futures, 0),
         bankruptcies: scores.filter((s) => s.bankrupt).length,
         allScores: scores.map((s) => s.score),
+        fairnessChecks: state.eventLog.filter((e) => e.effectType === 'deal.fairness_check').length,
+        trustDeltaEvents: state.eventLog.filter((e) => e.effectType === 'trust.delta').length,
       });
     }
 
@@ -319,6 +324,12 @@ function main(): void {
     console.log(`  Avg freedom score   : ${Math.round(avgFreedom)}`);
     console.log(`  Avg deposits/match  : $${Math.round(avgDeposits)}`);
     console.log(`  Avg contracts/match : ${avgContracts.toFixed(1)}`);
+
+    // Phase 3: fairness audit stats
+    const totalFairnessChecks = matchDetails.reduce((s, m) => s + m.fairnessChecks, 0);
+    const totalTrustDeltas = matchDetails.reduce((s, m) => s + m.trustDeltaEvents, 0);
+    console.log(`  Fairness checks     : ${totalFairnessChecks} total (${(totalFairnessChecks / finished).toFixed(1)}/match) ${totalFairnessChecks > 0 ? '✓ auditable' : '✗ none'}`);
+    console.log(`  Trust delta events  : ${totalTrustDeltas} total (${(totalTrustDeltas / finished).toFixed(1)}/match)`);
 
     // Score spread
     const allScores = matchDetails.flatMap((m) => m.allScores);
