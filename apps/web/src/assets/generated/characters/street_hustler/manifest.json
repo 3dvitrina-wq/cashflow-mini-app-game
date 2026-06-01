@@ -1,0 +1,45 @@
+{
+  "id": "street_hustler",
+  "displayName": "Street Hustler",
+  "status": "profile_bust_generated_chromakey_alpha",
+  "source_reference": "apps/web/src/assets/generated/characters/street_hustler/references/source-reference.png",
+  "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
+  "outputContract": {
+    "alpha": "source-green PNG converted locally to RGBA PNG",
+    "chromaKey": "#00ff00 flat source background",
+    "noPseudoTransparency": true,
+    "profileUse": "waist-up profile card / portrait",
+    "gameUse": "full-body avatar views and emotion states",
+    "ageConstraint": "young adult, not child"
+  },
+  "defaultAnchors": {
+    "head_top": [0.5, 0.08],
+    "hairline": [0.5, 0.16],
+    "eyes": [0.5, 0.25],
+    "mouth": [0.5, 0.34],
+    "neck": [0.5, 0.42],
+    "chest": [0.5, 0.52],
+    "left_wrist": [0.28, 0.58],
+    "right_wrist": [0.72, 0.58],
+    "waist": [0.5, 0.66],
+    "feet": [0.5, 0.96],
+    "pet_slot_left": [-0.18, 0.82],
+    "pet_slot_right": [1.12, 0.82]
+  },
+  "plannedSprites": [
+    "portraits/street_hustler_profile_bust-source-green.png",
+    "portraits/street_hustler_profile_bust.png",
+    "turnaround/street_hustler_front.png",
+    "turnaround/street_hustler_three_quarter.png",
+    "turnaround/street_hustler_side.png",
+    "turnaround/street_hustler_back_three_quarter.png",
+    "emotions/street_hustler_stable.png",
+    "emotions/street_hustler_overworked.png",
+    "emotions/street_hustler_overleveraged.png",
+    "emotions/street_hustler_tax_panic.png",
+    "emotions/street_hustler_futures_liq.png",
+    "emotions/street_hustler_passive_calm.png",
+    "emotions/street_hustler_cardboard.png",
+    "emotions/street_hustler_nomad.png"
+  ]
+}

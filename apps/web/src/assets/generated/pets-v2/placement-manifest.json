@@ -1,0 +1,168 @@
+{
+  "version": 1,
+  "coordinateSpace": "normalized character sprite box, x/y 0..1 from top-left; offsets are relative to character height",
+  "renderOrder": [
+    "pet_behind",
+    "character",
+    "accessory_back",
+    "pet_ground",
+    "pet_container",
+    "accessory_front",
+    "pet_shoulder",
+    "pet_fx"
+  ],
+  "characterRequiredAnchors": {
+    "feet": [0.5, 0.96],
+    "pet_slot_left": [-0.18, 0.82],
+    "pet_slot_right": [1.12, 0.82],
+    "left_shoulder": [0.36, 0.39],
+    "right_shoulder": [0.64, 0.39],
+    "shoulder_pet_left": [0.27, 0.28],
+    "shoulder_pet_right": [0.73, 0.28],
+    "held_container": [0.62, 0.56],
+    "chest": [0.5, 0.52]
+  },
+  "containers": {
+    "round_aquarium": {
+      "file": "apps/web/src/assets/generated/pets-v2/containers/round_aquarium.png",
+      "source_green": "apps/web/src/assets/generated/pets-v2/containers/round_aquarium-source-green.png",
+      "size": [888, 896],
+      "innerSwimBox": [0.2, 0.28, 0.8, 0.76],
+      "frontGlassLayer": "same_png",
+      "notes": "Render this as the container overlay, then render fish inside innerSwimBox with aquarium_swim animation."
+    }
+  },
+  "speciesPlacement": {
+    "dog": {
+      "mount": "ground",
+      "anchor": "pet_slot_right",
+      "baselineAnchor": "feet",
+      "layer": "pet_ground",
+      "scaleRelativeToCharacterHeight": 0.34,
+      "offset": [0, 0],
+      "canMirror": true,
+      "animationProfile": "ground_buddy"
+    },
+    "cat": {
+      "mount": "ground",
+      "anchor": "pet_slot_right",
+      "baselineAnchor": "feet",
+      "layer": "pet_ground",
+      "scaleRelativeToCharacterHeight": 0.31,
+      "offset": [0, 0],
+      "canMirror": true,
+      "animationProfile": "ground_buddy"
+    },
+    "rabbit": {
+      "mount": "ground",
+      "anchor": "pet_slot_right",
+      "baselineAnchor": "feet",
+      "layer": "pet_ground",
+      "scaleRelativeToCharacterHeight": 0.3,
+      "offset": [0.02, 0],
+      "canMirror": true,
+      "animationProfile": "hop_buddy"
+    },
+    "turtle": {
+      "mount": "ground",
+      "anchor": "pet_slot_right",
+      "baselineAnchor": "feet",
+      "layer": "pet_ground",
+      "scaleRelativeToCharacterHeight": 0.27,
+      "offset": [0.02, 0.02],
+      "canMirror": true,
+      "animationProfile": "slow_buddy"
+    },
+    "gecko": {
+      "mount": "shoulder_or_ground",
+      "preferredAnchor": "shoulder_pet_right",
+      "fallbackAnchor": "pet_slot_right",
+      "layer": "pet_shoulder",
+      "scaleRelativeToCharacterHeight": 0.18,
+      "offset": [0.01, 0.02],
+      "canMirror": true,
+      "animationProfile": "perch_buddy"
+    },
+    "parrot": {
+      "mount": "shoulder",
+      "anchor": "shoulder_pet_right",
+      "layer": "pet_shoulder",
+      "scaleRelativeToCharacterHeight": 0.2,
+      "offset": [0.02, -0.02],
+      "canMirror": true,
+      "animationProfile": "wing_perch"
+    },
+    "hamster": {
+      "mount": "shoulder_or_pocket",
+      "preferredAnchor": "shoulder_pet_left",
+      "fallbackAnchor": "chest",
+      "layer": "pet_shoulder",
+      "scaleRelativeToCharacterHeight": 0.16,
+      "offset": [-0.01, 0.01],
+      "canMirror": true,
+      "animationProfile": "tiny_perch"
+    },
+    "fish": {
+      "mount": "container_overlay",
+      "anchor": "held_container",
+      "layer": "pet_container",
+      "container": {
+        "id": "round_aquarium",
+        "drawAsSeparateLayer": true,
+        "zIndex": 52,
+        "scaleRelativeToCharacterHeight": 0.28,
+        "offset": [0.02, 0.02]
+      },
+      "petInsideContainer": {
+        "scaleRelativeToContainer": 0.62,
+        "offset": [0, -0.02]
+      },
+      "canMirror": false,
+      "animationProfile": "aquarium_swim"
+    }
+  },
+  "animationProfiles": {
+    "ground_buddy": {
+      "idle": "floatY(-2px, 2px, 2200ms)",
+      "happy": "bounceY(0, -8px, 420ms) x3",
+      "panic": "shakeX(-4px, 4px, 90ms) x8",
+      "sad": "squash(1, .94, 320ms)"
+    },
+    "hop_buddy": {
+      "idle": "earTwitch(1800ms)",
+      "happy": "hopY(0, -12px, 520ms) x2",
+      "panic": "shakeX(-3px, 3px, 80ms) x6"
+    },
+    "slow_buddy": {
+      "idle": "slowBobY(-1px, 1px, 3200ms)",
+      "happy": "headNod(900ms) x2",
+      "panic": "hideInShell(700ms)"
+    },
+    "perch_buddy": {
+      "idle": "tailTwitch(1600ms)",
+      "happy": "tinyBounce(360ms) x3",
+      "panic": "clingShake(90ms) x8"
+    },
+    "wing_perch": {
+      "idle": "wingTwitch(2100ms)",
+      "happy": "wingFlap(140ms) x6",
+      "panic": "flutterShake(80ms) x10"
+    },
+    "tiny_perch": {
+      "idle": "sniff(1800ms)",
+      "happy": "shoulderBounce(300ms) x3",
+      "panic": "hideBehindCollar(600ms)"
+    },
+    "aquarium_swim": {
+      "idle": "swimLoopX(-10%, 10%, 2600ms)",
+      "happy": "bubbleBurst(900ms)",
+      "panic": "fastSwimX(-14%, 14%, 480ms) x3"
+    }
+  },
+  "notes": [
+    "Ground pets are placed beside the character and aligned to the feet baseline.",
+    "Shoulder pets are overlays and must move independently from the character idle/breathe animation.",
+    "Fish should not be placed directly beside the character; render an aquarium/container layer first, then animate the fish inside it.",
+    "A pet state image can be swapped independently from its animation profile: groomed/scruffy/panic/glasses/costume are visual states, not mount rules."
+  ]
+}

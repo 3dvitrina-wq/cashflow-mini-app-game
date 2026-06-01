@@ -1,0 +1,36 @@
+{
+  "items": [
+    {
+      "id": "table_cozy",
+      "file": "apps/web/src/assets/generated/shop-v2/splashes/splash_table_cozy.png",
+      "size": [
+        418,
+        941
+      ]
+    },
+    {
+      "id": "tax_chaos",
+      "file": "apps/web/src/assets/generated/shop-v2/splashes/splash_tax_chaos.png",
+      "size": [
+        418,
+        941
+      ]
+    },
+    {
+      "id": "passive_dream",
+      "file": "apps/web/src/assets/generated/shop-v2/splashes/splash_passive_dream.png",
+      "size": [
+        418,
+        941
+      ]
+    },
+    {
+      "id": "nomad_survival",
+      "file": "apps/web/src/assets/generated/shop-v2/splashes/splash_nomad_survival.png",
+      "size": [
+        418,
+        941
+      ]
+    }
+  ]
+}

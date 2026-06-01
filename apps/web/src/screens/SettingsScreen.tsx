@@ -1,0 +1,303 @@
+import React, { useState, useEffect } from 'react';
+import { useI18n, initLocale, type Locale } from '../i18n';
+
+interface SettingsScreenProps {
+  onClose: () => void;
+}
+
+export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
+  const { locale, setLocale, t } = useI18n();
+  const [soundVolume, setSoundVolume] = useState(70);
+  const [haptics, setHaptics] = useState(true);
+  const [gameSpeed, setGameSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+
+  // Initialize locale on mount
+  useEffect(() => {
+    initLocale();
+  }, []);
+
+  const handleLanguageChange = (newLocale: Locale) => {
+    setLocale(newLocale);
+    // No reload — useI18n hook triggers re-render via state update
+  };
+
+  return (
+    <div
+      style={{
+        minHeight: '100vh',
+        background: '#0B0D11',
+        color: '#F5F4ED',
+        padding: '20px',
+        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 24,
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 24,
+            fontWeight: 900,
+            margin: 0,
+            color: '#F5F4ED',
+            textTransform: 'uppercase',
+          }}
+        >
+          ⚙️ {t('ui.settings')}
+        </h1>
+        <button
+          onClick={onClose}
+          style={{
+            fontSize: 14,
+            fontWeight: 700,
+            color: '#7D7B6F',
+          }}
+        >
+          {locale === 'ru' ? 'Закрыть' : 'Close'}
+        </button>
+      </div>
+
+      {/* Settings sections */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {/* Sound */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 20 }}>🔊</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>
+              {locale === 'ru' ? 'Звуки' : 'Sounds'}
+            </span>
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: '#7D7B6F' }}>
+              {soundVolume}%
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={soundVolume}
+            onChange={(e) => setSoundVolume(Number(e.target.value))}
+            style={{
+              width: '100%',
+              height: 6,
+              borderRadius: 3,
+              background: 'rgba(255, 255, 255, 0.1)',
+              outline: 'none',
+              appearance: 'none',
+              WebkitAppearance: 'none',
+            }}
+          />
+        </div>
+
+        {/* Haptics */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>📳</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>
+                {locale === 'ru' ? 'Вибрация' : 'Haptics'}
+              </span>
+            </div>
+            <button
+              onClick={() => setHaptics(!haptics)}
+              style={{
+                width: 56,
+                height: 32,
+                borderRadius: 16,
+                background: haptics ? '#28C76F' : 'rgba(255, 255, 255, 0.1)',
+                position: 'relative',
+                transition: 'background 0.2s ease',
+              }}
+            >
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 4,
+                  left: haptics ? 28 : 4,
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  background: '#F5F4ED',
+                  transition: 'left 0.2s ease',
+                }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Language */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 20 }}>🌍</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>{t('ui.language')}</span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            <button
+              onClick={() => handleLanguageChange('ru')}
+              style={{
+                padding: '10px',
+                borderRadius: 12,
+                background: locale === 'ru' ? 'rgba(123, 91, 215, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                border: `2px solid ${locale === 'ru' ? '#7B5BD7' : 'transparent'}`,
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#F5F4ED',
+              }}
+            >
+              🇷🇺 {t('ui.russian')}
+            </button>
+            <button
+              onClick={() => handleLanguageChange('en')}
+              style={{
+                padding: '10px',
+                borderRadius: 12,
+                background: locale === 'en' ? 'rgba(123, 91, 215, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                border: `2px solid ${locale === 'en' ? '#7B5BD7' : 'transparent'}`,
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#F5F4ED',
+              }}
+            >
+              🇬🇧 {t('ui.english')}
+            </button>
+          </div>
+        </div>
+
+        {/* Game Speed */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 20 }}>⏱️</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>
+              {locale === 'ru' ? 'Скорость игры' : 'Game Speed'}
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {(['slow', 'normal', 'fast'] as const).map((speed) => (
+              <button
+                key={speed}
+                onClick={() => setGameSpeed(speed)}
+                style={{
+                  padding: '10px',
+                  borderRadius: 12,
+                  background:
+                    gameSpeed === speed ? 'rgba(91, 215, 224, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                  border: `2px solid ${gameSpeed === speed ? '#5BD7E0' : 'transparent'}`,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: '#F5F4ED',
+                  textTransform: 'uppercase',
+                }}
+              >
+                {speed === 'slow'
+                  ? (locale === 'ru' ? 'Медленно' : 'Slow')
+                  : speed === 'normal'
+                  ? (locale === 'ru' ? 'Норм' : 'Normal')
+                  : (locale === 'ru' ? 'Быстро' : 'Fast')}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Links */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {[
+              { icon: '📖', label: locale === 'ru' ? 'Правила игры' : 'Game Rules' },
+              { icon: '📊', label: locale === 'ru' ? 'Статистика' : 'Statistics' },
+              { icon: '🏆', label: locale === 'ru' ? 'Достижения' : 'Achievements' },
+              { icon: '💬', label: locale === 'ru' ? 'Поддержка' : 'Support' },
+            ].map((item) => (
+              <button
+                key={item.label}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 8,
+                  padding: '8px 0',
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: '#F5F4ED',
+                  borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+                }}
+              >
+                <span style={{ fontSize: 20 }}>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Exit buttons */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+          <button
+            style={{
+              width: '100%',
+              padding: '16px',
+              borderRadius: 12,
+              background: 'rgba(255, 255, 255, 0.06)',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#F5F4ED',
+            }}
+          >
+            🚪 {locale === 'ru' ? 'Выйти из матча' : 'Leave Match'}
+          </button>
+          <button
+            style={{
+              width: '100%',
+              padding: '16px',
+              borderRadius: 12,
+              background: 'rgba(232, 75, 42, 0.12)',
+              border: '1px solid rgba(232, 75, 42, 0.3)',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#E84B2A',
+            }}
+          >
+            ⚠️ {locale === 'ru' ? 'Сдаться' : 'Surrender'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

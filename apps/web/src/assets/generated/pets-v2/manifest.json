@@ -1,0 +1,388 @@
+{
+  "states": [
+    "scruffy",
+    "groomed",
+    "panic",
+    "glasses",
+    "costume"
+  ],
+  "species": [
+    {
+      "id": "dog",
+      "source_green": "apps/web/src/assets/generated/pets-v2/dog/dog-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/dog/dog-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/dog/states/dog_scruffy.png",
+          "size": [
+            333,
+            453
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/dog/states/dog_groomed.png",
+          "size": [
+            329,
+            482
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/dog/states/dog_panic.png",
+          "size": [
+            334,
+            471
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/dog/states/dog_glasses.png",
+          "size": [
+            309,
+            440
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/dog/states/dog_costume.png",
+          "size": [
+            328,
+            434
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cat",
+      "source_green": "apps/web/src/assets/generated/pets-v2/cat/cat-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/cat/cat-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/cat/states/cat_scruffy.png",
+          "size": [
+            320,
+            511
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/cat/states/cat_groomed.png",
+          "size": [
+            323,
+            495
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/cat/states/cat_panic.png",
+          "size": [
+            334,
+            518
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/cat/states/cat_glasses.png",
+          "size": [
+            324,
+            500
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/cat/states/cat_costume.png",
+          "size": [
+            330,
+            498
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gecko",
+      "source_green": "apps/web/src/assets/generated/pets-v2/gecko/gecko-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/gecko/gecko-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/gecko/states/gecko_scruffy.png",
+          "size": [
+            332,
+            451
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/gecko/states/gecko_groomed.png",
+          "size": [
+            332,
+            414
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/gecko/states/gecko_panic.png",
+          "size": [
+            334,
+            458
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/gecko/states/gecko_glasses.png",
+          "size": [
+            325,
+            427
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/gecko/states/gecko_costume.png",
+          "size": [
+            301,
+            416
+          ]
+        }
+      ]
+    },
+    {
+      "id": "fish",
+      "source_green": "apps/web/src/assets/generated/pets-v2/fish/fish-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/fish/fish-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/fish/states/fish_scruffy.png",
+          "size": [
+            322,
+            352
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/fish/states/fish_groomed.png",
+          "size": [
+            309,
+            350
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/fish/states/fish_panic.png",
+          "size": [
+            329,
+            372
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/fish/states/fish_glasses.png",
+          "size": [
+            306,
+            345
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/fish/states/fish_costume.png",
+          "size": [
+            323,
+            361
+          ]
+        }
+      ]
+    },
+    {
+      "id": "parrot",
+      "source_green": "apps/web/src/assets/generated/pets-v2/parrot/parrot-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/parrot/parrot-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/parrot/states/parrot_scruffy.png",
+          "size": [
+            334,
+            516
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/parrot/states/parrot_groomed.png",
+          "size": [
+            299,
+            513
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/parrot/states/parrot_panic.png",
+          "size": [
+            334,
+            572
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/parrot/states/parrot_glasses.png",
+          "size": [
+            326,
+            508
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/parrot/states/parrot_costume.png",
+          "size": [
+            310,
+            543
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hamster",
+      "source_green": "apps/web/src/assets/generated/pets-v2/hamster/hamster-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/hamster/hamster-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/hamster/states/hamster_scruffy.png",
+          "size": [
+            324,
+            458
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/hamster/states/hamster_groomed.png",
+          "size": [
+            309,
+            461
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/hamster/states/hamster_panic.png",
+          "size": [
+            334,
+            481
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/hamster/states/hamster_glasses.png",
+          "size": [
+            310,
+            438
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/hamster/states/hamster_costume.png",
+          "size": [
+            329,
+            431
+          ]
+        }
+      ]
+    },
+    {
+      "id": "rabbit",
+      "source_green": "apps/web/src/assets/generated/pets-v2/rabbit/rabbit-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/rabbit/rabbit-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/rabbit/states/rabbit_scruffy.png",
+          "size": [
+            298,
+            526
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/rabbit/states/rabbit_groomed.png",
+          "size": [
+            312,
+            516
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/rabbit/states/rabbit_panic.png",
+          "size": [
+            334,
+            602
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/rabbit/states/rabbit_glasses.png",
+          "size": [
+            335,
+            532
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/rabbit/states/rabbit_costume.png",
+          "size": [
+            285,
+            533
+          ]
+        }
+      ]
+    },
+    {
+      "id": "turtle",
+      "source_green": "apps/web/src/assets/generated/pets-v2/turtle/turtle-sheet-source-green.png",
+      "alpha_sheet": "apps/web/src/assets/generated/pets-v2/turtle/turtle-sheet-alpha.png",
+      "states": [
+        {
+          "state": "scruffy",
+          "file": "apps/web/src/assets/generated/pets-v2/turtle/states/turtle_scruffy.png",
+          "size": [
+            309,
+            397
+          ]
+        },
+        {
+          "state": "groomed",
+          "file": "apps/web/src/assets/generated/pets-v2/turtle/states/turtle_groomed.png",
+          "size": [
+            306,
+            401
+          ]
+        },
+        {
+          "state": "panic",
+          "file": "apps/web/src/assets/generated/pets-v2/turtle/states/turtle_panic.png",
+          "size": [
+            334,
+            406
+          ]
+        },
+        {
+          "state": "glasses",
+          "file": "apps/web/src/assets/generated/pets-v2/turtle/states/turtle_glasses.png",
+          "size": [
+            288,
+            344
+          ]
+        },
+        {
+          "state": "costume",
+          "file": "apps/web/src/assets/generated/pets-v2/turtle/states/turtle_costume.png",
+          "size": [
+            305,
+            367
+          ]
+        }
+      ]
+    }
+  ],
+  "note": "Each state PNG is a clean RGBA cutout. Sheets were generated on chroma green and locally converted to alpha."
+}

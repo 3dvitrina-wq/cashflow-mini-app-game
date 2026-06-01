@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  
+    <defs>
+      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
+      </filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFE06A"/>
+        <stop offset="1" stop-color="#F5C524"/>
+      </linearGradient>
+      <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9A82F0"/>
+        <stop offset="1" stop-color="#7B5BD7"/>
+      </linearGradient>
+      <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8BF1F7"/>
+        <stop offset="1" stop-color="#5BD7E0"/>
+      </linearGradient>
+    </defs>
+  <rect width="512" height="512" rx="28" fill="#0B0D11"/>
+  
+    <path d="M256 65c55 51 76 114 61 192l-61 61-61-61c-15-78 6-141 61-192Z" fill="url(#cyanGrad)" stroke="#1B6D73" stroke-width="6"/>
+    <circle cx="256" cy="168" r="31" fill="#0F1218" stroke="#F5F4ED" stroke-width="6"/>
+    <path d="M218 316l-48 72 70-31M294 316l48 72-70-31" fill="#7B5BD7" stroke="#33245E" stroke-width="5"/>
+    <path d="M256 344c-23 40-24 73 0 101 24-28 23-61 0-101Z" fill="#F5C524"/>
+    <circle cx="127" cy="143" r="17" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="127" y="148.95" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="19.549999999999997" font-weight="900" fill="#4A3506">$</text><circle cx="394" cy="101" r="16" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="394" y="106.6" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="18.4" font-weight="900" fill="#4A3506">$</text><circle cx="400" cy="367" r="19" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="400" y="373.65" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="21.849999999999998" font-weight="900" fill="#4A3506">$</text>
+  
+</svg>

@@ -1,0 +1,68 @@
+{
+  "items": [
+    {
+      "id": "glasses",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_glasses.png",
+      "size": [
+        222,
+        212
+      ]
+    },
+    {
+      "id": "watch",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_watch.png",
+      "size": [
+        222,
+        302
+      ]
+    },
+    {
+      "id": "chain",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_chain.png",
+      "size": [
+        221,
+        307
+      ]
+    },
+    {
+      "id": "crown_hat",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_crown_hat.png",
+      "size": [
+        222,
+        271
+      ]
+    },
+    {
+      "id": "headphones",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_headphones.png",
+      "size": [
+        222,
+        291
+      ]
+    },
+    {
+      "id": "backpack",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_backpack.png",
+      "size": [
+        221,
+        317
+      ]
+    },
+    {
+      "id": "contract",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_contract.png",
+      "size": [
+        222,
+        291
+      ]
+    },
+    {
+      "id": "coffee",
+      "file": "apps/web/src/assets/generated/shop-v2/accessories/items/accessory_coffee.png",
+      "size": [
+        213,
+        205
+      ]
+    }
+  ]
+}

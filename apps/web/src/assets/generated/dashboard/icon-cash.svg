@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128" fill="none">
+  
+    <defs>
+      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
+      </filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFE06A"/>
+        <stop offset="1" stop-color="#F5C524"/>
+      </linearGradient>
+      <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9A82F0"/>
+        <stop offset="1" stop-color="#7B5BD7"/>
+      </linearGradient>
+      <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8BF1F7"/>
+        <stop offset="1" stop-color="#5BD7E0"/>
+      </linearGradient>
+    </defs>
+  
+  <circle cx="54" cy="75" r="24" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="54" y="83.4" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27.599999999999998" font-weight="900" fill="#4A3506">$</text><circle cx="72" cy="63" r="24" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="72" y="71.4" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27.599999999999998" font-weight="900" fill="#4A3506">$</text><circle cx="87" cy="78" r="24" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="87" y="86.4" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="27.599999999999998" font-weight="900" fill="#4A3506">$</text>
+</svg>

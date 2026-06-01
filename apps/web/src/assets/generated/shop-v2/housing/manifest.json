@@ -1,0 +1,52 @@
+{
+  "items": [
+    {
+      "id": "starter_room",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_starter_room.png",
+      "size": [
+        264,
+        317
+      ]
+    },
+    {
+      "id": "small_house",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_small_house.png",
+      "size": [
+        278,
+        309
+      ]
+    },
+    {
+      "id": "mansion",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_mansion.png",
+      "size": [
+        279,
+        351
+      ]
+    },
+    {
+      "id": "farmstead",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_farmstead.png",
+      "size": [
+        279,
+        343
+      ]
+    },
+    {
+      "id": "tent",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_tent.png",
+      "size": [
+        278,
+        339
+      ]
+    },
+    {
+      "id": "fridge_box",
+      "file": "apps/web/src/assets/generated/shop-v2/housing/items/housing_fridge_box.png",
+      "size": [
+        270,
+        332
+      ]
+    }
+  ]
+}

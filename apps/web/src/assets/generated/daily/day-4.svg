@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="384" viewBox="0 0 256 384" fill="none">
+  
+    <defs>
+      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
+      </filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFE06A"/>
+        <stop offset="1" stop-color="#F5C524"/>
+      </linearGradient>
+      <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9A82F0"/>
+        <stop offset="1" stop-color="#7B5BD7"/>
+      </linearGradient>
+      <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8BF1F7"/>
+        <stop offset="1" stop-color="#5BD7E0"/>
+      </linearGradient>
+    </defs>
+  <rect width="256" height="384" rx="28" fill="#0B0D11"/>
+  
+      <rect x="18" y="18" width="220" height="348" rx="24" fill="#121722" stroke="#F5C524" stroke-width="5"/>
+      <text x="128" y="70" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="900" fill="#F5C524">DAY 4</text>
+      <g transform="translate(82.9 127.56) scale(0.82)">
+        <rect x="0" y="28" width="110" height="76" rx="12" fill="#8B5A3C" stroke="#F5C524" stroke-width="6"/>
+        <path d="M8 28c18-34 75-34 94 0" fill="#F5C524" stroke="#8B670E" stroke-width="6"/>
+        <path d="M0 59h110" stroke="#F5C524" stroke-width="7"/>
+      </g>
+      <circle cx="72" cy="272" r="17" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="72" y="277.95" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="19.549999999999997" font-weight="900" fill="#4A3506">$</text><circle cx="124" cy="254" r="20" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="124" y="261" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="23" font-weight="900" fill="#4A3506">$</text><circle cx="181" cy="279" r="17" fill="url(#goldGrad)" stroke="#9F7510" stroke-width="3"/><text x="181" y="284.95" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="19.549999999999997" font-weight="900" fill="#4A3506">$</text>
+      <path d="M62 113l18 8M194 116l-18 9M128 111v-25" stroke="#5BD7E0" stroke-width="7" stroke-linecap="round"/>
+    
+</svg>

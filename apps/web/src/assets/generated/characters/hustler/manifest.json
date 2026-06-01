@@ -1,0 +1,519 @@
+{
+  "id": "hustler",
+  "source_green": "apps/web/src/assets/generated/characters/hustler/hustler-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/hustler/hustler-model-sheet-alpha.png",
+  "labeled_sheet": "apps/web/src/assets/generated/characters/hustler/hustler-model-sheet-labeled.png",
+  "note": "Generated to match the sculpted 2.5D DYOR Trader/Operator model-sheet style. Individual sprite PNGs are transparent cutouts; labels exist only in the labeled preview sheet.",
+  "attachmentCoordinateSpace": "normalized sprite box, x/y 0..1 from top-left",
+  "defaultAnchors": {
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
+  },
+  "accessoryFit": {
+    "glasses": {
+      "anchor": "eyes",
+      "scale": 0.42,
+      "rotation": 0,
+      "zIndex": 40
+    },
+    "hat": {
+      "anchor": "head_top",
+      "scale": 0.58,
+      "rotation": -4,
+      "zIndex": 55
+    },
+    "headphones": {
+      "anchor": "hairline",
+      "scale": 0.64,
+      "rotation": 0,
+      "zIndex": 56
+    },
+    "chain": {
+      "anchor": "neck",
+      "scale": 0.46,
+      "rotation": 0,
+      "zIndex": 42
+    },
+    "watch": {
+      "anchor": "left_wrist",
+      "scale": 0.22,
+      "rotation": -8,
+      "zIndex": 45
+    },
+    "coffee": {
+      "anchor": "left_wrist",
+      "scale": 0.28,
+      "rotation": -5,
+      "zIndex": 48
+    },
+    "contract": {
+      "anchor": "right_wrist",
+      "scale": 0.34,
+      "rotation": 7,
+      "zIndex": 47
+    },
+    "backpack": {
+      "anchor": "chest",
+      "scale": 0.62,
+      "rotation": 0,
+      "zIndex": 20
+    }
+  },
+  "petPlacement": {
+    "defaultSide": "right",
+    "anchor": "pet_slot_right",
+    "scaleRelativeToCharacterHeight": 0.34,
+    "baselineAnchor": "feet",
+    "zIndex": 35,
+    "animationLayer": "pet",
+    "notes": "Place pet beside, not attached to body. Align pet bottom to character feet baseline and animate pet transform independently."
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "Hustler front",
+      "file": "apps/web/src/assets/generated/characters/hustler/turnaround/hustler_front.png",
+      "source_box": [
+        164,
+        14,
+        323,
+        350
+      ],
+      "size": [
+        159,
+        336
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "Hustler 3/4",
+      "file": "apps/web/src/assets/generated/characters/hustler/turnaround/hustler_three_quarter.png",
+      "source_box": [
+        434,
+        14,
+        602,
+        350
+      ],
+      "size": [
+        168,
+        336
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "Hustler side",
+      "file": "apps/web/src/assets/generated/characters/hustler/turnaround/hustler_side.png",
+      "source_box": [
+        747,
+        17,
+        875,
+        349
+      ],
+      "size": [
+        128,
+        332
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "Hustler back 3/4",
+      "file": "apps/web/src/assets/generated/characters/hustler/turnaround/hustler_back_three_quarter.png",
+      "source_box": [
+        985,
+        16,
+        1131,
+        348
+      ],
+      "size": [
+        146,
+        332
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_stable.png",
+      "source_box": [
+        33,
+        353,
+        183,
+        660
+      ],
+      "size": [
+        150,
+        307
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_overworked.png",
+      "source_box": [
+        220,
+        352,
+        385,
+        659
+      ],
+      "size": [
+        165,
+        307
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_overleveraged.png",
+      "source_box": [
+        400,
+        357,
+        575,
+        660
+      ],
+      "size": [
+        175,
+        303
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_tax_panic.png",
+      "source_box": [
+        583,
+        351,
+        818,
+        657
+      ],
+      "size": [
+        235,
+        306
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "street_hustle",
+      "label": "street hustle",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_street_hustle.png",
+      "source_box": [
+        824,
+        357,
+        1025,
+        654
+      ],
+      "size": [
+        201,
+        297
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_passive_calm.png",
+      "source_box": [
+        1029,
+        359,
+        1229,
+        646
+      ],
+      "size": [
+        200,
+        287
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_cardboard.png",
+      "source_box": [
+        1249,
+        369,
+        1406,
+        641
+      ],
+      "size": [
+        157,
+        272
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/hustler/emotions/hustler_nomad.png",
+      "source_box": [
+        1429,
+        373,
+        1649,
+        639
+      ],
+      "size": [
+        220,
+        266
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_head.png",
+      "source_box": [
+        23,
+        679,
+        131,
+        801
+      ],
+      "size": [
+        108,
+        122
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_torso.png",
+      "source_box": [
+        736,
+        679,
+        928,
+        831
+      ],
+      "size": [
+        192,
+        152
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_left_arm.png",
+      "source_box": [
+        937,
+        687,
+        993,
+        797
+      ],
+      "size": [
+        56,
+        110
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_right_arm.png",
+      "source_box": [
+        1059,
+        687,
+        1152,
+        819
+      ],
+      "size": [
+        93,
+        132
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_leg",
+      "label": "left leg",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_left_leg.png",
+      "source_box": [
+        1266,
+        684,
+        1382,
+        829
+      ],
+      "size": [
+        116,
+        145
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_leg",
+      "label": "right leg",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_right_leg.png",
+      "source_box": [
+        1493,
+        682,
+        1591,
+        848
+      ],
+      "size": [
+        98,
+        166
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_open_hand.png",
+      "source_box": [
+        716,
+        840,
+        766,
+        912
+      ],
+      "size": [
+        50,
+        72
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_fist.png",
+      "source_box": [
+        806,
+        846,
+        846,
+        912
+      ],
+      "size": [
+        40,
+        66
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_eyes_open.png",
+      "source_box": [
+        64,
+        842,
+        170,
+        913
+      ],
+      "size": [
+        106,
+        71
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_eyes_closed.png",
+      "source_box": [
+        237,
+        849,
+        425,
+        913
+      ],
+      "size": [
+        188,
+        64
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_a",
+      "label": "mouth A",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_mouth_a.png",
+      "source_box": [
+        266,
+        806,
+        325,
+        851
+      ],
+      "size": [
+        59,
+        45
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_e",
+      "label": "mouth E",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_mouth_e.png",
+      "source_box": [
+        347,
+        804,
+        405,
+        851
+      ],
+      "size": [
+        58,
+        47
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_o",
+      "label": "mouth O",
+      "file": "apps/web/src/assets/generated/characters/hustler/parts/hustler_mouth_o.png",
+      "source_box": [
+        573,
+        806,
+        615,
+        849
+      ],
+      "size": [
+        42,
+        43
+      ]
+    }
+  ]
+}

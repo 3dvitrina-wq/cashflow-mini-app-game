@@ -1,0 +1,535 @@
+{
+  "id": "investor",
+  "source_green": "apps/web/src/assets/generated/characters/investor/investor-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/investor/investor-model-sheet-alpha.png",
+  "labeled_sheet": "apps/web/src/assets/generated/characters/investor/investor-model-sheet-labeled.png",
+  "note": "Mature adult DYOR character in the sculpted 2.5D soft-plastic model-sheet style. Individual sprite PNGs are transparent cutouts; labels exist only in the labeled preview sheet.",
+  "attachmentCoordinateSpace": "normalized sprite box, x/y 0..1 from top-left",
+  "defaultAnchors": {
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.15
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.41
+    ],
+    "left_shoulder": [
+      0.36,
+      0.39
+    ],
+    "right_shoulder": [
+      0.64,
+      0.39
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ],
+    "shoulder_pet_left": [
+      0.27,
+      0.28
+    ],
+    "shoulder_pet_right": [
+      0.73,
+      0.28
+    ],
+    "held_container": [
+      0.62,
+      0.56
+    ]
+  },
+  "accessoryFit": {
+    "glasses": {
+      "anchor": "eyes",
+      "scale": 0.42,
+      "rotation": 0,
+      "zIndex": 40
+    },
+    "hat": {
+      "anchor": "head_top",
+      "scale": 0.55,
+      "rotation": -2,
+      "zIndex": 55
+    },
+    "headphones": {
+      "anchor": "hairline",
+      "scale": 0.62,
+      "rotation": 0,
+      "zIndex": 56
+    },
+    "watch": {
+      "anchor": "left_wrist",
+      "scale": 0.2,
+      "rotation": -8,
+      "zIndex": 45
+    },
+    "coffee": {
+      "anchor": "left_wrist",
+      "scale": 0.27,
+      "rotation": -5,
+      "zIndex": 48
+    },
+    "contract": {
+      "anchor": "right_wrist",
+      "scale": 0.34,
+      "rotation": 7,
+      "zIndex": 47
+    },
+    "portfolio": {
+      "anchor": "right_wrist",
+      "scale": 0.38,
+      "rotation": 4,
+      "zIndex": 46
+    }
+  },
+  "petPlacement": {
+    "defaultSide": "right",
+    "anchor": "pet_slot_right",
+    "scaleRelativeToCharacterHeight": 0.32,
+    "baselineAnchor": "feet",
+    "zIndex": 35,
+    "animationLayer": "pet_ground",
+    "shoulderAnchor": "shoulder_pet_right",
+    "containerAnchor": "held_container",
+    "notes": "Ground pets align to feet baseline. Shoulder pets are upper-body overlays. Fish/aquarium pets use a container overlay anchored near the hand/chest and animate independently."
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "Investor front",
+      "file": "apps/web/src/assets/generated/characters/investor/turnaround/investor_front.png",
+      "source_box": [
+        175,
+        12,
+        333,
+        331
+      ],
+      "size": [
+        158,
+        319
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "Investor 3/4",
+      "file": "apps/web/src/assets/generated/characters/investor/turnaround/investor_three_quarter.png",
+      "source_box": [
+        424,
+        13,
+        598,
+        336
+      ],
+      "size": [
+        174,
+        323
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "Investor side",
+      "file": "apps/web/src/assets/generated/characters/investor/turnaround/investor_side.png",
+      "source_box": [
+        732,
+        13,
+        874,
+        332
+      ],
+      "size": [
+        142,
+        319
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "Investor back 3/4",
+      "file": "apps/web/src/assets/generated/characters/investor/turnaround/investor_back_three_quarter.png",
+      "source_box": [
+        1025,
+        11,
+        1162,
+        330
+      ],
+      "size": [
+        137,
+        319
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_stable.png",
+      "source_box": [
+        17,
+        339,
+        172,
+        648
+      ],
+      "size": [
+        155,
+        309
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_overworked.png",
+      "source_box": [
+        199,
+        341,
+        358,
+        646
+      ],
+      "size": [
+        159,
+        305
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_overleveraged.png",
+      "source_box": [
+        399,
+        342,
+        581,
+        643
+      ],
+      "size": [
+        182,
+        301
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_tax_panic.png",
+      "source_box": [
+        586,
+        347,
+        825,
+        637
+      ],
+      "size": [
+        239,
+        290
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "margin_call",
+      "label": "margin call",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_margin_call.png",
+      "source_box": [
+        839,
+        339,
+        1042,
+        645
+      ],
+      "size": [
+        203,
+        306
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_passive_calm.png",
+      "source_box": [
+        1036,
+        351,
+        1252,
+        638
+      ],
+      "size": [
+        216,
+        287
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_cardboard.png",
+      "source_box": [
+        1259,
+        352,
+        1404,
+        624
+      ],
+      "size": [
+        145,
+        272
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/investor/emotions/investor_nomad.png",
+      "source_box": [
+        1450,
+        367,
+        1646,
+        629
+      ],
+      "size": [
+        196,
+        262
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_head.png",
+      "source_box": [
+        19,
+        675,
+        111,
+        794
+      ],
+      "size": [
+        92,
+        119
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_torso.png",
+      "source_box": [
+        759,
+        669,
+        940,
+        831
+      ],
+      "size": [
+        181,
+        162
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_left_arm.png",
+      "source_box": [
+        944,
+        673,
+        997,
+        783
+      ],
+      "size": [
+        53,
+        110
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_right_arm.png",
+      "source_box": [
+        1072,
+        672,
+        1166,
+        801
+      ],
+      "size": [
+        94,
+        129
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_leg",
+      "label": "left leg",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_left_leg.png",
+      "source_box": [
+        1262,
+        669,
+        1376,
+        807
+      ],
+      "size": [
+        114,
+        138
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_leg",
+      "label": "right leg",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_right_leg.png",
+      "source_box": [
+        1490,
+        669,
+        1597,
+        815
+      ],
+      "size": [
+        107,
+        146
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_open_hand.png",
+      "source_box": [
+        728,
+        830,
+        796,
+        906
+      ],
+      "size": [
+        68,
+        76
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_fist.png",
+      "source_box": [
+        909,
+        842,
+        941,
+        903
+      ],
+      "size": [
+        32,
+        61
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_eyes_open.png",
+      "source_box": [
+        54,
+        836,
+        174,
+        904
+      ],
+      "size": [
+        120,
+        68
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_eyes_closed.png",
+      "source_box": [
+        231,
+        839,
+        433,
+        906
+      ],
+      "size": [
+        202,
+        67
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_a",
+      "label": "mouth A",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_mouth_a.png",
+      "source_box": [
+        266,
+        799,
+        322,
+        843
+      ],
+      "size": [
+        56,
+        44
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_e",
+      "label": "mouth E",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_mouth_e.png",
+      "source_box": [
+        346,
+        800,
+        402,
+        845
+      ],
+      "size": [
+        56,
+        45
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_o",
+      "label": "mouth O",
+      "file": "apps/web/src/assets/generated/characters/investor/parts/investor_mouth_o.png",
+      "source_box": [
+        565,
+        803,
+        605,
+        843
+      ],
+      "size": [
+        40,
+        40
+      ]
+    }
+  ]
+}

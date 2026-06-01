@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  
+    <defs>
+      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
+      </filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFE06A"/>
+        <stop offset="1" stop-color="#F5C524"/>
+      </linearGradient>
+      <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9A82F0"/>
+        <stop offset="1" stop-color="#7B5BD7"/>
+      </linearGradient>
+      <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8BF1F7"/>
+        <stop offset="1" stop-color="#5BD7E0"/>
+      </linearGradient>
+    </defs>
+  <rect width="512" height="512" rx="28" fill="#0B0D11"/>
+  
+    <rect x="176" y="70" width="160" height="292" rx="22.400000000000002" fill="#171B24" stroke="#303745" stroke-width="5" filter="url(#softShadow)"/>
+  <rect x="190.4" y="99.2" width="131.2" height="233.60000000000002" rx="12.8" fill="#0F1218"/>
+  <rect x="205" y="139" width="102" height="142" rx="22" fill="#202532" stroke="#F5C524" stroke-width="5"/><text x="256" y="226" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="58" font-weight="900" fill="#F5C524">$</text>
+    <path d="M256 418V286" stroke="#28C76F" stroke-width="16" stroke-linecap="round"/>
+    <path d="M212 326l44-48 44 48" stroke="#28C76F" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M168 383c43 19 91 22 144 4" stroke="#5BD7E0" stroke-width="8" stroke-linecap="round" opacity=".55"/>
+  
+</svg>

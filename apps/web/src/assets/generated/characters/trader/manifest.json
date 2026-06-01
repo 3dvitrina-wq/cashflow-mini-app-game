@@ -1,0 +1,408 @@
+{
+  "source": "apps/web/src/assets/generated/characters/trader/trader-model-sheet-source.png",
+  "transparent_sheet": "apps/web/src/assets/generated/characters/trader/trader-model-sheet-transparent.png",
+  "labeled_sheet": "apps/web/src/assets/generated/characters/trader/trader-model-sheet-labeled.png",
+  "note": "Individual sprite PNGs are clean transparent cutouts. Labels are only in this manifest and the labeled preview sheet.",
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "Trader front",
+      "file": "apps/web/src/assets/generated/characters/trader/turnaround/trader_front.png",
+      "source_box": [
+        212,
+        18,
+        432,
+        352
+      ],
+      "size": [
+        195,
+        334
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "Trader 3/4",
+      "file": "apps/web/src/assets/generated/characters/trader/turnaround/trader_three_quarter.png",
+      "source_box": [
+        500,
+        18,
+        718,
+        352
+      ],
+      "size": [
+        177,
+        334
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "Trader side",
+      "file": "apps/web/src/assets/generated/characters/trader/turnaround/trader_side.png",
+      "source_box": [
+        744,
+        25,
+        908,
+        352
+      ],
+      "size": [
+        164,
+        327
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "Trader back 3/4",
+      "file": "apps/web/src/assets/generated/characters/trader/turnaround/trader_back_three_quarter.png",
+      "source_box": [
+        985,
+        25,
+        1168,
+        352
+      ],
+      "size": [
+        175,
+        327
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_stable.png",
+      "source_box": [
+        0,
+        360,
+        188,
+        704
+      ],
+      "size": [
+        188,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_overworked.png",
+      "source_box": [
+        190,
+        360,
+        392,
+        704
+      ],
+      "size": [
+        200,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_overleveraged.png",
+      "source_box": [
+        390,
+        345,
+        590,
+        704
+      ],
+      "size": [
+        200,
+        359
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_tax_panic.png",
+      "source_box": [
+        604,
+        355,
+        874,
+        704
+      ],
+      "size": [
+        268,
+        343
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_futures_liq.png",
+      "source_box": [
+        884,
+        324,
+        1080,
+        704
+      ],
+      "size": [
+        160,
+        376
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_passive_calm.png",
+      "source_box": [
+        1084,
+        360,
+        1258,
+        704
+      ],
+      "size": [
+        174,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_cardboard.png",
+      "source_box": [
+        1278,
+        365,
+        1445,
+        704
+      ],
+      "size": [
+        167,
+        334
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/trader/emotions/trader_nomad.png",
+      "source_box": [
+        1435,
+        360,
+        1672,
+        710
+      ],
+      "size": [
+        227,
+        321
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_head.png",
+      "source_box": [
+        12,
+        705,
+        185,
+        940
+      ],
+      "size": [
+        168,
+        188
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_torso.png",
+      "source_box": [
+        205,
+        705,
+        402,
+        940
+      ],
+      "size": [
+        189,
+        209
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_left_arm.png",
+      "source_box": [
+        398,
+        705,
+        512,
+        940
+      ],
+      "size": [
+        90,
+        193
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_right_arm.png",
+      "source_box": [
+        510,
+        710,
+        625,
+        940
+      ],
+      "size": [
+        101,
+        186
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_leg",
+      "label": "left leg",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_left_leg.png",
+      "source_box": [
+        635,
+        710,
+        758,
+        940
+      ],
+      "size": [
+        123,
+        210
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_leg",
+      "label": "right leg",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_right_leg.png",
+      "source_box": [
+        760,
+        710,
+        882,
+        940
+      ],
+      "size": [
+        122,
+        211
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_open_hand.png",
+      "source_box": [
+        895,
+        735,
+        1000,
+        900
+      ],
+      "size": [
+        105,
+        134
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_fist.png",
+      "source_box": [
+        1000,
+        745,
+        1095,
+        900
+      ],
+      "size": [
+        84,
+        112
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_eyes_open.png",
+      "source_box": [
+        1120,
+        740,
+        1268,
+        840
+      ],
+      "size": [
+        148,
+        92
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_eyes_closed.png",
+      "source_box": [
+        1120,
+        832,
+        1268,
+        930
+      ],
+      "size": [
+        148,
+        80
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_a",
+      "label": "mouth A",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_mouth_a.png",
+      "source_box": [
+        1305,
+        765,
+        1395,
+        865
+      ],
+      "size": [
+        85,
+        76
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_e",
+      "label": "mouth E",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_mouth_e.png",
+      "source_box": [
+        1410,
+        765,
+        1505,
+        865
+      ],
+      "size": [
+        95,
+        76
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_o",
+      "label": "mouth O",
+      "file": "apps/web/src/assets/generated/characters/trader/parts/trader_mouth_o.png",
+      "source_box": [
+        1535,
+        765,
+        1615,
+        870
+      ],
+      "size": [
+        75,
+        84
+      ]
+    }
+  ]
+}

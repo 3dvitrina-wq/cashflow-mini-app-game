@@ -1,0 +1,57 @@
+{
+  "id": "rap_queen",
+  "displayName": "Rap Queen",
+  "status": "profile_bust_generated_chromakey_alpha",
+  "source_reference": "apps/web/src/assets/generated/characters/rap_queen/references/source-reference.png",
+  "referenceSet": {
+    "primary": "apps/web/src/assets/generated/characters/rap_queen/references/source-reference.png",
+    "fullBodyVariant": "apps/web/src/assets/generated/characters/rap_queen/references/full-body-alt-reference.png",
+    "portraitVariant": "apps/web/src/assets/generated/characters/rap_queen/references/portrait-alt-reference.png"
+  },
+  "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
+  "outputContract": {
+    "alpha": "source-green PNG converted locally to RGBA PNG",
+    "chromaKey": "#00ff00 flat source background",
+    "noPseudoTransparency": true,
+    "profileUse": "waist-up profile card / portrait",
+    "gameUse": "full-body avatar views and emotion states"
+  },
+  "defaultAnchors": {
+    "head_top": [0.5, 0.08],
+    "hairline": [0.5, 0.16],
+    "eyes": [0.5, 0.25],
+    "mouth": [0.5, 0.34],
+    "neck": [0.5, 0.42],
+    "chest": [0.5, 0.52],
+    "left_wrist": [0.28, 0.58],
+    "right_wrist": [0.72, 0.58],
+    "waist": [0.5, 0.66],
+    "feet": [0.5, 0.96],
+    "pet_slot_left": [-0.18, 0.82],
+    "pet_slot_right": [1.12, 0.82]
+  },
+  "variantSlots": [
+    "hair",
+    "jacket",
+    "chain_neckwear",
+    "glasses",
+    "hand_prop",
+    "bag"
+  ],
+  "plannedSprites": [
+    "portraits/rap_queen_profile_bust-source-green.png",
+    "portraits/rap_queen_profile_bust.png",
+    "turnaround/rap_queen_front.png",
+    "turnaround/rap_queen_three_quarter.png",
+    "turnaround/rap_queen_side.png",
+    "turnaround/rap_queen_back_three_quarter.png",
+    "emotions/rap_queen_stable.png",
+    "emotions/rap_queen_overworked.png",
+    "emotions/rap_queen_overleveraged.png",
+    "emotions/rap_queen_tax_panic.png",
+    "emotions/rap_queen_futures_liq.png",
+    "emotions/rap_queen_passive_calm.png",
+    "emotions/rap_queen_cardboard.png",
+    "emotions/rap_queen_nomad.png"
+  ]
+}

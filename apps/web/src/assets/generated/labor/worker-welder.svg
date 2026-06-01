@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" fill="none">
+  
+    <defs>
+      <filter id="softShadow" x="-30%" y="-30%" width="160%" height="160%">
+        <feDropShadow dx="0" dy="6" stdDeviation="7" flood-color="#000000" flood-opacity=".35"/>
+      </filter>
+      <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#FFE06A"/>
+        <stop offset="1" stop-color="#F5C524"/>
+      </linearGradient>
+      <linearGradient id="purpleGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#9A82F0"/>
+        <stop offset="1" stop-color="#7B5BD7"/>
+      </linearGradient>
+      <linearGradient id="cyanGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#8BF1F7"/>
+        <stop offset="1" stop-color="#5BD7E0"/>
+      </linearGradient>
+    </defs>
+  <rect width="256" height="256" rx="28" fill="#0B0D11"/>
+  <circle cx="116" cy="105" r="36" fill="#DDA776" stroke="#221A16" stroke-width="4"/>
+  <path d="M82 97c12-34 58-31 70-3-16-11-47-15-70 3Z" fill="#2B2018"/>
+  <circle cx="104" cy="105" r="4" fill="#1B1412"/>
+  <circle cx="128" cy="105" r="4" fill="#1B1412"/>
+  <path d="M103 122q13 12 27 0" stroke="#6B3426" stroke-width="4" stroke-linecap="round"/>
+  <path d="M60 199c10-55 102-55 112 0Z" fill="#F28A2E" stroke="#242833" stroke-width="4"/>
+  <path d="M91 70h74v43H91Z" fill="#394150" stroke="#F5C524" stroke-width="5"/><path d="M160 75l25-18" stroke="#F28A2E" stroke-width="8" stroke-linecap="round"/>
+</svg>

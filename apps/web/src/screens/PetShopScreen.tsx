@@ -1,0 +1,142 @@
+import React, { useEffect, useState } from 'react';
+import { BottomSheet } from '../components/BottomSheet';
+import { showToast } from '../components/Toast';
+import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
+import { addItemToInventory, loadPlayerData, spendCurrency } from '../store/persistence';
+
+interface PetShopScreenProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+const RARITY_CONFIG = {
+  common: { label: 'Обычный', color: '#7D7B6F', bg: 'rgba(125, 123, 111, 0.1)', border: 'rgba(125, 123, 111, 0.3)' },
+  rare: { label: 'Редкий', color: '#5BD7E0', bg: 'rgba(91, 215, 224, 0.1)', border: 'rgba(91, 215, 224, 0.3)' },
+  legendary: { label: 'Легендарный', color: '#F5C524', bg: 'rgba(245, 197, 36, 0.1)', border: 'rgba(245, 197, 36, 0.3)' },
+};
+
+const SYNERGIES = [
+  { pets: ['pet-dog', 'pet-parrot'], bonus: '🐕 + 🦜 = 2x контент', description: 'Вирусный контент' },
+  { pets: ['pet-cat', 'pet-fish'], bonus: '🐱 + 🐠 = Стресс -3', description: 'Дзен-максимум' },
+];
+
+export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose }) => {
+  const [ownedIds, setOwnedIds] = useState<string[]>(() => loadPlayerData().ownedItems);
+  const [showArrival, setShowArrival] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setOwnedIds(loadPlayerData().ownedItems);
+      setShowArrival(true);
+      const timer = setTimeout(() => setShowArrival(false), 650);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  const myPets = PET_ITEMS.filter((p) => ownedIds.includes(p.id));
+  const availablePets = PET_ITEMS.filter((p) => !ownedIds.includes(p.id));
+
+  const handleBuy = (pet: PetCatalogItem) => {
+    if (!spendCurrency(pet.price, 'coins')) {
+      showToast('Недостаточно монет', 'error');
+      return;
+    }
+    addItemToInventory(pet.id);
+    setOwnedIds(loadPlayerData().ownedItems);
+    showToast(`${pet.name} куплен! ${pet.effect}`, 'success');
+  };
+
+  return (
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Питомцы">
+      <div className="pet-shop">
+        {myPets.length > 0 && (
+          <div>
+            <h3 className="sheet-section-title">Мои питомцы</h3>
+            {myPets.map((pet, i) => (
+              <div key={pet.id} className="owned-pet-card tactile-card" style={{ animationDelay: `${i * 0.08}s` }}>
+                <div className="owned-pet-art">
+                  {pet.variants.slice(0, 2).map((src, idx) => (
+                    <img key={src} src={src} alt="" className={`owned-pet-img owned-pet-img-${idx}`} draggable={false} />
+                  ))}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED' }}>{pet.name}</div>
+                  <div style={{ fontSize: 12, color: '#28C76F', fontWeight: 600 }}>{pet.effect}</div>
+                  <div style={{ fontSize: 11, color: '#7D7B6F' }}>Корм: ${pet.upkeep}/мес</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {myPets.length > 0 && (
+          <div className="pet-synergy-card">
+            <h4>Синергии</h4>
+            {SYNERGIES.map((syn, i) => {
+              const active = syn.pets.every((id) => ownedIds.includes(id));
+              return (
+                <div key={i} style={{ opacity: active ? 1 : 0.45 }}>
+                  <strong>{syn.bonus}</strong>
+                  <br />
+                  <span>{active ? syn.description : 'Нужны оба питомца'}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {showArrival && (
+          <div className="pet-arrival">
+            <div className="pet-arrival-stack">
+              {PET_ITEMS.slice(0, 3).map((pet) => (
+                <img key={pet.id} src={pet.image} alt="" />
+              ))}
+            </div>
+            <p>Питомцы проверяют витрину...</p>
+          </div>
+        )}
+
+        {!showArrival && availablePets.length > 0 && (
+          <div>
+            <h3 className="sheet-section-title">Доступны в приюте ({availablePets.length})</h3>
+            <div className="pet-grid">
+              {availablePets.map((pet, index) => {
+                const rarity = RARITY_CONFIG[pet.rarity];
+                return (
+                  <div
+                    key={pet.id}
+                    className="pet-card tactile-card"
+                    style={{
+                      borderColor: pet.isNew ? rarity.border : 'rgba(255,255,255,.08)',
+                      animationDelay: `${index * 0.07}s`,
+                    }}
+                  >
+                    {pet.rarity !== 'common' && (
+                      <div className="pet-rarity-badge" style={{ background: rarity.bg, borderColor: rarity.border, color: rarity.color }}>
+                        {rarity.label}
+                      </div>
+                    )}
+                    {pet.isNew && <div className="pet-new-badge">NEW</div>}
+
+                    <div className="pet-art-stage">
+                      <span className="pet-art-glow" />
+                      <img className="pet-art-img" src={pet.image} alt={pet.name} draggable={false} />
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED' }}>{pet.name}</div>
+                    <div style={{ fontSize: 11, color: '#28C76F', fontWeight: 600, margin: '2px 0' }}>{pet.effect}</div>
+                    <div style={{ fontSize: 10, color: '#7D7B6F', marginBottom: 8 }}>
+                      ${pet.upkeep}/мес • {pet.personality}
+                    </div>
+                    <button onClick={() => handleBuy(pet)} className="craft-button craft-button-gold">
+                      🪙 {pet.price}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+    </BottomSheet>
+  );
+};

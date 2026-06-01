@@ -1,0 +1,405 @@
+{
+  "source": "apps/web/src/assets/generated/characters/operator/operator-model-sheet-alpha.png",
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "Operator front",
+      "file": "apps/web/src/assets/generated/characters/operator/turnaround/operator_front.png",
+      "source_box": [
+        130,
+        25,
+        325,
+        355
+      ],
+      "size": [
+        195,
+        330
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "Operator 3/4",
+      "file": "apps/web/src/assets/generated/characters/operator/turnaround/operator_three_quarter.png",
+      "source_box": [
+        430,
+        25,
+        630,
+        355
+      ],
+      "size": [
+        200,
+        330
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "Operator side",
+      "file": "apps/web/src/assets/generated/characters/operator/turnaround/operator_side.png",
+      "source_box": [
+        735,
+        25,
+        890,
+        355
+      ],
+      "size": [
+        155,
+        330
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "Operator back 3/4",
+      "file": "apps/web/src/assets/generated/characters/operator/turnaround/operator_back_three_quarter.png",
+      "source_box": [
+        1020,
+        25,
+        1210,
+        355
+      ],
+      "size": [
+        186,
+        330
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_stable.png",
+      "source_box": [
+        0,
+        360,
+        190,
+        710
+      ],
+      "size": [
+        190,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_overworked.png",
+      "source_box": [
+        190,
+        360,
+        395,
+        710
+      ],
+      "size": [
+        205,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_overleveraged.png",
+      "source_box": [
+        395,
+        360,
+        595,
+        710
+      ],
+      "size": [
+        200,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_tax_panic.png",
+      "source_box": [
+        590,
+        335,
+        840,
+        710
+      ],
+      "size": [
+        250,
+        371
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "server_fire",
+      "label": "server fire",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_server_fire.png",
+      "source_box": [
+        835,
+        360,
+        1070,
+        710
+      ],
+      "size": [
+        235,
+        340
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_passive_calm.png",
+      "source_box": [
+        1070,
+        360,
+        1268,
+        710
+      ],
+      "size": [
+        198,
+        338
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_cardboard.png",
+      "source_box": [
+        1265,
+        370,
+        1442,
+        710
+      ],
+      "size": [
+        177,
+        325
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/operator/emotions/operator_nomad.png",
+      "source_box": [
+        1435,
+        360,
+        1672,
+        710
+      ],
+      "size": [
+        213,
+        306
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_head.png",
+      "source_box": [
+        0,
+        700,
+        190,
+        940
+      ],
+      "size": [
+        162,
+        187
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_torso.png",
+      "source_box": [
+        205,
+        705,
+        380,
+        940
+      ],
+      "size": [
+        174,
+        195
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_left_arm.png",
+      "source_box": [
+        380,
+        710,
+        505,
+        940
+      ],
+      "size": [
+        125,
+        179
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_right_arm.png",
+      "source_box": [
+        500,
+        710,
+        620,
+        940
+      ],
+      "size": [
+        120,
+        181
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_leg",
+      "label": "left leg",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_left_leg.png",
+      "source_box": [
+        610,
+        710,
+        738,
+        940
+      ],
+      "size": [
+        128,
+        195
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_leg",
+      "label": "right leg",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_right_leg.png",
+      "source_box": [
+        730,
+        710,
+        850,
+        940
+      ],
+      "size": [
+        115,
+        193
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_open_hand.png",
+      "source_box": [
+        865,
+        720,
+        970,
+        895
+      ],
+      "size": [
+        105,
+        153
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_fist.png",
+      "source_box": [
+        975,
+        720,
+        1075,
+        895
+      ],
+      "size": [
+        88,
+        125
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_eyes_open.png",
+      "source_box": [
+        1120,
+        735,
+        1265,
+        830
+      ],
+      "size": [
+        145,
+        95
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_eyes_closed.png",
+      "source_box": [
+        1120,
+        825,
+        1265,
+        920
+      ],
+      "size": [
+        145,
+        75
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_a",
+      "label": "mouth A",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_mouth_a.png",
+      "source_box": [
+        1290,
+        755,
+        1388,
+        855
+      ],
+      "size": [
+        87,
+        84
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_e",
+      "label": "mouth E",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_mouth_e.png",
+      "source_box": [
+        1400,
+        755,
+        1495,
+        855
+      ],
+      "size": [
+        83,
+        74
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_o",
+      "label": "mouth O",
+      "file": "apps/web/src/assets/generated/characters/operator/parts/operator_mouth_o.png",
+      "source_box": [
+        1525,
+        755,
+        1615,
+        855
+      ],
+      "size": [
+        75,
+        87
+      ]
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "id": "checkout_cashier",
+  "displayName": "Checkout Cashier",
+  "status": "profile_bust_generated_chromakey_alpha",
+  "source_reference": "apps/web/src/assets/generated/characters/checkout_cashier/references/source-reference.png",
+  "referenceSet": {
+    "primary": "apps/web/src/assets/generated/characters/checkout_cashier/references/source-reference.png"
+  },
+  "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
+  "outputContract": {
+    "alpha": "source-green PNG converted locally to RGBA PNG",
+    "chromaKey": "#00ff00 flat source background",
+    "noPseudoTransparency": true,
+    "profileUse": "waist-up profile card / portrait",
+    "gameUse": "full-body avatar views and emotion states"
+  },
+  "defaultAnchors": {
+    "head_top": [0.5, 0.08],
+    "hairline": [0.5, 0.16],
+    "eyes": [0.5, 0.25],
+    "mouth": [0.5, 0.34],
+    "neck": [0.5, 0.42],
+    "chest": [0.5, 0.52],
+    "left_wrist": [0.28, 0.58],
+    "right_wrist": [0.72, 0.58],
+    "waist": [0.5, 0.66],
+    "feet": [0.5, 0.96],
+    "pet_slot_left": [-0.18, 0.82],
+    "pet_slot_right": [1.12, 0.82]
+  },
+  "variantSlots": [
+    "hair",
+    "vest_apron",
+    "name_badge",
+    "glasses",
+    "scanner",
+    "receipt",
+    "watch_bracelet"
+  ],
+  "plannedSprites": [
+    "portraits/checkout_cashier_profile_bust-source-green.png",
+    "portraits/checkout_cashier_profile_bust.png",
+    "turnaround/checkout_cashier_front.png",
+    "turnaround/checkout_cashier_three_quarter.png",
+    "turnaround/checkout_cashier_side.png",
+    "turnaround/checkout_cashier_back_three_quarter.png",
+    "emotions/checkout_cashier_stable.png",
+    "emotions/checkout_cashier_overworked.png",
+    "emotions/checkout_cashier_overleveraged.png",
+    "emotions/checkout_cashier_tax_panic.png",
+    "emotions/checkout_cashier_futures_liq.png",
+    "emotions/checkout_cashier_passive_calm.png",
+    "emotions/checkout_cashier_cardboard.png",
+    "emotions/checkout_cashier_nomad.png"
+  ]
+}
