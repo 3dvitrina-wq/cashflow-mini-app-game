@@ -147,3 +147,27 @@ Shows:
 - Too many tiny numbers.
 - Always-on video host occupying the main screen.
 
+## Detailed Screen Specs
+
+Full visual contract, component library, all 6 screens, sub-flows, state transitions, animation trigger map, and responsive rules live in [[UX_SCREEN_SPECS]]. That document is the implementation contract for Phase 4 (Telegram Multiplayer MVP frontend).
+
+## Progress and Motion Without a Board
+
+DYOR has no game board, no dice for movement, no piece-on-square progression. Progress and stickiness are delivered through six parallel visual systems. See [[../60_risks/MVP_SCOPE_VERDICT_2026-05-23|MVP_SCOPE_VERDICT_2026-05-23]] for the rationale.
+
+1. **Life Timeline** - horizontal ribbon at the top of Main Turn Table. Months → quarters → seasons → years. Player mini-avatar advances along it each round. Seasonal backdrop swap. Year-end confetti and tax event drop.
+2. **Asset Diorama** - bottom-screen miniature city: bought assets appear as small buildings with Lottie pop-in. Lost asset crumbles, FOR SALE tag appears. Epoch event = windows tremble.
+3. **Avatar Transformation** - 8 visual states from [[CHARACTER_VISUAL_STYLE_PROMPT|CHARACTER_VISUAL_STYLE_PROMPT]] driven by stress + role state via Rive state machine.
+4. **Card Reveal Drama** - card flies in, flips with shadow, type-colored glow, haptic on land. Hearthstone-class motion.
+5. **Market Ticker** - Bloomberg-satire scrolling news ribbon with fictional tokens, epochs, scandals. Pulses on event.
+6. **Pet Reactions** - companion (cat in mockup) with 3+ Rive states reacting to player's life state.
+
+Dice usage is restricted to **drama moments**, not movement:
+
+- Tax audit severity dice.
+- Election candidate fate dice.
+- Job interview reaction dice.
+- Futures "ping/loading" hiccup (already in [[../20_mechanics/RISK_COMEDY_AND_FUTURES|RISK_COMEDY_AND_FUTURES]]).
+
+All dice outcomes are server-resolved from match seed. UI dice is visualization, never source of truth.
+
