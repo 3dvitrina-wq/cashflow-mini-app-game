@@ -5,6 +5,7 @@ node_modules/
 .next/
 dist/
 coverage/
+tmp/
 *.log
 .DS_Store
 __pycache__/
