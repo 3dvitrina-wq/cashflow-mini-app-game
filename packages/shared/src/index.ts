@@ -147,7 +147,12 @@ export type EffectType =
   | 'deposit.interest'
   | 'deposit.withdraw'
   | 'deal.resolve'
-  | 'synergy.trigger';
+  | 'synergy.trigger'
+  // Phase 3: Structured Negotiation
+  | 'interest.window.open'
+  | 'interest.window.close'
+  | 'deal.fairness_check'
+  | 'selection.by_focus_tokens';
 
 export interface Effect {
   type: EffectType;
@@ -356,6 +361,21 @@ export interface PendingDeal {
   expiresRound: number;
 }
 
+// ─── Phase 3: Interest Window ────────────────────────────────────────────────
+
+export interface InterestWindow {
+  cardId: string;
+  cardTitle: string;
+  eligiblePlayers: PlayerId[];
+  /** Players who tapped INTERESTED, in order received. */
+  interestedPlayers: PlayerId[];
+  /** Up to 3 players selected for negotiation. Filled on close. */
+  selectedPlayers: PlayerId[];
+  openedRound: number;
+  windowDurationMs: number;
+  status: 'open' | 'closed';
+}
+
 // ─── Player State ───────────────────────────────────────────────────────────
 
 export interface PlayerState {
@@ -411,6 +431,9 @@ export interface PlayerState {
   professionId?: string;
   /** Tax band from profession catalog; undefined = baseline multiplier 1.0. */
   taxBand?: 'a' | 'b' | 'c' | 'd';
+
+  // Phase 3: Negotiation — focus tokens for interest window tiebreaker
+  focusTokens: number;
 
   // Status
   isBot: boolean;
@@ -531,6 +554,9 @@ export interface MatchState {
   // Events
   eventLog: GameEvent[];
   version: number;
+
+  // Phase 3: active interest window (null when none open)
+  activeInterestWindow: InterestWindow | null;
 }
 
 // ─── Command Result ─────────────────────────────────────────────────────────

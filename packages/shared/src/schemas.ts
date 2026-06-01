@@ -69,6 +69,9 @@ export const EffectTypeSchema = z.enum([
   // Phase 2: Economy effects
   'deposit.create', 'deposit.interest', 'deposit.withdraw',
   'deal.resolve', 'synergy.trigger',
+  // Phase 3: Structured Negotiation
+  'interest.window.open', 'interest.window.close',
+  'deal.fairness_check', 'selection.by_focus_tokens',
 ]);
 
 // ─── Effect ─────────────────────────────────────────────────────────────────
@@ -313,6 +316,8 @@ export const PlayerStateSchema = z.object({
   // Phase 3: Profession (optional, backward-compatible — existing tests unchanged)
   professionId: z.string().optional(),
   taxBand: z.enum(['a', 'b', 'c', 'd']).optional(),
+  // Phase 3: focus tokens for interest window tiebreaker
+  focusTokens: z.number().min(0).default(2),
 
   isBot: z.boolean(),
   botPersona: BotPersonaSchema.optional(),
@@ -403,6 +408,19 @@ export const GameEventSchema = z.object({
   payload: z.record(z.unknown()).optional(),
 });
 
+// ─── Phase 3: Interest Window ───────────────────────────────────────────────
+
+export const InterestWindowSchema = z.object({
+  cardId: z.string(),
+  cardTitle: z.string(),
+  eligiblePlayers: z.array(PlayerIdSchema),
+  interestedPlayers: z.array(PlayerIdSchema),
+  selectedPlayers: z.array(PlayerIdSchema),
+  openedRound: z.number().int().min(1),
+  windowDurationMs: z.number().positive(),
+  status: z.enum(['open', 'closed']),
+});
+
 // ─── Match State ────────────────────────────────────────────────────────────
 
 export const MatchStateSchema = z.object({
@@ -430,4 +448,6 @@ export const MatchStateSchema = z.object({
   marketPrices: z.record(z.number()),
   eventLog: z.array(GameEventSchema),
   version: z.number().int().min(1),
+  // Phase 3: active interest window (optional for backward-compat with serialized states)
+  activeInterestWindow: InterestWindowSchema.nullable().optional(),
 });
