@@ -1,0 +1,408 @@
+import { describe, it, expect } from 'vitest';
+import {
+  createMatch,
+  createPlayer,
+  resolveCommand,
+  advanceRound,
+  activePlayer,
+  validateCommand,
+  deriveAvatarState,
+  freedomScore,
+} from '../engine';
+import { botIntent, parseBotPersona } from '../bot';
+import { getCard, CARDS, getCardsByType, getWeightedCardIds } from '../cards';
+import { applyEffects, isResolved, isPlaceholder, registeredEffectTypes } from '../effects';
+import { checkEligibility, registeredConditions } from '../conditions';
+import { advanceTimeline, createTimeline, monthToSeason } from '../timeline';
+import { TemplateHost } from '../host';
+import {
+  getCharacter,
+  getAllCharacters,
+  getLocation,
+  getAllLocations,
+  getAllDecks,
+  getAllOutfits,
+  getAllAnimations,
+  getAllSounds,
+} from '../registries';
+import { shuffle, rngInt, rngFloat } from '../rng';
+import type { MatchState, PlayerState } from '../../shared/src/index';
+
+// ─── Match Creation ─────────────────────────────────────────────────────────
+
+describe('createMatch', () => {
+  it('creates a match with valid initial state', () => {
+    const state = createMatch(42, [
+      { id: 'p1', name: 'Alice', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'Bob', outfit: 'operator' },
+    ]);
+
+    expect(state.seed).toBe(42);
+    expect(state.round).toBe(1);
+    expect(state.phase).toBe('decision');
+    expect(state.players).toHaveLength(2);
+    expect(state.players[0].isActive).toBe(true);
+    expect(state.players[1].isActive).toBe(false);
+    expect(state.players[0].cash).toBe(3500);
+    expect(state.deck.length).toBeGreaterThan(0);
+    expect(state.currentCardId).toBeTruthy();
+    expect(state.timeline.year).toBe(1);
+    expect(state.timeline.month).toBe(1);
+  });
+
+  it('applies location macro overrides', () => {
+    const state = createMatch(42, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ], { locationId: 'crypto_haven' });
+
+    expect(state.macro.cryptoPolicy).toBe('friendly');
+    expect(state.macro.taxRate).toBe(0.10);
+  });
+
+  it('uses weighted deck', () => {
+    const state = createMatch(42, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+
+    // Deck should have repeated cards based on weight
+    const weighted = getWeightedCardIds();
+    const expectedMinSize = weighted.reduce((s, c) => s + c.weight, 0);
+    expect(state.deck.length).toBe(expectedMinSize);
+  });
+});
+
+// ─── Determinism ────────────────────────────────────────────────────────────
+
+describe('determinism', () => {
+  it('same seed produces identical state', () => {
+    const players = [
+      { id: 'p1', name: 'A', outfit: 'trader' as const, isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad' as const, isBot: true },
+    ];
+
+    const play = (seed: number) => {
+      let s = createMatch(seed, players, { maxRounds: 5 });
+      for (let i = 0; i < 20 && s.phase !== 'finished'; i++) {
+        const active = activePlayer(s)!;
+        const cmd = botIntent(s, active);
+        s = resolveCommand(s, cmd).state;
+        s = advanceRound(s).state;
+      }
+      return JSON.stringify(s);
+    };
+
+    expect(play(99)).toBe(play(99));
+  });
+
+  it('different seeds produce different states', () => {
+    const players = [
+      { id: 'p1', name: 'A', outfit: 'trader' as const, isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad' as const, isBot: true },
+    ];
+
+    const a = createMatch(1, players);
+    const b = createMatch(2, players);
+    expect(a.deck.join(',')).not.toBe(b.deck.join(','));
+  });
+});
+
+// ─── Command Validation ─────────────────────────────────────────────────────
+
+describe('validateCommand', () => {
+  it('rejects command from wrong player', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+
+    const err = validateCommand(state, { type: 'pass', playerId: 'p2' });
+    expect(err).toBe('not your turn');
+  });
+
+  it('accepts command from active player', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+
+    const err = validateCommand(state, { type: 'pass', playerId: 'p1' });
+    expect(err).toBeNull();
+  });
+
+  it('rejects invalid choice index', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+
+    const err = validateCommand(state, { type: 'choose_option', playerId: 'p1', choiceIndex: 99 });
+    expect(err).toBe('invalid choice index');
+  });
+});
+
+// ─── Effects ────────────────────────────────────────────────────────────────
+
+describe('effect registry', () => {
+  it('has ~40 registered effect types', () => {
+    const types = registeredEffectTypes();
+    expect(types.length).toBeGreaterThanOrEqual(35);
+  });
+
+  it('marks placeholders correctly', () => {
+    expect(isPlaceholder('bankruptcy.file')).toBe(true);
+    expect(isPlaceholder('cash.delta')).toBe(false);
+  });
+
+  it('resolves cash.delta', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+    const player = state.players[0];
+    const before = player.cash;
+    applyEffects(state, player, [{ type: 'cash.delta', amount: 500 }]);
+    expect(player.cash).toBe(before + 500);
+  });
+
+  it('clamps stress to 0-10', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+    const player = state.players[0];
+    player.stress = 9;
+    applyEffects(state, player, [{ type: 'stress.delta', amount: 5 }]);
+    expect(player.stress).toBe(10);
+  });
+
+  it('scope=all hits all alive players', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+      { id: 'p3', name: 'C', outfit: 'creator', isBot: true },
+    ]);
+    const active = state.players[0];
+    const before = state.players.map((p) => p.stress);
+    applyEffects(state, active, [{ type: 'stress.delta', amount: 1, scope: 'all' }]);
+    expect(state.players[0].stress).toBe(before[0] + 1);
+    expect(state.players[1].stress).toBe(before[1] + 1);
+    expect(state.players[2].stress).toBe(before[2] + 1);
+  });
+});
+
+// ─── Cards ──────────────────────────────────────────────────────────────────
+
+describe('cards', () => {
+  it('has 65 cards (50 Phase 1 + 10 Phase 2 + 5 Futures)', () => {
+    expect(CARDS.length).toBe(65);
+  });
+
+  it('has correct type distribution', () => {
+    expect(getCardsByType('opportunity')).toHaveLength(14);  // +3 futures
+    expect(getCardsByType('market_pulse')).toHaveLength(9);
+    expect(getCardsByType('crisis')).toHaveLength(9);
+    expect(getCardsByType('protection')).toHaveLength(8);
+    expect(getCardsByType('staff')).toHaveLength(6);
+    expect(getCardsByType('modern_earning')).toHaveLength(8);  // +2 futures
+    expect(getCardsByType('expense_to_asset')).toHaveLength(9);
+    expect(getCardsByType('social')).toHaveLength(2);
+  });
+
+  it('every card has a unique id', () => {
+    const ids = CARDS.map((c) => c.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it('getCard returns null for unknown id', () => {
+    expect(getCard('nonexistent')).toBeNull();
+    expect(getCard(null)).toBeNull();
+  });
+});
+
+// ─── Conditions ─────────────────────────────────────────────────────────────
+
+describe('condition engine', () => {
+  it('passes when no conditions', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+    expect(checkEligibility(state, state.players[0], [])).toBe(true);
+    expect(checkEligibility(state, state.players[0])).toBe(true);
+  });
+
+  it('checks cash_min correctly', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+    const player = state.players[0];
+    player.cash = 500;
+    expect(checkEligibility(state, player, [{ type: 'cash_min', value: 1000 }])).toBe(false);
+    expect(checkEligibility(state, player, [{ type: 'cash_min', value: 200 }])).toBe(true);
+  });
+
+  it('has registered conditions', () => {
+    expect(registeredConditions().length).toBeGreaterThan(10);
+  });
+});
+
+// ─── Timeline ───────────────────────────────────────────────────────────────
+
+describe('timeline', () => {
+  it('starts at Year 1, Month 1', () => {
+    const t = createTimeline();
+    expect(t.year).toBe(1);
+    expect(t.month).toBe(1);
+    expect(t.season).toBe('spring');
+  });
+
+  it('advances months correctly', () => {
+    let t = createTimeline();
+    for (let i = 0; i < 12; i++) t = advanceTimeline(t);
+    expect(t.year).toBe(2);
+    expect(t.month).toBe(1);
+  });
+
+  it('seasons cycle correctly', () => {
+    expect(monthToSeason(1)).toBe('spring');
+    expect(monthToSeason(4)).toBe('summer');
+    expect(monthToSeason(7)).toBe('autumn');
+    expect(monthToSeason(10)).toBe('winter');
+  });
+});
+
+// ─── Bot Policy ─────────────────────────────────────────────────────────────
+
+describe('bot policy', () => {
+  it('returns valid command', () => {
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+    const cmd = botIntent(state, state.players[0]);
+    expect(cmd.playerId).toBe('p1');
+    expect(['choose_option', 'pass']).toContain(cmd.type);
+  });
+
+  it('parseBotPersona handles all values', () => {
+    expect(parseBotPersona('conservative')).toBe('conservative');
+    expect(parseBotPersona('balanced')).toBe('balanced');
+    expect(parseBotPersona('aggressive')).toBe('aggressive');
+    expect(parseBotPersona(undefined)).toBe('conservative');
+    expect(parseBotPersona('unknown')).toBe('conservative');
+  });
+});
+
+// ─── Host ───────────────────────────────────────────────────────────────────
+
+describe('TemplateHost', () => {
+  it('generates lines for all methods', () => {
+    const host = new TemplateHost();
+    const state = createMatch(1, [
+      { id: 'p1', name: 'A', outfit: 'trader', isBot: true },
+      { id: 'p2', name: 'B', outfit: 'nomad', isBot: true },
+    ]);
+
+    const card = getCard(state.currentCardId)!;
+    expect(host.onCardReveal(card, state.players[0])).toBeTruthy();
+    expect(host.onSettlement(state, 1)).toBeTruthy();
+    expect(host.onTurnNudge(state.players[0], 30)).toContain('A');
+
+    const recap = host.onMatchEnd(state);
+    expect(recap.winnerLine).toBeTruthy();
+    expect(recap.funniestFail).toBeTruthy();
+  });
+});
+
+// ─── Registries ─────────────────────────────────────────────────────────────
+
+describe('registries', () => {
+  it('has 6 default characters', () => {
+    expect(getAllCharacters()).toHaveLength(6);
+    expect(getCharacter('hustler')).toBeTruthy();
+    expect(getCharacter('trader')).toBeTruthy();
+  });
+
+  it('has default locations', () => {
+    expect(getAllLocations().length).toBeGreaterThanOrEqual(3);
+    expect(getLocation('default_city')).toBeTruthy();
+  });
+
+  it('has default outfits', () => {
+    expect(getAllOutfits()).toHaveLength(6);
+  });
+});
+
+// ─── RNG ────────────────────────────────────────────────────────────────────
+
+describe('rng', () => {
+  it('produces deterministic output', () => {
+    expect(rngFloat(42, 0)).toBe(rngFloat(42, 0));
+    expect(rngInt(42, 0, 100)).toBe(rngInt(42, 0, 100));
+  });
+
+  it('produces different output for different counters', () => {
+    expect(rngFloat(42, 0)).not.toBe(rngFloat(42, 1));
+  });
+
+  it('shuffle is deterministic', () => {
+    const a = shuffle([1, 2, 3, 4, 5], 42);
+    const b = shuffle([1, 2, 3, 4, 5], 42);
+    expect(a).toEqual(b);
+  });
+});
+
+// ─── Freedom Score ──────────────────────────────────────────────────────────
+
+describe('freedomScore', () => {
+  it('returns positive score for healthy player', () => {
+    const player = createPlayer({ id: 'p1', name: 'A', outfit: 'trader' });
+    const score = freedomScore(player);
+    expect(score).toBeGreaterThan(0);
+  });
+
+  it('higher passive income = higher score', () => {
+    const a = createPlayer({ id: 'p1', name: 'A', outfit: 'trader' });
+    const b = createPlayer({ id: 'p2', name: 'B', outfit: 'trader' });
+    b.passiveIncome = 5000;
+    expect(freedomScore(b)).toBeGreaterThan(freedomScore(a));
+  });
+});
+
+// ─── Full Match ─────────────────────────────────────────────────────────────
+
+describe('full match', () => {
+  it('completes without errors', () => {
+    const players = [
+      { id: 'p1', name: 'A', outfit: 'trader' as const, isBot: true, botPersona: 'conservative' as const },
+      { id: 'p2', name: 'B', outfit: 'nomad' as const, isBot: true, botPersona: 'balanced' as const },
+      { id: 'p3', name: 'C', outfit: 'creator' as const, isBot: true, botPersona: 'aggressive' as const },
+      { id: 'p4', name: 'D', outfit: 'office' as const, isBot: true, botPersona: 'balanced' as const },
+    ];
+
+    let state = createMatch(42, players, { maxRounds: 15 });
+    let guard = 0;
+
+    while (state.phase !== 'finished' && guard < 500) {
+      guard++;
+      const active = activePlayer(state)!;
+      const cmd = botIntent(state, active);
+      const result = resolveCommand(state, cmd);
+      expect(result.events.some((e) => e.type === 'command_rejected')).toBe(false);
+      state = advanceRound(result.state).state;
+    }
+
+    expect(state.phase).toBe('finished');
+    expect(state.round).toBeLessThanOrEqual(16);
+
+    // All players should have valid state
+    for (const p of state.players) {
+      expect(p.cash).toBeGreaterThanOrEqual(0);
+      expect(p.stress).toBeGreaterThanOrEqual(0);
+      expect(p.stress).toBeLessThanOrEqual(10);
+    }
+  });
+});
