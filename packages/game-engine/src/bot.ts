@@ -9,6 +9,7 @@ import type {
   CardChoice,
   CardType,
   Command,
+  FuturesDirection,
   MatchState,
   PlayerState,
 } from '../../shared/src/index';
@@ -149,6 +150,39 @@ export function botIntent(state: MatchState, player: PlayerState): Command {
   if (!card || !card.choices || card.choices.length === 0) {
     return { type: 'pass', playerId: player.id };
   }
+
+  // ─── high_risk_speculator: proportional futures sizing ───────────────────
+  // When a futures card is drawn, override the fixed card margin with a
+  // proportional bet (60% of cash at 3x leverage, max $8K).
+  // Uses e.type checks only — invariant 3 preserved (no cardId switch).
+  if (strategy === 'high_risk_speculator') {
+    const hasFuturesEffect = card.choices.some((c) =>
+      c.effects.some((e) => e.type === 'futures.open'),
+    );
+    if (hasFuturesEffect && player.cash > 500) {
+      const best3xChoice =
+        card.choices.find((c) =>
+          c.effects.some(
+            (e) => e.type === 'futures.open' && ((e.payload?.['leverage'] as number) ?? 0) >= 3,
+          ),
+        ) ?? card.choices.find((c) => c.effects.some((e) => e.type === 'futures.open'));
+      const fe = best3xChoice?.effects.find((e) => e.type === 'futures.open');
+      if (fe) {
+        const tokenSymbol = (fe.payload?.['tokenSymbol'] as string) ?? 'NEON';
+        const direction = (fe.payload?.['direction'] as FuturesDirection) ?? 'long';
+        const amount = Math.max(500, Math.min(Math.floor(player.cash * 0.60), 8000));
+        return {
+          type: 'open_futures_position',
+          playerId: player.id,
+          tokenSymbol,
+          direction,
+          leverage: 3,
+          amount,
+        };
+      }
+    }
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const comfortable = player.cash > weights.comfortThreshold;
   // Strategy overrides stress ceiling: safe bots bail early, speculators push hard

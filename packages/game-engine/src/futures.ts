@@ -22,8 +22,8 @@ export function updateMarketPrices(state: MatchState): Record<string, number> {
     // Deterministic price walk: seed + round + token name hash
     const hash = hashString(token);
     const r = rngFloat(state.seed, state.rngCounter * 100 + hash);
-    // Volatility: ±15% per round (high for gameplay drama)
-    const change = (r - 0.5) * 0.30;
+    // Volatility: ±22% per round — amplifies futures P&L variance for bimodal speculator outcomes
+    const change = (r - 0.5) * 0.44;
     const newPrice = Math.max(1, prev * (1 + change));
     prices[token] = Math.round(newPrice * 100) / 100;
   }
