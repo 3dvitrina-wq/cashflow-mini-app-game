@@ -5,7 +5,7 @@
 See: `.planning/PROJECT.md`
 
 **Core value:** A short social match that teaches cashflow, leverage, risk, timing, negotiation, and safe choices through play.
-**Current focus:** Phase 2 - Economy and Cards MVP (OPEN - futures cards landed but speculator σ=0.99x, not bimodal; dispatched variance fix). Phase 2.1 Profession Catalog CLOSED (verified). Phase 3 Structured Negotiation spec dispatched to docs. Phase 1 CLOSED (replay verified).
+**Current focus:** Phase 3 - Structured Negotiation. Engine-side DONE & verified (2026-06-01, 62/62 tests, determinism YES, auditable proven in sim). UI-side ("fast on mobile") dispatched to engine 2026-06-01. Spec ready (`docs/.../PHASE3_NEGOTIATION_SPEC.md` + `PHASE3_UI_AND_FEEL_SPEC.md`). Phase 2 CLOSED on literal exit gate (operator decision 2026-06-01 — 3 viable strategies, none dominant; σ≥1.8× proxy retired as math-blocked, futures kept as light comedic risk; tension/release re-scoped to gameplay-feel/UI). Phase 2.1 Profession Catalog CLOSED. Phase 1 CLOSED.
 
 ## Current Status (2026-06-01)
 
@@ -24,13 +24,13 @@ See: `.planning/PROJECT.md`
   - New card with existing effects = no engine change ✓ (typed-effect architecture)
   - replay(seed+log) reproduces stateHash ✓ (`__tests__/replay.test.ts`, 3 seeds + negative test)
 
-### Phase 2 - IN PROGRESS (exit gate held OPEN by orch, 2026-06-01)
-- Strategy bots added (safe_cashflow / active_dealmaker / high_risk_speculator), scored by effect.type + card.type (no cardId switch).
-- Win-rate gate PASSES: safe 22.9% / dealmaker 27.4% / speculator 24.8%; none dominant; deterministic YES; 39/39 tests PASS (orch re-ran `npm run sim`).
-- Futures/leverage cards NOW in deck (10 futures.open refs, leverage cap 3x). Sim now computes per-strategy freedom-score σ (sim/index.ts:219).
-- **BLOCKER to honest closure (NEW evidence):** orch ran `npm run sim` → speculator/safe σ ratio = **0.99x** (`⚠️ not bimodal yet`). Despite futures in deck, high_risk_speculator does NOT produce real variance — bot isn't opening leveraged positions sized to swing freedom score. The high-risk fun lever (tension→release, neuropsych trigger #5) is still dead.
-- **Dispatched (2026-06-01, this wave):** engine → (1) commit dirty tree first, then (2) diagnose why speculator σ ≈ safe σ and tune the bot to actually open/size leveraged futures so σ ≥ ~1.8× safe, keeping win-rate 15-35% and none dominant. No cardId switch; settlement formula untouched.
-- Close gate only when: speculator σ ≥ ~1.8× safe σ AND win-rate still 15-35% AND none dominant.
+### Phase 2 - COMPLETE (exit gate CLOSED on literal gate, operator decision 2026-06-01)
+- Strategy bots (safe_cashflow / active_dealmaker / high_risk_speculator), scored by effect.type + card.type (no cardId switch).
+- **Literal exit gate MET:** 3 viable strategies, all 15-35% win-rate (safe 23.5 / active 26.4 / speculator 25.1); high-risk can win but NOT dominant; deterministic YES; 39/39 tests PASS; 0 invariant breaks.
+- Futures/leverage cards in deck (10 futures.open refs, leverage cap 3x). Sim computes per-strategy freedom-score σ (sim/index.ts:219).
+- **σ-bimodality proxy RETIRED (engine diagnostic, orch wave 2026-06-01):** speculator/safe σ ≈ 0.97x is a MATHEMATICAL ceiling — `income×12` in freedomScore structurally dwarfs futures P&L (~$2.3K/game: 0.5 bets × 3x cap × $2-3K margin). Chasing σ≥1.8× = burning cycles on a math wall; lever (b) 10x leverage rejected (CANON 2x/3x). Operator steer: futures = light comedic risk form, stop circling.
+- **Re-scoped (not lost):** tension/release (neuropsych #5) → gameplay-feel/UI work — in-game swings + near-liquidation moments DURING the match (visible HP-bar-style drama), measured live, not in final-score σ. Tracked for Phase 3/UI feel, not an economy blocker.
+- Harmless engine tuning from σ-investigation kept: bot.ts proportional futures sizing + futures.ts ±22% vol (committed).
 
 ### Phase 2.1 - Reality: Profession Catalog - COMPLETE (exit gate verified 2026-06-01, orch)
 - 14 professions (4 tiers entry/mid/senior/elite, 4 tax bands a/b/c/d) with differentiated salary/tax/debt/liabilities; avatarKey from 6 canon characters only.
@@ -38,6 +38,12 @@ See: `.planning/PROJECT.md`
 - Sim balance: all strategies inside 22-28% (safe 22.9 / dealmaker 27.4 / speculator 24.8). 39/39 tests PASS. Replay determinism preserved.
 - Files: NEW professions.ts; MOD schemas.ts, shared/index.ts, engine.ts, sim/balance-audit.ts.
 - **Held for later wave:** UI task (PlayerProfile.tsx PROFESSION swipe-tab via existing TabBar.tsx).
+
+### Phase 3 - Structured Negotiation - IN PROGRESS (engine-side complete 2026-06-01, orch verified)
+- **Engine-side DONE:** NEW `negotiation.ts` (openInterestWindow / registerInterest / closeInterestWindow / selectByFocusTokens / checkDealFairness); 4 typed-effects (interest.window.open/close, deal.fairness_check, selection.by_focus_tokens) — no cardId switch (invariant 3 holds); `focusTokens` on PlayerState, `activeInterestWindow` on MatchState; `express_interest` command; bot auto-interest; trust-deltas wired (accept +1, reject -0.5).
+- **Verified:** 62/62 tests PASS (+23 negotiation), determinism YES (sim 2000/2000), 640 fairness events / 2000 matches (auditable proven), 0 invariant breaks.
+- **Exit gate "Deals are fast on mobile AND auditable":** *auditable* half MET (event log + fairness + replay). *fast on mobile* half PENDING — negotiation UI in apps/web not built. Dispatched to engine 2026-06-01.
+- **UNCOMMITTED:** negotiation.ts + negotiation.test.ts (untracked) + M deals.ts/effects.ts/engine.ts/shared schemas — commit dispatched to docs.
 
 ### apps/server - CREATED (2026-05-31, ORCA session)
 - Fastify + WebSocket room server (port 3001/3002)

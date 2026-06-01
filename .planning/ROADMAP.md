@@ -50,7 +50,7 @@ Exit gate:
 - At least 3 viable strategies: safe cashflow, active dealmaker, high-risk speculator.
 - High-risk strategy can win, but is not dominant.
 
-Status: in progress (2026-06-01). Win-rate gate PASSES — strategy bots safe 22.9% / dealmaker 27.4% / speculator 24.8%, none dominant, deterministic. Futures/leverage cards NOW land in the deck (10 futures.open refs in `cards.ts`, leverage cap 3x). BUT orch ran `npm run sim`: speculator/safe freedom-score σ ratio = **0.99x** (not bimodal). The high-risk path still does not produce real variance — the bot isn't opening leveraged positions large enough to swing outcomes. Exit gate held OPEN until speculator σ ≥ ~1.8× safe σ (real tension/release, neuropsych trigger #5) while win-rate stays 15-35% and none dominant.
+Status: complete (exit gate verified 2026-06-01, operator decision). Literal exit gate MET: 3 viable strategy bots (safe_cashflow / active_dealmaker / high_risk_speculator) all inside 15-35% win-rate (safe 23.5 / active 26.4 / speculator 25.1), high-risk can win but is NOT dominant, deterministic YES, 39/39 tests PASS, 0 invariant breaks, no cardId switch. Futures/leverage cards in deck (10 futures.open refs, leverage cap 3x). NOTE on σ: engine diagnostic proved final-score σ_speculator ≈ 0.97× safe is a MATHEMATICAL ceiling — `income×12` in freedomScore structurally dwarfs futures P&L (~$2.3K/game at 0.5 bets × 3x cap × $2-3K margin). The self-imposed σ≥1.8× bimodality proxy was RETIRED: it conflated outcome-spread with fun-tension. Futures are intentionally a light/comedic risk form (operator steer 2026-06-01). tension/release (neuropsych #5) is re-scoped to gameplay-feel work — in-game swings + near-liquidation UX moments measured DURING the match, not in final-score σ. Tracked as a Phase 3/UI feel item, not an economy blocker.
 
 ## Phase 2.1 - Reality: Profession Catalog
 
@@ -91,6 +91,8 @@ Deliverables:
 
 Exit gate:
 - Deals are fast on mobile and auditable.
+
+Status: in progress (engine-side complete & verified 2026-06-01). Engine half DONE: negotiation.ts (interest window open/close, selection ≤3, selectByFocusTokens tiebreaker, checkDealFairness equity audit), 4 typed-effects with no cardId switch, focusTokens + activeInterestWindow on state, express_interest command, trust-deltas wired; 62/62 tests PASS, determinism YES, 640 fairness events / 2000 sim matches (auditable half of exit gate MET). REMAINING for exit gate: "fast on mobile" — negotiation UI in apps/web (interest-window banner + timer, offer builder modal, fairness warning, focus-token indicator, player-strip negotiating badge) per PHASE3_NEGOTIATION_SPEC.md + PHASE3_UI_AND_FEEL_SPEC.md. Dispatched to engine 2026-06-01.
 
 ## Phase 4 - Telegram Multiplayer MVP
 
