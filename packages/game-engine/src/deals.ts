@@ -13,6 +13,7 @@ import type {
   PlayerState,
 } from '../../shared/src/index';
 import { contractFromOffer } from './contracts';
+import { checkDealFairness } from './negotiation';
 
 const DEAL_EXPIRY_ROUNDS = 3;
 
@@ -106,8 +107,19 @@ export function acceptDeal(
   // Trust verdict: higher trust = better deal terms for proposer
   const trustVerdict = proposer.trust >= 7 ? 'trusted' : proposer.trust >= 4 ? 'neutral' : 'suspicious';
 
-  // Execute the deal
-  const events: GameEvent[] = [];
+  // Fairness audit — always runs, result logged regardless of outcome
+  const fairness = checkDealFairness(state, proposer, acceptor, deal.offer);
+  const events: GameEvent[] = [{
+    type: 'audit',
+    playerId: proposer.id,
+    effectType: 'deal.fairness_check',
+    payload: {
+      dealId: deal.id,
+      equityImpact: fairness.equityImpact,
+      isFlagged: fairness.isFlagged,
+    },
+    message: fairness.warning ?? 'Fairness check: deal appears balanced',
+  }];
 
   // Cash transfer is handled by contractFromOffer
   // Validate funds first
@@ -155,9 +167,26 @@ export function acceptDeal(
   // Mark deal as accepted
   deal.status = 'accepted';
 
-  // Update trust
+  // Trust delta: +1 for both parties on successful deal
+  const prevTrustProposer = proposer.trust;
+  const prevTrustAcceptor = acceptor.trust;
   proposer.trust = Math.min(10, proposer.trust + 1);
   acceptor.trust = Math.min(10, acceptor.trust + 1);
+
+  events.push({
+    type: 'effect',
+    playerId: proposer.id,
+    effectType: 'trust.delta',
+    amount: proposer.trust - prevTrustProposer,
+    message: 'trust gained: deal accepted',
+  });
+  events.push({
+    type: 'effect',
+    playerId: acceptor.id,
+    effectType: 'trust.delta',
+    amount: acceptor.trust - prevTrustAcceptor,
+    message: 'trust gained: deal accepted',
+  });
 
   events.push({
     type: 'deal',
@@ -190,19 +219,31 @@ export function rejectDeal(
 
   deal.status = 'rejected';
 
+  const events: GameEvent[] = [];
+
   // Slight trust penalty for the proposer
   const proposer = state.players.find((p) => p.id === deal.proposerId);
   if (proposer) {
+    const prevTrust = proposer.trust;
     proposer.trust = Math.max(0, proposer.trust - 0.5);
+    events.push({
+      type: 'effect',
+      playerId: proposer.id,
+      effectType: 'trust.delta',
+      amount: proposer.trust - prevTrust,
+      message: 'trust penalty: deal rejected',
+    });
   }
 
-  return [{
+  events.push({
     type: 'deal',
     playerId: rejector.id,
     effectType: 'deal.resolve',
     message: `Deal rejected: ${deal.offer.description}`,
     payload: { dealId: deal.id, status: 'rejected' },
-  }];
+  });
+
+  return events;
 }
 
 /** Expire old deals during settlement. */

@@ -20,6 +20,7 @@ import type {
 } from '../../shared/src/index';
 import { createDeposit } from './bank';
 import { proposeDeal } from './deals';
+import { openInterestWindow, closeInterestWindow, checkDealFairness, selectByFocusTokens } from './negotiation';
 import { rngInt } from './rng';
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
@@ -338,6 +339,66 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
   },
 
   'noop': () => [],
+
+  // ─── Phase 3: Structured Negotiation ─────────────────────────────────
+
+  'interest.window.open': (state, _p, e) => {
+    const payload = e.payload as Record<string, unknown> | undefined;
+    const cardId = (payload?.cardId as string) ?? state.currentCardId ?? 'unknown';
+    const cardTitle = (payload?.cardTitle as string) ?? cardId;
+    const windowMs = (payload?.windowDurationMs as number) ?? 60000;
+    // Eligible = all alive players by default; payload can override
+    const eligible = (payload?.eligiblePlayers as string[] | undefined)
+      ?? state.players.filter((p) => p.alive).map((p) => p.id);
+    return openInterestWindow(state, cardId, cardTitle, eligible, windowMs);
+  },
+
+  'interest.window.close': (state) => {
+    return closeInterestWindow(state);
+  },
+
+  'deal.fairness_check': (state, p, e) => {
+    const payload = e.payload as Record<string, unknown> | undefined;
+    if (!payload) {
+      return [{ type: 'warn', playerId: p.id, message: 'deal.fairness_check: missing payload' }];
+    }
+    const targetId = payload.targetId as string | undefined;
+    const target = targetId ? state.players.find((pl) => pl.id === targetId) : undefined;
+    if (!target) {
+      return [{ type: 'warn', playerId: p.id, message: 'deal.fairness_check: target not found' }];
+    }
+    const offer = payload.offer as import('../../shared/src/index').OfferPayload | undefined;
+    if (!offer) {
+      return [{ type: 'warn', playerId: p.id, message: 'deal.fairness_check: missing offer' }];
+    }
+    const result = checkDealFairness(state, p, target, offer);
+    return [{
+      type: 'audit',
+      playerId: p.id,
+      effectType: 'deal.fairness_check',
+      payload: {
+        equityImpact: result.equityImpact,
+        isFlagged: result.isFlagged,
+      },
+      message: result.warning ?? 'Fairness check: deal appears balanced',
+    }];
+  },
+
+  'selection.by_focus_tokens': (state, _p, e) => {
+    // Stand-alone effect: selects from eligible list and emits result event.
+    // Normally triggered internally by closeInterestWindow; also usable from cards.
+    const payload = e.payload as Record<string, unknown> | undefined;
+    const candidates = (payload?.candidates as string[] | undefined)
+      ?? state.players.filter((p) => p.alive).map((p) => p.id);
+    const maxSelect = (payload?.maxSelect as number | undefined) ?? 3;
+    const selected = selectByFocusTokens(state, candidates, maxSelect);
+    return [{
+      type: 'deal',
+      effectType: 'selection.by_focus_tokens',
+      payload: { selected, candidates },
+      message: `Selected by focus tokens: ${selected.join(', ')}`,
+    }];
+  },
 };
 
 // ─── Placeholder Slots (v1.5) ───────────────────────────────────────────────

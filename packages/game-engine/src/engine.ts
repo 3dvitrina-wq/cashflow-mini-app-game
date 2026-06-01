@@ -36,6 +36,7 @@ import { getAllLocations } from './registries';
 import { applyDepositInterest, createDeposit, withdrawDeposit } from './bank';
 import { expireOldDeals, proposeDeal, acceptDeal, rejectDeal } from './deals';
 import { applySynergyBonuses } from './synergy';
+import { registerInterest, closeInterestWindow } from './negotiation';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -125,6 +126,9 @@ export function createPlayer(p: NewPlayer): PlayerState {
 
     pet: null,
 
+    // Phase 3: focus tokens for interest window tiebreaker
+    focusTokens: 2,
+
     isBot: p.isBot ?? false,
     botPersona: p.botPersona,
     botStrategy: p.botStrategy,
@@ -211,6 +215,8 @@ export function createMatch(
 
     eventLog: [],
     version: 1,
+
+    activeInterestWindow: null,
   };
 
   // Initialize pending intents
@@ -243,6 +249,18 @@ export function deriveAvatarState(p: PlayerState): AvatarState {
 
 export function validateCommand(state: MatchState, cmd: Command): string | null {
   if (state.phase === 'finished') return 'match finished';
+
+  // express_interest: any alive player can submit when a window is open, regardless of phase
+  if (cmd.type === 'express_interest') {
+    const player = state.players.find((p) => p.id === cmd.playerId);
+    if (!player) return 'unknown player';
+    if (!player.alive) return 'player is eliminated';
+    if (!state.activeInterestWindow || state.activeInterestWindow.status !== 'open') {
+      return 'no open interest window';
+    }
+    return null;
+  }
+
   if (state.phase !== 'decision' && state.phase !== 'intent_window') {
     return `cannot act in phase ${state.phase}`;
   }
@@ -431,6 +449,12 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       break;
     }
 
+    // ─── Phase 3: Interest window commands ─────────────────────────────
+    case 'express_interest': {
+      events.push(...registerInterest(state, cmd.playerId));
+      break;
+    }
+
     default: {
       // Intent window commands — store for batch resolution
       if (state.phase === 'intent_window') {
@@ -546,6 +570,24 @@ export function advanceRound(prev: MatchState): CommandResult {
 
   // ─── Phase 2: Apply synergy bonuses ───────────────────────────────────
   events.push(...applySynergyBonuses(state));
+
+  // ─── Phase 3: Auto-resolve interest window for bots ──────────────────
+  if (state.activeInterestWindow?.status === 'open') {
+    const win = state.activeInterestWindow;
+    for (const p of state.players) {
+      if (!p.alive || !p.isBot) continue;
+      if (!win.eligiblePlayers.includes(p.id)) continue;
+      if (win.interestedPlayers.includes(p.id)) continue;
+      // active_dealmaker always interested; others with 50% RNG chance
+      const roll = rngFloat(state.seed, state.rngCounter + 3333 + state.players.indexOf(p));
+      const wantsIn = p.botStrategy === 'active_dealmaker' || roll < 0.5;
+      if (wantsIn) {
+        events.push(...registerInterest(state, p.id));
+      }
+    }
+    // Close window: select up to 3 from interested
+    events.push(...closeInterestWindow(state));
+  }
 
   // ─── Phase 2: Auto-accept deals for bots ──────────────────────────────
   for (const p of state.players) {
