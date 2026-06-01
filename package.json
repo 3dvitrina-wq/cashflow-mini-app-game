@@ -9,12 +9,25 @@
   ],
   "scripts": {
     "sync": "python3 tools/agent_autosync.py",
-    "typecheck": "echo \"TODO: add TypeScript project refs\"",
-    "test": "echo \"TODO: add game-engine tests\"",
-    "sim": "echo \"TODO: run balancing simulations\""
+    "typecheck": "npx tsc --noEmit -p apps/web/tsconfig.json",
+    "test": "npx vitest run packages/game-engine/src/__tests__/",
+    "test:watch": "npx vitest packages/game-engine/src/__tests__/",
+    "sim": "npx tsx packages/sim/src/index.ts",
+    "audit": "npx tsx packages/sim/src/balance-audit.ts",
+    "dev": "concurrently \"npm run dev --workspace=apps/server\" \"npm run dev --workspace=apps/web\"",
+    "server": "npm run dev --workspace=apps/server",
+    "web": "npm run dev --workspace=apps/web"
   },
   "engines": {
     "node": ">=20"
+  },
+  "dependencies": {
+    "i18next": "^26.3.0",
+    "react-i18next": "^17.0.8",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.7",
+    "concurrently": "^9"
   }
 }
-
