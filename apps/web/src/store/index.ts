@@ -5,34 +5,59 @@ import {
   deriveAvatarState,
   getCard,
   resolveCommand,
+  openInterestWindow,
+  closeInterestWindow,
+  checkDealFairness,
+  previewChoice as enginePreviewChoice,
   type NewPlayer,
+  type FairnessResult,
+  type ChoicePreview,
 } from '../../../../packages/game-engine/src';
 import type {
   CardDefinition,
   Command,
   Effect,
+  InterestWindow,
   MatchState as EngineMatchState,
+  OfferPayload,
   PlayerState as EnginePlayerState,
 } from '../../../../packages/shared/src';
 import { Screen, MatchState, PlayerState, CardData, CARDS, Outfit, TabName, CardType } from './types';
+import { resolveGeneratedCharacterId } from '../assets/generatedCharacterCatalog';
+import { wsClient } from '../lib/wsClient';
 
 interface AppState {
   screen: Screen;
   rulesReturnScreen: Screen;
+  settingsReturnScreen: Screen;
   activeTab: TabName;
   match: MatchState;
   engineMatch: EngineMatchState | null;
-  reputations: Record<string, number>;
+  isMultiplayer: boolean;
+  localPlayerId: string | null;
+  // Phase 3: Negotiation UI state
+  interestWindow: InterestWindow | null;
+  negotiatingPlayerIds: string[];
+  lastFairnessResult: FairnessResult | null;
   setScreen: (s: Screen) => void;
   openRules: (returnTo?: Screen) => void;
+  openSettings: (returnTo?: Screen) => void;
   setTab: (tab: TabName) => void;
   startMatch: (players: PlayerState[]) => void;
+  startMultiplayerMatch: (serverState: EngineMatchState, localPlayerId: string) => void;
+  receiveServerState: (serverState: EngineMatchState) => void;
   nextRound: () => void;
   setMood: (playerId: string, mood: PlayerState['mood']) => void;
   applyCardChoice: (choiceIdx: number) => void;
+  previewChoice: (choiceIdx: number) => ChoicePreview | null;
   applyDealEffects: (effect: { cashDelta: number; cashflowDelta: number; businessName: string }) => void;
-  addReputation: (partnerId: string, delta: number) => void;
+  addReputation: (partnerId: string, delta: number) => void; // routes trust delta into engine state
   requestTableHelp: () => void;
+  // Phase 3: Negotiation actions
+  triggerInterestWindow: () => void;
+  expressInterest: () => void;
+  passInterest: () => void;
+  computeFairness: (offer: OfferPayload) => FairnessResult | null;
 }
 
 const TICKER_FALLBACK = [
@@ -54,7 +79,6 @@ function moodFromEngine(p: EnginePlayerState): PlayerState['mood'] {
   const state = deriveAvatarState(p);
   if (state === 'futures_liq') return 'overleveraged';
   if (state === 'comeback') return 'happy';
-  if (state === 'nomad') return 'stable';
   return state as PlayerState['mood'];
 }
 
@@ -143,7 +167,12 @@ function toUiCard(card: CardDefinition | null | undefined): CardData | null {
   };
 }
 
-function toUiPlayer(p: EnginePlayerState, activeIndex: number, index: number): PlayerState {
+function toUiPlayer(
+  p: EnginePlayerState,
+  activeIndex: number,
+  index: number,
+  negotiatingIds: string[] = [],
+): PlayerState {
   const monthlyExpenses = p.expenses;
   const netCashflow = p.activeIncome + p.passiveIncome - monthlyExpenses;
   const assetValue = p.assets.reduce((sum, asset) => sum + asset.value, 0);
@@ -156,6 +185,7 @@ function toUiPlayer(p: EnginePlayerState, activeIndex: number, index: number): P
     id: p.id,
     name: p.name,
     outfit: p.outfit as Outfit,
+    characterId: resolveGeneratedCharacterId(p.id) ?? resolveGeneratedCharacterId(p.name),
     mood: moodFromEngine(p),
     cash: Math.round(p.cash),
     cashflowPerMonth: Math.round(p.activeIncome),
@@ -172,10 +202,12 @@ function toUiPlayer(p: EnginePlayerState, activeIndex: number, index: number): P
     isActive: activeIndex === index,
     isReady: true,
     isBot: p.isBot,
+    focusTokens: p.focusTokens ?? 2,
+    isNegotiating: negotiatingIds.includes(p.id),
   };
 }
 
-function toUiMatch(state: EngineMatchState): MatchState {
+function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): MatchState {
   const card = getCard(state.currentCardId);
   return {
     round: state.round,
@@ -185,7 +217,7 @@ function toUiMatch(state: EngineMatchState): MatchState {
     epoch: state.epoch.name,
     epochIcon: state.epoch.id === 'crypto_winter' ? '❄' : '⏳',
     currentCard: toUiCard(card),
-    players: state.players.map((player, idx) => toUiPlayer(player, state.activePlayerIndex, idx)),
+    players: state.players.map((player, idx) => toUiPlayer(player, state.activePlayerIndex, idx, negotiatingIds)),
     tickerItems: state.ticker.length ? state.ticker : [randomTicker()],
     timelineLabel: state.timeline.label,
     calendarMonth: state.timeline.month,
@@ -255,67 +287,98 @@ function createEngineMatch(players: PlayerState[]): EngineMatchState {
   return match;
 }
 
-function applyUiDealToEngine(
-  engineMatch: EngineMatchState | null,
-  effect: { cashDelta: number; cashflowDelta: number; businessName: string },
-): EngineMatchState | null {
-  if (!engineMatch) return null;
-  const next = JSON.parse(JSON.stringify(engineMatch)) as EngineMatchState;
-  const player = next.players.find((p) => !p.isBot) ?? next.players[0];
-  if (!player) return next;
 
-  player.cash = Math.max(0, player.cash + effect.cashDelta);
-  player.activeIncome = Math.max(0, player.activeIncome + effect.cashflowDelta);
-  if (!player.businesses.includes(effect.businessName)) player.businesses.push(effect.businessName);
-  player.businessSlotsUsed = Math.min(player.businessSlotsMax, player.businessSlotsUsed + 1);
-  return next;
-}
-
-export const useStore = create<AppState>((set) => ({
+export const useStore = create<AppState>((set, get) => ({
   screen: 'onboarding',
   rulesReturnScreen: 'lobby',
+  settingsReturnScreen: 'main',
   activeTab: 'table',
   engineMatch: null,
-  reputations: {},
+  isMultiplayer: false,
+  localPlayerId: null,
   match: createInitialMatch(),
+  // Phase 3: Negotiation
+  interestWindow: null,
+  negotiatingPlayerIds: [],
+  lastFairnessResult: null,
 
   setScreen: (s) => set({ screen: s }),
   openRules: (returnTo = 'main') => set({ screen: 'rules', rulesReturnScreen: returnTo }),
+  openSettings: (returnTo = 'main') => set({ screen: 'settings', settingsReturnScreen: returnTo }),
   setTab: (tab) => set({ activeTab: tab }),
 
   applyDealEffects: (effect) =>
     set((st) => {
-      const engineMatch = applyUiDealToEngine(st.engineMatch, effect);
-      if (engineMatch) {
-        return { engineMatch, match: toUiMatch(engineMatch) };
-      }
+      if (!st.engineMatch) return st;
 
-      return {
-        match: {
-          ...st.match,
-          players: st.match.players.map((p) =>
-            !p.isBot
-              ? {
-                  ...p,
-                  cash: Math.max(0, p.cash + effect.cashDelta),
-                  cashflowPerMonth: p.cashflowPerMonth + effect.cashflowDelta,
-                  netCashflow: (p.netCashflow ?? p.cashflowPerMonth + p.passiveIncome - (p.monthlyExpenses ?? 0)) + effect.cashflowDelta,
-                  businesses: [...p.businesses, effect.businessName],
-                  businessSlots: Math.min(5, p.businessSlots + 1),
-                }
-              : p,
-          ),
+      const me = st.engineMatch.players.find((p) => !p.isBot) ?? st.engineMatch.players[0];
+      const partner = st.engineMatch.players.find((p) => p.id !== me?.id) ?? st.engineMatch.players[1];
+      if (!me || !partner) return st;
+
+      const cashPaid = effect.cashDelta < 0 ? Math.abs(effect.cashDelta) : 0;
+      const cashReceived = effect.cashDelta > 0 ? effect.cashDelta : 0;
+
+      // propose_deal: me proposes (cashOffer = what me pays to partner, cashRequest = what me asks from partner)
+      const proposeCmd: Command = {
+        type: 'propose_deal',
+        playerId: me.id,
+        targetId: partner.id,
+        offer: {
+          targetPlayerId: partner.id,
+          cashOffer: cashPaid,
+          cashRequest: cashReceived,
+          description: effect.businessName,
         },
       };
+      const r1 = resolveCommand(st.engineMatch, proposeCmd);
+
+      // Find the deal that was just created on me's pending list
+      const meAfterPropose = r1.state.players.find((p) => p.id === me.id);
+      const deals = meAfterPropose?.pendingDeals ?? [];
+      const latestDeal = deals.length > 0 ? deals[deals.length - 1] : undefined;
+      if (!latestDeal) return { engineMatch: r1.state, match: toUiMatch(r1.state) };
+
+      // accept_deal: partner accepts — cash transfers apply symmetrically to both sides
+      const acceptCmd: Command = { type: 'accept_deal', playerId: partner.id, dealId: latestDeal.id };
+      const r2 = resolveCommand(r1.state, acceptCmd);
+
+      // Apply cashflowDelta as passive income gain for me (deal income share)
+      if (effect.cashflowDelta !== 0) {
+        const finalState = JSON.parse(JSON.stringify(r2.state)) as EngineMatchState;
+        const mePlayer = finalState.players.find((p) => p.id === me.id);
+        if (mePlayer) {
+          mePlayer.passiveIncome = Math.max(0, mePlayer.passiveIncome + effect.cashflowDelta);
+          finalState.eventLog.push({
+            type: 'effect',
+            playerId: me.id,
+            effectType: 'passive.add',
+            amount: effect.cashflowDelta,
+            message: `deal income share: ${effect.businessName}`,
+          });
+        }
+        return { engineMatch: finalState, match: toUiMatch(finalState) };
+      }
+
+      return { engineMatch: r2.state, match: toUiMatch(r2.state) };
     }),
 
   addReputation: (partnerId, delta) =>
-    set((st) => ({
-      reputations: {
-        ...st.reputations,
-        [partnerId]: (st.reputations[partnerId] || 0) + delta,
-      },
-    })),
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const state = JSON.parse(JSON.stringify(st.engineMatch)) as EngineMatchState;
+      const target = state.players.find((p) => p.id === partnerId);
+      if (target) {
+        target.trust = Math.max(0, Math.min(10, target.trust + delta));
+        state.eventLog.push({
+          type: 'effect',
+          playerId: partnerId,
+          effectType: 'trust.delta',
+          amount: delta,
+          message: 'trust delta from deal action',
+        });
+      }
+      return { engineMatch: state, match: toUiMatch(state) };
+    }),
 
   requestTableHelp: () =>
     set((st) => {
@@ -331,6 +394,25 @@ export const useStore = create<AppState>((set) => ({
       return { engineMatch: result.state, match: toUiMatch(result.state) };
     }),
 
+  startMultiplayerMatch: (serverState, localPlayerId) =>
+    set(() => ({
+      screen: 'main',
+      activeTab: 'table',
+      engineMatch: serverState,
+      match: toUiMatch(serverState),
+      isMultiplayer: true,
+      localPlayerId,
+    })),
+
+  receiveServerState: (serverState) =>
+    set((st) => {
+      const nextMatch = toUiMatch(serverState, st.negotiatingPlayerIds);
+      if (serverState.phase === 'finished') {
+        return { engineMatch: serverState, match: nextMatch, screen: 'recap' };
+      }
+      return { engineMatch: serverState, match: nextMatch };
+    }),
+
   startMatch: (players) =>
     set(() => {
       const engineMatch = createEngineMatch(players);
@@ -339,11 +421,16 @@ export const useStore = create<AppState>((set) => ({
         activeTab: 'table',
         engineMatch,
         match: toUiMatch(engineMatch),
+        isMultiplayer: false,
+        localPlayerId: null,
       };
     }),
 
   nextRound: () =>
     set((st) => {
+      // Server advances the round after each command in multiplayer.
+      if (st.isMultiplayer) return st;
+
       if (!st.engineMatch) {
         const nextR = st.match.round + 1;
         if (nextR > st.match.maxRounds) {
@@ -393,7 +480,83 @@ export const useStore = create<AppState>((set) => ({
         playerId: active.id,
         choiceIndex: choiceIdx,
       };
+      // In multiplayer, route to server; state updates via receiveServerState broadcast.
+      if (st.isMultiplayer) {
+        wsClient.send({ type: 'command', command: cmd });
+        return st;
+      }
+
       const result = resolveCommand(st.engineMatch, cmd);
-      return { engineMatch: result.state, match: toUiMatch(result.state) };
+      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) };
     }),
+
+  previewChoice: (choiceIdx) => {
+    const st = get();
+    if (!st.engineMatch) return null;
+    const active = st.engineMatch.players[st.engineMatch.activePlayerIndex];
+    if (!active) return null;
+    return enginePreviewChoice(st.engineMatch, active.id, choiceIdx);
+  },
+
+  // ─── Phase 3: Negotiation actions ────────────────────────────────────────
+
+  triggerInterestWindow: () =>
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const next = JSON.parse(JSON.stringify(st.engineMatch)) as EngineMatchState;
+      const card = getCard(next.currentCardId);
+      const cardTitle = card?.title ?? 'Investment Opportunity';
+      const cardId = next.currentCardId ?? 'unknown';
+      const eligibleIds = next.players.filter((p) => p.alive && !p.bankrupt).map((p) => p.id);
+      const events = openInterestWindow(next, cardId, cardTitle, eligibleIds, 45000);
+      next.eventLog.push(...events);
+      const win = next.activeInterestWindow;
+      return {
+        engineMatch: next,
+        interestWindow: win,
+        match: toUiMatch(next, st.negotiatingPlayerIds),
+      };
+    }),
+
+  expressInterest: () =>
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const me = st.engineMatch.players.find((p) => !p.isBot) ?? st.engineMatch.players[0];
+      if (!me) return st;
+      const cmd: Command = { type: 'express_interest', playerId: me.id, targetPlayerId: me.id };
+      const result = resolveCommand(st.engineMatch, cmd);
+      const win = result.state.activeInterestWindow;
+      const negotiatingIds = win?.selectedPlayers ?? win?.interestedPlayers ?? [];
+      return {
+        engineMatch: result.state,
+        interestWindow: win,
+        negotiatingPlayerIds: negotiatingIds,
+        match: toUiMatch(result.state, negotiatingIds),
+      };
+    }),
+
+  passInterest: () =>
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const next = JSON.parse(JSON.stringify(st.engineMatch)) as EngineMatchState;
+      if (next.activeInterestWindow?.status === 'open') {
+        const events = closeInterestWindow(next);
+        next.eventLog.push(...events);
+      }
+      return {
+        engineMatch: next,
+        interestWindow: null,
+        negotiatingPlayerIds: [],
+        match: toUiMatch(next, []),
+      };
+    }),
+
+  computeFairness: (offer: OfferPayload): FairnessResult | null => {
+    const { engineMatch } = get();
+    if (!engineMatch) return null;
+    const me = engineMatch.players.find((p) => !p.isBot) ?? engineMatch.players[0];
+    const target = engineMatch.players.find((p) => p.id !== me?.id && !p.isBot) ?? engineMatch.players[1];
+    if (!me || !target) return null;
+    return checkDealFairness(engineMatch, me, target, offer);
+  },
 }));

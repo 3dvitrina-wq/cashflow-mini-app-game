@@ -4,6 +4,7 @@ const STORAGE_KEY = 'dyor_player_data';
 
 export interface PlayerData {
   outfit: Outfit;
+  characterId?: string;
   accessory: string;
   ownedItems: string[];
   stars: number;

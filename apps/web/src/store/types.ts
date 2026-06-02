@@ -24,6 +24,7 @@ export type CharacterMood =
   | 'overleveraged'
   | 'cardboard'
   | 'passive_calm'
+  | 'nomad'
   | 'chaos';
 
 export type CardType =
@@ -41,6 +42,7 @@ export interface PlayerState {
   id: string;
   name: string;
   outfit: Outfit;
+  characterId?: string;
   mood: CharacterMood;
   cash: number;
   cashflowPerMonth: number;
@@ -57,6 +59,9 @@ export interface PlayerState {
   isActive: boolean;
   isReady: boolean;
   isBot: boolean;
+  // Phase 3: Negotiation
+  focusTokens?: number;
+  isNegotiating?: boolean;
 }
 
 export interface CardData {
@@ -104,6 +109,7 @@ export const MOOD_EMOJI: Record<CharacterMood, string> = {
   overleveraged: '🤯',
   cardboard: '📦',
   passive_calm: '🍵',
+  nomad: '🧳',
   chaos: '🎭',
 };
 

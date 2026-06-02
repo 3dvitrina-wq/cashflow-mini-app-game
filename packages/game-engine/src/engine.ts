@@ -240,6 +240,7 @@ export function deriveAvatarState(p: PlayerState): AvatarState {
   if (p.stress >= 7 && p.debt > 5) return 'overleveraged';
   if (p.avatarState === 'futures_liq') return 'futures_liq'; // Sticky until next round
   if (p.stress >= 4) return 'overworked';
+  if (p.housing === 'nomad' || p.migrationStatus === 'digital_nomad') return 'nomad';
   if (p.stress <= 3 && p.passiveIncome > p.expenses) return 'passive_calm';
   if (p.recentTransfers.length > 0 && p.cash > 5000) return 'comeback';
   return 'stable';
@@ -258,6 +259,14 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (!state.activeInterestWindow || state.activeInterestWindow.status !== 'open') {
       return 'no open interest window';
     }
+    return null;
+  }
+
+  // Deal commands: allowed in any non-finished phase (deal window can open after card resolution)
+  if (cmd.type === 'propose_deal' || cmd.type === 'accept_deal' || cmd.type === 'reject_deal') {
+    const player = state.players.find((p) => p.id === cmd.playerId);
+    if (!player) return 'unknown player';
+    if (!player.alive) return 'player is eliminated';
     return null;
   }
 
@@ -688,6 +697,76 @@ export function advanceRound(prev: MatchState): CommandResult {
 
   state.eventLog.push(...events);
   return { state, events };
+}
+
+// ─── Choice Preview (what-if, no mutation) ──────────────────────────────────
+// Runs the SAME effect resolvers on a clone and diffs the result, so the
+// "if confirmed" preview can never drift from what choose_option actually does.
+
+export type PreviewStatKey = 'cash' | 'passive' | 'expenses' | 'cashflow' | 'stress' | 'debt';
+
+export interface PreviewLine {
+  key: PreviewStatKey;
+  from: number;
+  to: number;
+}
+
+export interface ChoicePreview {
+  choiceIndex: number;
+  label: string;
+  /** One-time cash change (negative = paid now). */
+  now: number;
+  /** Net monthly cashflow change (activeIncome + passive − expenses). */
+  monthlyNet: number;
+  lines: PreviewLine[];
+  hint?: string;
+}
+
+function previewSnapshot(p: PlayerState) {
+  return {
+    cash: Math.round(p.cash),
+    passive: Math.round(p.passiveIncome),
+    expenses: Math.round(p.expenses),
+    cashflow: Math.round(p.activeIncome + p.passiveIncome - p.expenses),
+    stress: Math.round(p.stress),
+    debt: Math.round(p.debt),
+  };
+}
+
+export function previewChoice(
+  prev: MatchState,
+  playerId: string,
+  choiceIndex: number,
+): ChoicePreview | null {
+  const card = getCard(prev.currentCardId);
+  const choice = card?.choices?.[choiceIndex];
+  if (!card || !choice) return null;
+
+  const state = clone(prev);
+  const player = state.players.find((p) => p.id === playerId);
+  if (!player) return null;
+
+  const before = previewSnapshot(player);
+  applyEffects(state, player, choice.effects);
+  const after = previewSnapshot(player);
+
+  const lines: PreviewLine[] = [
+    { key: 'cash', from: before.cash, to: after.cash },
+    { key: 'passive', from: before.passive, to: after.passive },
+    { key: 'expenses', from: before.expenses, to: after.expenses },
+    { key: 'cashflow', from: before.cashflow, to: after.cashflow },
+    { key: 'stress', from: before.stress, to: after.stress },
+    { key: 'debt', from: before.debt, to: after.debt },
+  ];
+
+  return {
+    choiceIndex,
+    label: choice.label,
+    now: after.cash - before.cash,
+    monthlyNet: after.cashflow - before.cashflow,
+    lines,
+    hint: choice.hint,
+  };
 }
 
 // ─── Freedom Score (victory condition) ──────────────────────────────────────
