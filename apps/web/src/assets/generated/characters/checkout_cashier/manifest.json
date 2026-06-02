@@ -1,7 +1,7 @@
 {
   "id": "checkout_cashier",
   "displayName": "Checkout Cashier",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/checkout_cashier/references/source-reference.png",
   "referenceSet": {
     "primary": "apps/web/src/assets/generated/characters/checkout_cashier/references/source-reference.png"
@@ -15,18 +15,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "variantSlots": [
     "hair",
@@ -52,5 +88,425 @@
     "emotions/checkout_cashier_passive_calm.png",
     "emotions/checkout_cashier_cardboard.png",
     "emotions/checkout_cashier_nomad.png"
+  ],
+  "displayNameRu": "Кассирша",
+  "source_green": "apps/web/src/assets/generated/characters/checkout_cashier/checkout_cashier-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/checkout_cashier/checkout_cashier-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/checkout_cashier/portrait_refs/checkout_cashier_profile_bust.png",
+    "apps/web/src/assets/generated/characters/checkout_cashier/portrait_refs/checkout_cashier_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "register_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/turnaround/checkout_cashier_front.png",
+      "source_box": [
+        103,
+        18,
+        289,
+        388
+      ],
+      "size": [
+        186,
+        370
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/turnaround/checkout_cashier_three_quarter.png",
+      "source_box": [
+        390,
+        19,
+        573,
+        388
+      ],
+      "size": [
+        183,
+        369
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/turnaround/checkout_cashier_side.png",
+      "source_box": [
+        708,
+        22,
+        813,
+        388
+      ],
+      "size": [
+        105,
+        366
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/turnaround/checkout_cashier_back_three_quarter.png",
+      "source_box": [
+        931,
+        24,
+        1072,
+        388
+      ],
+      "size": [
+        141,
+        364
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/turnaround/checkout_cashier_back.png",
+      "source_box": [
+        1211,
+        26,
+        1418,
+        388
+      ],
+      "size": [
+        207,
+        362
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_stable.png",
+      "source_box": [
+        26,
+        412,
+        179,
+        728
+      ],
+      "size": [
+        153,
+        316
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_overworked.png",
+      "source_box": [
+        206,
+        388,
+        360,
+        738
+      ],
+      "size": [
+        154,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_overleveraged.png",
+      "source_box": [
+        398,
+        388,
+        553,
+        707
+      ],
+      "size": [
+        155,
+        319
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_tax_panic.png",
+      "source_box": [
+        571,
+        388,
+        756,
+        738
+      ],
+      "size": [
+        185,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_work_crisis.png",
+      "source_box": [
+        767,
+        388,
+        999,
+        738
+      ],
+      "size": [
+        232,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_futures_liq.png",
+      "source_box": [
+        767,
+        388,
+        999,
+        738
+      ],
+      "size": [
+        232,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_passive_calm.png",
+      "source_box": [
+        1029,
+        412,
+        1157,
+        693
+      ],
+      "size": [
+        128,
+        281
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_cardboard.png",
+      "source_box": [
+        1206,
+        416,
+        1343,
+        693
+      ],
+      "size": [
+        137,
+        277
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/emotions/checkout_cashier_nomad.png",
+      "source_box": [
+        1384,
+        426,
+        1576,
+        694
+      ],
+      "size": [
+        192,
+        268
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_head.png",
+      "source_box": [
+        22,
+        685,
+        158,
+        897
+      ],
+      "size": [
+        136,
+        212
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_torso.png",
+      "source_box": [
+        193,
+        685,
+        364,
+        921
+      ],
+      "size": [
+        171,
+        236
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_left_arm.png",
+      "source_box": [
+        397,
+        685,
+        455,
+        898
+      ],
+      "size": [
+        58,
+        213
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_right_arm.png",
+      "source_box": [
+        485,
+        685,
+        559,
+        897
+      ],
+      "size": [
+        74,
+        212
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_legs.png",
+      "source_box": [
+        578,
+        685,
+        803,
+        899
+      ],
+      "size": [
+        225,
+        214
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_open_hand.png",
+      "source_box": [
+        823,
+        685,
+        1029,
+        885
+      ],
+      "size": [
+        206,
+        200
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_fist.png",
+      "source_box": [
+        1076,
+        685,
+        1121,
+        886
+      ],
+      "size": [
+        45,
+        201
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_eyes_open.png",
+      "source_box": [
+        1154,
+        737,
+        1199,
+        886
+      ],
+      "size": [
+        45,
+        149
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_eyes_closed.png",
+      "source_box": [
+        1254,
+        776,
+        1325,
+        842
+      ],
+      "size": [
+        71,
+        66
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_smile",
+      "label": "mouth smile",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_mouth_smile.png",
+      "source_box": [
+        1369,
+        773,
+        1447,
+        829
+      ],
+      "size": [
+        78,
+        56
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "mouth_teeth",
+      "label": "mouth teeth",
+      "file": "apps/web/src/assets/generated/characters/checkout_cashier/parts/checkout_cashier_mouth_teeth.png",
+      "source_box": [
+        1500,
+        685,
+        1560,
+        836
+      ],
+      "size": [
+        60,
+        151
+      ]
+    }
   ]
 }

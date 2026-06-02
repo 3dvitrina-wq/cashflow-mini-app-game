@@ -9,6 +9,7 @@ export interface CharacterAvatarProps {
   stress?: number;
   size?: number;
   name?: string;
+  characterId?: string;
   active?: boolean;
   className?: string;
   /**
@@ -31,6 +32,7 @@ export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
   stress = 0,
   size = 100,
   name,
+  characterId,
   active = false,
   className = '',
   variant = 'framed',
@@ -48,6 +50,7 @@ export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
         active={active}
         size={size}
         name={name}
+        characterId={characterId}
         className={className}
       />
     );
@@ -71,7 +74,8 @@ export const CharacterAvatar: React.FC<CharacterAvatarProps> = ({
         active={active}
         size={size}
         name={name}
-        className="h-full w-full object-cover"
+        characterId={characterId}
+        className="h-full w-full object-contain object-bottom"
       />
       {showBadge && (
         <div

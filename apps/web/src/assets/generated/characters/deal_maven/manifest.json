@@ -1,7 +1,7 @@
 {
   "id": "deal_maven",
   "displayName": "Deal Maven",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/deal_maven/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -12,18 +12,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "plannedSprites": [
     "portraits/deal_maven_profile_bust-source-green.png",
@@ -40,5 +76,329 @@
     "emotions/deal_maven_passive_calm.png",
     "emotions/deal_maven_cardboard.png",
     "emotions/deal_maven_nomad.png"
+  ],
+  "displayNameRu": "Переговорщица",
+  "source_green": "apps/web/src/assets/generated/characters/deal_maven/deal_maven-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/deal_maven/deal_maven-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/deal_maven/portrait_refs/deal_maven_profile_bust.png",
+    "apps/web/src/assets/generated/characters/deal_maven/portrait_refs/deal_maven_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "deal_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/turnaround/deal_maven_front.png",
+      "source_box": [
+        133,
+        10,
+        289,
+        376
+      ],
+      "size": [
+        156,
+        366
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/turnaround/deal_maven_three_quarter.png",
+      "source_box": [
+        424,
+        8,
+        571,
+        376
+      ],
+      "size": [
+        147,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/turnaround/deal_maven_side.png",
+      "source_box": [
+        713,
+        9,
+        854,
+        376
+      ],
+      "size": [
+        141,
+        367
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/turnaround/deal_maven_back_three_quarter.png",
+      "source_box": [
+        975,
+        8,
+        1124,
+        376
+      ],
+      "size": [
+        149,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/turnaround/deal_maven_back.png",
+      "source_box": [
+        1306,
+        8,
+        1461,
+        376
+      ],
+      "size": [
+        155,
+        368
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_stable.png",
+      "source_box": [
+        29,
+        376,
+        175,
+        715
+      ],
+      "size": [
+        146,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_overworked.png",
+      "source_box": [
+        212,
+        376,
+        370,
+        711
+      ],
+      "size": [
+        158,
+        335
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_overleveraged.png",
+      "source_box": [
+        408,
+        376,
+        563,
+        715
+      ],
+      "size": [
+        155,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_tax_panic.png",
+      "source_box": [
+        581,
+        376,
+        785,
+        708
+      ],
+      "size": [
+        204,
+        332
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_work_crisis.png",
+      "source_box": [
+        794,
+        376,
+        1041,
+        712
+      ],
+      "size": [
+        247,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_futures_liq.png",
+      "source_box": [
+        794,
+        376,
+        1041,
+        712
+      ],
+      "size": [
+        247,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_passive_calm.png",
+      "source_box": [
+        1063,
+        376,
+        1204,
+        702
+      ],
+      "size": [
+        141,
+        326
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_cardboard.png",
+      "source_box": [
+        1234,
+        376,
+        1377,
+        701
+      ],
+      "size": [
+        143,
+        325
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/emotions/deal_maven_nomad.png",
+      "source_box": [
+        1416,
+        376,
+        1633,
+        708
+      ],
+      "size": [
+        217,
+        332
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/parts/deal_maven_head.png",
+      "source_box": [
+        38,
+        663,
+        175,
+        905
+      ],
+      "size": [
+        137,
+        242
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/parts/deal_maven_torso.png",
+      "source_box": [
+        209,
+        663,
+        481,
+        918
+      ],
+      "size": [
+        272,
+        255
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/parts/deal_maven_left_arm.png",
+      "source_box": [
+        505,
+        663,
+        1237,
+        909
+      ],
+      "size": [
+        732,
+        246
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/parts/deal_maven_right_arm.png",
+      "source_box": [
+        1256,
+        663,
+        1374,
+        853
+      ],
+      "size": [
+        118,
+        190
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/deal_maven/parts/deal_maven_legs.png",
+      "source_box": [
+        1408,
+        663,
+        1646,
+        846
+      ],
+      "size": [
+        238,
+        183
+      ]
+    }
   ]
 }

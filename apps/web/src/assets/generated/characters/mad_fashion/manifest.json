@@ -1,7 +1,7 @@
 {
   "id": "mad_fashion",
   "displayName": "Mad Fashion",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/mad_fashion/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,329 @@
   "plannedSprites": [
     "portraits/mad_fashion_profile_bust-source-green.png",
     "portraits/mad_fashion_profile_bust.png"
+  ],
+  "displayNameRu": "Мажор",
+  "source_green": "apps/web/src/assets/generated/characters/mad_fashion/mad_fashion-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/mad_fashion/mad_fashion-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/mad_fashion/portrait_refs/mad_fashion_profile_bust.png",
+    "apps/web/src/assets/generated/characters/mad_fashion/portrait_refs/mad_fashion_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "fashion_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/turnaround/mad_fashion_front.png",
+      "source_box": [
+        115,
+        6,
+        339,
+        389
+      ],
+      "size": [
+        224,
+        383
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/turnaround/mad_fashion_three_quarter.png",
+      "source_box": [
+        410,
+        7,
+        625,
+        389
+      ],
+      "size": [
+        215,
+        382
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/turnaround/mad_fashion_side.png",
+      "source_box": [
+        699,
+        12,
+        866,
+        389
+      ],
+      "size": [
+        167,
+        377
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/turnaround/mad_fashion_back_three_quarter.png",
+      "source_box": [
+        971,
+        14,
+        1135,
+        389
+      ],
+      "size": [
+        164,
+        375
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/turnaround/mad_fashion_back.png",
+      "source_box": [
+        1251,
+        13,
+        1458,
+        389
+      ],
+      "size": [
+        207,
+        376
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_stable.png",
+      "source_box": [
+        17,
+        389,
+        200,
+        725
+      ],
+      "size": [
+        183,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_overworked.png",
+      "source_box": [
+        209,
+        389,
+        363,
+        739
+      ],
+      "size": [
+        154,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_overleveraged.png",
+      "source_box": [
+        388,
+        389,
+        544,
+        721
+      ],
+      "size": [
+        156,
+        332
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_tax_panic.png",
+      "source_box": [
+        558,
+        389,
+        751,
+        718
+      ],
+      "size": [
+        193,
+        329
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_work_crisis.png",
+      "source_box": [
+        772,
+        389,
+        1006,
+        718
+      ],
+      "size": [
+        234,
+        329
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_futures_liq.png",
+      "source_box": [
+        772,
+        389,
+        1006,
+        718
+      ],
+      "size": [
+        234,
+        329
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_passive_calm.png",
+      "source_box": [
+        1031,
+        389,
+        1175,
+        715
+      ],
+      "size": [
+        144,
+        326
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_cardboard.png",
+      "source_box": [
+        1212,
+        389,
+        1352,
+        710
+      ],
+      "size": [
+        140,
+        321
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/emotions/mad_fashion_nomad.png",
+      "source_box": [
+        1393,
+        389,
+        1586,
+        715
+      ],
+      "size": [
+        193,
+        326
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/parts/mad_fashion_head.png",
+      "source_box": [
+        27,
+        685,
+        164,
+        900
+      ],
+      "size": [
+        137,
+        215
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/parts/mad_fashion_torso.png",
+      "source_box": [
+        186,
+        685,
+        463,
+        948
+      ],
+      "size": [
+        277,
+        263
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/parts/mad_fashion_left_arm.png",
+      "source_box": [
+        483,
+        685,
+        1189,
+        931
+      ],
+      "size": [
+        706,
+        246
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/parts/mad_fashion_right_arm.png",
+      "source_box": [
+        1224,
+        685,
+        1470,
+        863
+      ],
+      "size": [
+        246,
+        178
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/mad_fashion/parts/mad_fashion_legs.png",
+      "source_box": [
+        1494,
+        685,
+        1602,
+        855
+      ],
+      "size": [
+        108,
+        170
+      ]
+    }
   ]
 }

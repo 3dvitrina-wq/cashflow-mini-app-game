@@ -1,7 +1,7 @@
 {
   "id": "grandma_collector",
   "displayName": "Grandma Collector",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/grandma_collector/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,281 @@
   "plannedSprites": [
     "portraits/grandma_collector_profile_bust-source-green.png",
     "portraits/grandma_collector_profile_bust.png"
+  ],
+  "displayNameRu": "Бабка",
+  "source_green": "apps/web/src/assets/generated/characters/grandma_collector/grandma_collector-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/grandma_collector/grandma_collector-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/grandma_collector/portrait_refs/grandma_collector_profile_bust.png",
+    "apps/web/src/assets/generated/characters/grandma_collector/portrait_refs/grandma_collector_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "collection_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/turnaround/grandma_collector_front.png",
+      "source_box": [
+        141,
+        22,
+        323,
+        387
+      ],
+      "size": [
+        182,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/turnaround/grandma_collector_three_quarter.png",
+      "source_box": [
+        422,
+        23,
+        602,
+        388
+      ],
+      "size": [
+        180,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/turnaround/grandma_collector_side.png",
+      "source_box": [
+        748,
+        21,
+        866,
+        388
+      ],
+      "size": [
+        118,
+        367
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/turnaround/grandma_collector_back_three_quarter.png",
+      "source_box": [
+        975,
+        23,
+        1112,
+        382
+      ],
+      "size": [
+        137,
+        359
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/turnaround/grandma_collector_back.png",
+      "source_box": [
+        1261,
+        22,
+        1413,
+        382
+      ],
+      "size": [
+        152,
+        360
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_stable.png",
+      "source_box": [
+        25,
+        404,
+        192,
+        724
+      ],
+      "size": [
+        167,
+        320
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_overworked.png",
+      "source_box": [
+        204,
+        406,
+        361,
+        730
+      ],
+      "size": [
+        157,
+        324
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_overleveraged.png",
+      "source_box": [
+        387,
+        408,
+        549,
+        730
+      ],
+      "size": [
+        162,
+        322
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_tax_panic.png",
+      "source_box": [
+        562,
+        392,
+        750,
+        727
+      ],
+      "size": [
+        188,
+        335
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_work_crisis.png",
+      "source_box": [
+        761,
+        402,
+        1001,
+        732
+      ],
+      "size": [
+        240,
+        330
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_futures_liq.png",
+      "source_box": [
+        761,
+        402,
+        1001,
+        732
+      ],
+      "size": [
+        240,
+        330
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_passive_calm.png",
+      "source_box": [
+        1016,
+        407,
+        1160,
+        722
+      ],
+      "size": [
+        144,
+        315
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_cardboard.png",
+      "source_box": [
+        1195,
+        407,
+        1349,
+        722
+      ],
+      "size": [
+        154,
+        315
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/emotions/grandma_collector_nomad.png",
+      "source_box": [
+        1378,
+        414,
+        1582,
+        717
+      ],
+      "size": [
+        204,
+        303
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/parts/grandma_collector_head.png",
+      "source_box": [
+        25,
+        685,
+        358,
+        943
+      ],
+      "size": [
+        333,
+        258
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/grandma_collector/parts/grandma_collector_torso.png",
+      "source_box": [
+        388,
+        685,
+        1594,
+        943
+      ],
+      "size": [
+        1206,
+        258
+      ]
+    }
   ]
 }

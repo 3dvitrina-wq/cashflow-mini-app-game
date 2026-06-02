@@ -1,7 +1,7 @@
 {
   "id": "korean_student",
   "displayName": "Korean Student",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/korean_student/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,361 @@
   "plannedSprites": [
     "portraits/korean_student_profile_bust-source-green.png",
     "portraits/korean_student_profile_bust.png"
+  ],
+  "displayNameRu": "Студентка",
+  "source_green": "apps/web/src/assets/generated/characters/korean_student/korean_student-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/korean_student/korean_student-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/korean_student/portrait_refs/korean_student_profile_bust.png",
+    "apps/web/src/assets/generated/characters/korean_student/portrait_refs/korean_student_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "study_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/korean_student/turnaround/korean_student_front.png",
+      "source_box": [
+        137,
+        21,
+        283,
+        388
+      ],
+      "size": [
+        146,
+        367
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/korean_student/turnaround/korean_student_three_quarter.png",
+      "source_box": [
+        411,
+        20,
+        569,
+        388
+      ],
+      "size": [
+        158,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/korean_student/turnaround/korean_student_side.png",
+      "source_box": [
+        718,
+        20,
+        848,
+        388
+      ],
+      "size": [
+        130,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/korean_student/turnaround/korean_student_back_three_quarter.png",
+      "source_box": [
+        983,
+        22,
+        1114,
+        388
+      ],
+      "size": [
+        131,
+        366
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/korean_student/turnaround/korean_student_back.png",
+      "source_box": [
+        1272,
+        21,
+        1414,
+        388
+      ],
+      "size": [
+        142,
+        367
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_stable.png",
+      "source_box": [
+        32,
+        388,
+        159,
+        735
+      ],
+      "size": [
+        127,
+        347
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_overworked.png",
+      "source_box": [
+        181,
+        388,
+        379,
+        738
+      ],
+      "size": [
+        198,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_overleveraged.png",
+      "source_box": [
+        393,
+        388,
+        546,
+        727
+      ],
+      "size": [
+        153,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_tax_panic.png",
+      "source_box": [
+        571,
+        388,
+        760,
+        738
+      ],
+      "size": [
+        189,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_work_crisis.png",
+      "source_box": [
+        777,
+        388,
+        1020,
+        718
+      ],
+      "size": [
+        243,
+        330
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_futures_liq.png",
+      "source_box": [
+        777,
+        388,
+        1020,
+        718
+      ],
+      "size": [
+        243,
+        330
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_passive_calm.png",
+      "source_box": [
+        1037,
+        388,
+        1169,
+        706
+      ],
+      "size": [
+        132,
+        318
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_cardboard.png",
+      "source_box": [
+        1210,
+        388,
+        1347,
+        705
+      ],
+      "size": [
+        137,
+        317
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/korean_student/emotions/korean_student_nomad.png",
+      "source_box": [
+        1383,
+        388,
+        1577,
+        707
+      ],
+      "size": [
+        194,
+        319
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_head.png",
+      "source_box": [
+        23,
+        685,
+        158,
+        893
+      ],
+      "size": [
+        135,
+        208
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_torso.png",
+      "source_box": [
+        190,
+        727,
+        370,
+        931
+      ],
+      "size": [
+        180,
+        204
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_left_arm.png",
+      "source_box": [
+        400,
+        685,
+        472,
+        903
+      ],
+      "size": [
+        72,
+        218
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_right_arm.png",
+      "source_box": [
+        494,
+        685,
+        1025,
+        913
+      ],
+      "size": [
+        531,
+        228
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_legs.png",
+      "source_box": [
+        1051,
+        685,
+        1197,
+        905
+      ],
+      "size": [
+        146,
+        220
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_open_hand.png",
+      "source_box": [
+        1227,
+        685,
+        1460,
+        855
+      ],
+      "size": [
+        233,
+        170
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/korean_student/parts/korean_student_fist.png",
+      "source_box": [
+        1497,
+        685,
+        1585,
+        852
+      ],
+      "size": [
+        88,
+        167
+      ]
+    }
   ]
 }

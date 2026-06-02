@@ -1,7 +1,7 @@
 {
   "id": "flight_attendant",
   "displayName": "Flight Attendant",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/flight_attendant/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,345 @@
   "plannedSprites": [
     "portraits/flight_attendant_profile_bust-source-green.png",
     "portraits/flight_attendant_profile_bust.png"
+  ],
+  "displayNameRu": "Стюардесса",
+  "source_green": "apps/web/src/assets/generated/characters/flight_attendant/flight_attendant-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/flight_attendant/flight_attendant-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/flight_attendant/portrait_refs/flight_attendant_profile_bust.png",
+    "apps/web/src/assets/generated/characters/flight_attendant/portrait_refs/flight_attendant_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "travel_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/turnaround/flight_attendant_front.png",
+      "source_box": [
+        124,
+        10,
+        280,
+        387
+      ],
+      "size": [
+        156,
+        377
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/turnaround/flight_attendant_three_quarter.png",
+      "source_box": [
+        417,
+        9,
+        570,
+        387
+      ],
+      "size": [
+        153,
+        378
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/turnaround/flight_attendant_side.png",
+      "source_box": [
+        710,
+        9,
+        848,
+        387
+      ],
+      "size": [
+        138,
+        378
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/turnaround/flight_attendant_back_three_quarter.png",
+      "source_box": [
+        969,
+        7,
+        1116,
+        387
+      ],
+      "size": [
+        147,
+        380
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/turnaround/flight_attendant_back.png",
+      "source_box": [
+        1258,
+        15,
+        1454,
+        387
+      ],
+      "size": [
+        196,
+        372
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_stable.png",
+      "source_box": [
+        23,
+        387,
+        175,
+        720
+      ],
+      "size": [
+        152,
+        333
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_overworked.png",
+      "source_box": [
+        211,
+        387,
+        354,
+        718
+      ],
+      "size": [
+        143,
+        331
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_overleveraged.png",
+      "source_box": [
+        401,
+        387,
+        555,
+        720
+      ],
+      "size": [
+        154,
+        333
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_tax_panic.png",
+      "source_box": [
+        581,
+        407,
+        751,
+        735
+      ],
+      "size": [
+        170,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_work_crisis.png",
+      "source_box": [
+        771,
+        387,
+        1018,
+        715
+      ],
+      "size": [
+        247,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_futures_liq.png",
+      "source_box": [
+        771,
+        387,
+        1018,
+        715
+      ],
+      "size": [
+        247,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_passive_calm.png",
+      "source_box": [
+        1044,
+        387,
+        1170,
+        711
+      ],
+      "size": [
+        126,
+        324
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_cardboard.png",
+      "source_box": [
+        1211,
+        387,
+        1351,
+        712
+      ],
+      "size": [
+        140,
+        325
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/emotions/flight_attendant_nomad.png",
+      "source_box": [
+        1395,
+        387,
+        1589,
+        720
+      ],
+      "size": [
+        194,
+        333
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_head.png",
+      "source_box": [
+        40,
+        682,
+        174,
+        898
+      ],
+      "size": [
+        134,
+        216
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_torso.png",
+      "source_box": [
+        194,
+        682,
+        381,
+        922
+      ],
+      "size": [
+        187,
+        240
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_left_arm.png",
+      "source_box": [
+        406,
+        682,
+        466,
+        926
+      ],
+      "size": [
+        60,
+        244
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_right_arm.png",
+      "source_box": [
+        489,
+        682,
+        1207,
+        924
+      ],
+      "size": [
+        718,
+        242
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_legs.png",
+      "source_box": [
+        1227,
+        682,
+        1346,
+        865
+      ],
+      "size": [
+        119,
+        183
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/flight_attendant/parts/flight_attendant_open_hand.png",
+      "source_box": [
+        1374,
+        682,
+        1600,
+        861
+      ],
+      "size": [
+        226,
+        179
+      ]
+    }
   ]
 }

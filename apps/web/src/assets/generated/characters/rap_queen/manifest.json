@@ -1,7 +1,7 @@
 {
   "id": "rap_queen",
   "displayName": "Rap Queen",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/rap_queen/references/source-reference.png",
   "referenceSet": {
     "primary": "apps/web/src/assets/generated/characters/rap_queen/references/source-reference.png",
@@ -17,18 +17,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "variantSlots": [
     "hair",
@@ -53,5 +89,345 @@
     "emotions/rap_queen_passive_calm.png",
     "emotions/rap_queen_cardboard.png",
     "emotions/rap_queen_nomad.png"
+  ],
+  "displayNameRu": "Реперша",
+  "source_green": "apps/web/src/assets/generated/characters/rap_queen/rap_queen-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/rap_queen/rap_queen-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/rap_queen/portrait_refs/rap_queen_profile_bust.png",
+    "apps/web/src/assets/generated/characters/rap_queen/portrait_refs/rap_queen_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "stage_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/turnaround/rap_queen_front.png",
+      "source_box": [
+        101,
+        7,
+        288,
+        376
+      ],
+      "size": [
+        187,
+        369
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/turnaround/rap_queen_three_quarter.png",
+      "source_box": [
+        376,
+        6,
+        562,
+        376
+      ],
+      "size": [
+        186,
+        370
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/turnaround/rap_queen_side.png",
+      "source_box": [
+        724,
+        8,
+        855,
+        376
+      ],
+      "size": [
+        131,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/turnaround/rap_queen_back_three_quarter.png",
+      "source_box": [
+        995,
+        11,
+        1132,
+        376
+      ],
+      "size": [
+        137,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/turnaround/rap_queen_back.png",
+      "source_box": [
+        1260,
+        8,
+        1459,
+        376
+      ],
+      "size": [
+        199,
+        368
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_stable.png",
+      "source_box": [
+        26,
+        393,
+        185,
+        715
+      ],
+      "size": [
+        159,
+        322
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_overworked.png",
+      "source_box": [
+        211,
+        376,
+        363,
+        715
+      ],
+      "size": [
+        152,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_overleveraged.png",
+      "source_box": [
+        398,
+        376,
+        553,
+        699
+      ],
+      "size": [
+        155,
+        323
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_tax_panic.png",
+      "source_box": [
+        575,
+        376,
+        768,
+        700
+      ],
+      "size": [
+        193,
+        324
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_work_crisis.png",
+      "source_box": [
+        778,
+        376,
+        1030,
+        697
+      ],
+      "size": [
+        252,
+        321
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_futures_liq.png",
+      "source_box": [
+        778,
+        376,
+        1030,
+        697
+      ],
+      "size": [
+        252,
+        321
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_passive_calm.png",
+      "source_box": [
+        1040,
+        389,
+        1175,
+        691
+      ],
+      "size": [
+        135,
+        302
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_cardboard.png",
+      "source_box": [
+        1226,
+        376,
+        1366,
+        685
+      ],
+      "size": [
+        140,
+        309
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/emotions/rap_queen_nomad.png",
+      "source_box": [
+        1404,
+        376,
+        1618,
+        692
+      ],
+      "size": [
+        214,
+        316
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_head.png",
+      "source_box": [
+        14,
+        663,
+        169,
+        888
+      ],
+      "size": [
+        155,
+        225
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_torso.png",
+      "source_box": [
+        198,
+        663,
+        473,
+        912
+      ],
+      "size": [
+        275,
+        249
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_left_arm.png",
+      "source_box": [
+        492,
+        663,
+        1218,
+        907
+      ],
+      "size": [
+        726,
+        244
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_right_arm.png",
+      "source_box": [
+        1238,
+        663,
+        1365,
+        842
+      ],
+      "size": [
+        127,
+        179
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_legs.png",
+      "source_box": [
+        1387,
+        663,
+        1489,
+        829
+      ],
+      "size": [
+        102,
+        166
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/rap_queen/parts/rap_queen_open_hand.png",
+      "source_box": [
+        1521,
+        663,
+        1625,
+        836
+      ],
+      "size": [
+        104,
+        173
+      ]
+    }
   ]
 }

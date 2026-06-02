@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Outfit, CharacterMood } from '../store/types';
+import { resolveGeneratedCharacter } from './generatedCharacterCatalog';
 import avatarAnton from './generated/avatar-anton.png';
 import avatarLena from './generated/avatar-lena.png';
 import avatarMax from './generated/avatar-max.png';
@@ -80,6 +81,7 @@ export interface AvatarRenderState {
   active: boolean;
   size: number;
   name?: string;
+  characterId?: string;
   /** Applied to the root element so screens can keep their own CSS chrome. */
   className?: string;
 }
@@ -102,6 +104,7 @@ export const MOOD_META: Record<CharacterMood, MoodVisual> = {
   overleveraged: { ring: '#E84B2A', badge: 'LEV', riveState: 'overleveraged' },
   cardboard: { ring: '#7D7B6F', badge: 'BOX', riveState: 'cardboard' },
   passive_calm: { ring: '#34D399', badge: 'CALM', riveState: 'passive_calm' },
+  nomad: { ring: '#5BD7E0', badge: 'NOMAD', riveState: 'nomad' },
   chaos: { ring: '#D7445B', badge: 'MASK', riveState: 'futures_liq' },
 };
 
@@ -172,6 +175,26 @@ const EMOTION_SETS: Partial<Record<Outfit, EmotionSet>> = {
   },
 };
 
+// ── Per-character emotion sets (V2 generated characters) ─────────────────────
+// Each generated character ships its OWN full phase set under
+// generated/characters/<id>/emotions/<id>_<phase>.png. We load them all eagerly
+// via Vite glob and key by characterId, so the editor swiper AND in-game avatars
+// show that specific character's phases instead of borrowing the engine outfit's
+// art. Filename prefix must equal the folder id (regex backreference enforces it,
+// which also handles ids with underscores like `burnout_clerk`).
+const CHARACTER_EMOTION_GLOB = import.meta.glob(
+  './generated/characters/*/emotions/*.png',
+  { eager: true, query: '?url', import: 'default' },
+) as Record<string, string>;
+
+const CHARACTER_EMOTION_SETS: Record<string, EmotionSet> = {};
+for (const [path, url] of Object.entries(CHARACTER_EMOTION_GLOB)) {
+  const match = path.match(/characters\/([^/]+)\/emotions\/\1_(.+)\.png$/);
+  if (!match) continue;
+  const [, id, key] = match;
+  (CHARACTER_EMOTION_SETS[id] ??= {})[key] = url;
+}
+
 // mood (9) -> available drawn emotion key for a set
 const MOOD_TO_EMOTION: Record<CharacterMood, string> = {
   stable: 'stable',
@@ -182,6 +205,7 @@ const MOOD_TO_EMOTION: Record<CharacterMood, string> = {
   overleveraged: 'overleveraged',
   cardboard: 'cardboard',
   passive_calm: 'passive_calm',
+  nomad: 'nomad',
   chaos: 'futures_liq',
 };
 
@@ -204,37 +228,105 @@ const PNG_BY_OUTFIT: Record<Outfit, string> = {
   office: avatarAnton,
 };
 
-export function resolveAvatarImage(name: string | undefined, outfit: Outfit): string {
+export function resolveAvatarImage(name: string | undefined, outfit: Outfit, characterId?: string): string {
+  const generated = resolveGeneratedCharacter(characterId) ?? resolveGeneratedCharacter(name);
+  if (generated) return generated.profile;
+
   const key = (name || '').replace(/^@/, '').toLowerCase();
   return PNG_BY_NAME[key] || PNG_BY_OUTFIT[outfit] || avatarYou;
 }
 
 /** Picks the drawn emotion for the mood if the outfit has a set, else legacy PNG. */
-export function resolveCharacterImage(name: string | undefined, outfit: Outfit, mood: CharacterMood): string {
+export function resolveCharacterImage(name: string | undefined, outfit: Outfit, mood: CharacterMood, characterId?: string): string {
+  const generated = resolveGeneratedCharacter(characterId) ?? resolveGeneratedCharacter(name);
+  if (generated) {
+    const charSet = CHARACTER_EMOTION_SETS[generated.id];
+    if (charSet) {
+      const key = MOOD_TO_EMOTION[mood];
+      return charSet[key] || charSet.stable || generated.stable;
+    }
+    return generated.stable;
+  }
+
   const set = EMOTION_SETS[outfit];
   if (set) {
     const key = MOOD_TO_EMOTION[mood];
     return set[key] || set.stable;
   }
-  return resolveAvatarImage(name, outfit);
+  return resolveAvatarImage(name, outfit, characterId);
 }
 
 export function hasEmotionSet(outfit: Outfit): boolean {
   return Boolean(EMOTION_SETS[outfit]);
 }
 
+// ── Emotion state helpers (used by CharacterEditorScreen state swiper) ───────
+
+const EMOTION_LABELS_RU: Record<string, string> = {
+  stable: 'Стабильно',
+  overworked: 'Переработка',
+  overleveraged: 'Перелевередж',
+  tax_panic: 'Налог!',
+  work_crisis: 'Аврал',
+  futures_liq: 'Ликвидация',
+  street_hustle: 'Хастл',
+  passive_calm: 'Пассив',
+  cardboard: 'Банкрот',
+  nomad: 'Номад',
+  server_fire: 'Сервер горит',
+};
+
+// Display order for the editor swiper: calm -> escalating stress -> recovery.
+const PHASE_ORDER = [
+  'stable',
+  'overworked',
+  'overleveraged',
+  'tax_panic',
+  'work_crisis',
+  'futures_liq',
+  'cardboard',
+  'passive_calm',
+  'nomad',
+];
+
+export interface EmotionState {
+  key: string;
+  label: string;
+  src: string;
+}
+
+/**
+ * States for the editor swiper. Prefers the character's OWN emotion set
+ * (generated/characters/<id>/emotions); falls back to the engine outfit's set
+ * for the 6 legacy outfits. Ordered by PHASE_ORDER, only includes existing art.
+ */
+export function getCharacterEmotionStates(characterId?: string, outfit?: Outfit): EmotionState[] {
+  const set =
+    (characterId ? CHARACTER_EMOTION_SETS[characterId] : undefined) ??
+    (outfit ? EMOTION_SETS[outfit] : undefined);
+  if (!set) return [];
+  const ordered = PHASE_ORDER.filter((key) => set[key]);
+  const extras = Object.keys(set).filter((key) => !PHASE_ORDER.includes(key));
+  return [...ordered, ...extras].map((key) => ({
+    key,
+    label: EMOTION_LABELS_RU[key] ?? key,
+    src: set[key],
+  }));
+}
+
 // ── Current renderer: drawn emotion PNG + CSS "alive" layer ──────────────────
 // State changes by swapping the emotion PNG; idle breathe + stress shake make it
 // feel animated without any pre-rendered animation files.
-export const StaticImageRenderer: AvatarRenderer = ({ outfit, mood, name, stress, className }) => {
+export const StaticImageRenderer: AvatarRenderer = ({ outfit, mood, name, characterId, stress, className }) => {
   const cls = [className, 'cav-alive', stress >= 7 ? 'cav-shake' : ''].filter(Boolean).join(' ');
   return (
     <img
-      src={resolveCharacterImage(name, outfit, mood)}
+      src={resolveCharacterImage(name, outfit, mood, characterId)}
       alt={`${name || outfit} ${mood}`}
       className={cls}
       draggable={false}
       data-mood={mood}
+      data-character-id={characterId}
     />
   );
 };

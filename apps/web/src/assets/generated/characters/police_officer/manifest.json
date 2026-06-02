@@ -1,7 +1,7 @@
 {
   "id": "police_officer",
   "displayName": "Police Officer",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/police_officer/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,361 @@
   "plannedSprites": [
     "portraits/police_officer_profile_bust-source-green.png",
     "portraits/police_officer_profile_bust.png"
+  ],
+  "displayNameRu": "Полицейский",
+  "source_green": "apps/web/src/assets/generated/characters/police_officer/police_officer-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/police_officer/police_officer-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/police_officer/portrait_refs/police_officer_profile_bust.png",
+    "apps/web/src/assets/generated/characters/police_officer/portrait_refs/police_officer_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "paperwork_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/police_officer/turnaround/police_officer_front.png",
+      "source_box": [
+        137,
+        4,
+        298,
+        388
+      ],
+      "size": [
+        161,
+        384
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/police_officer/turnaround/police_officer_three_quarter.png",
+      "source_box": [
+        415,
+        4,
+        573,
+        388
+      ],
+      "size": [
+        158,
+        384
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/police_officer/turnaround/police_officer_side.png",
+      "source_box": [
+        707,
+        4,
+        827,
+        388
+      ],
+      "size": [
+        120,
+        384
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/police_officer/turnaround/police_officer_back_three_quarter.png",
+      "source_box": [
+        963,
+        4,
+        1105,
+        388
+      ],
+      "size": [
+        142,
+        384
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/police_officer/turnaround/police_officer_back.png",
+      "source_box": [
+        1258,
+        4,
+        1414,
+        388
+      ],
+      "size": [
+        156,
+        384
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_stable.png",
+      "source_box": [
+        39,
+        388,
+        182,
+        738
+      ],
+      "size": [
+        143,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_overworked.png",
+      "source_box": [
+        205,
+        388,
+        367,
+        738
+      ],
+      "size": [
+        162,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_overleveraged.png",
+      "source_box": [
+        398,
+        388,
+        551,
+        719
+      ],
+      "size": [
+        153,
+        331
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_tax_panic.png",
+      "source_box": [
+        572,
+        388,
+        756,
+        738
+      ],
+      "size": [
+        184,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_work_crisis.png",
+      "source_box": [
+        768,
+        388,
+        1009,
+        738
+      ],
+      "size": [
+        241,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_futures_liq.png",
+      "source_box": [
+        768,
+        388,
+        1009,
+        738
+      ],
+      "size": [
+        241,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_passive_calm.png",
+      "source_box": [
+        1026,
+        388,
+        1163,
+        707
+      ],
+      "size": [
+        137,
+        319
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_cardboard.png",
+      "source_box": [
+        1203,
+        388,
+        1348,
+        706
+      ],
+      "size": [
+        145,
+        318
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/police_officer/emotions/police_officer_nomad.png",
+      "source_box": [
+        1383,
+        388,
+        1580,
+        707
+      ],
+      "size": [
+        197,
+        319
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_head.png",
+      "source_box": [
+        43,
+        685,
+        162,
+        903
+      ],
+      "size": [
+        119,
+        218
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_torso.png",
+      "source_box": [
+        193,
+        685,
+        373,
+        924
+      ],
+      "size": [
+        180,
+        239
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_left_arm.png",
+      "source_box": [
+        392,
+        685,
+        472,
+        914
+      ],
+      "size": [
+        80,
+        229
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_right_arm.png",
+      "source_box": [
+        494,
+        685,
+        1185,
+        914
+      ],
+      "size": [
+        691,
+        229
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_legs.png",
+      "source_box": [
+        1219,
+        685,
+        1338,
+        851
+      ],
+      "size": [
+        119,
+        166
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_open_hand.png",
+      "source_box": [
+        1366,
+        685,
+        1461,
+        837
+      ],
+      "size": [
+        95,
+        152
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/police_officer/parts/police_officer_fist.png",
+      "source_box": [
+        1505,
+        685,
+        1591,
+        842
+      ],
+      "size": [
+        86,
+        157
+      ]
+    }
   ]
 }

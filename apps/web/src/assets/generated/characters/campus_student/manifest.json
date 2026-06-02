@@ -1,7 +1,7 @@
 {
   "id": "campus_student",
   "displayName": "Campus Student",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/campus_student/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,329 @@
   "plannedSprites": [
     "portraits/campus_student_profile_bust-source-green.png",
     "portraits/campus_student_profile_bust.png"
+  ],
+  "displayNameRu": "Мажор-студент",
+  "source_green": "apps/web/src/assets/generated/characters/campus_student/campus_student-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/campus_student/campus_student-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/campus_student/portrait_refs/campus_student_profile_bust.png",
+    "apps/web/src/assets/generated/characters/campus_student/portrait_refs/campus_student_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "study_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/campus_student/turnaround/campus_student_front.png",
+      "source_box": [
+        132,
+        5,
+        310,
+        389
+      ],
+      "size": [
+        178,
+        384
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/campus_student/turnaround/campus_student_three_quarter.png",
+      "source_box": [
+        411,
+        7,
+        582,
+        389
+      ],
+      "size": [
+        171,
+        382
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/campus_student/turnaround/campus_student_side.png",
+      "source_box": [
+        700,
+        8,
+        856,
+        389
+      ],
+      "size": [
+        156,
+        381
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/campus_student/turnaround/campus_student_back_three_quarter.png",
+      "source_box": [
+        945,
+        7,
+        1105,
+        389
+      ],
+      "size": [
+        160,
+        382
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/campus_student/turnaround/campus_student_back.png",
+      "source_box": [
+        1246,
+        7,
+        1403,
+        389
+      ],
+      "size": [
+        157,
+        382
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_stable.png",
+      "source_box": [
+        17,
+        389,
+        169,
+        725
+      ],
+      "size": [
+        152,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_overworked.png",
+      "source_box": [
+        190,
+        389,
+        388,
+        683
+      ],
+      "size": [
+        198,
+        294
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_overleveraged.png",
+      "source_box": [
+        395,
+        389,
+        562,
+        733
+      ],
+      "size": [
+        167,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_tax_panic.png",
+      "source_box": [
+        575,
+        389,
+        757,
+        739
+      ],
+      "size": [
+        182,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_work_crisis.png",
+      "source_box": [
+        779,
+        389,
+        1011,
+        715
+      ],
+      "size": [
+        232,
+        326
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_futures_liq.png",
+      "source_box": [
+        779,
+        389,
+        1011,
+        715
+      ],
+      "size": [
+        232,
+        326
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_passive_calm.png",
+      "source_box": [
+        1044,
+        417,
+        1182,
+        710
+      ],
+      "size": [
+        138,
+        293
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_cardboard.png",
+      "source_box": [
+        1214,
+        389,
+        1350,
+        699
+      ],
+      "size": [
+        136,
+        310
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/campus_student/emotions/campus_student_nomad.png",
+      "source_box": [
+        1389,
+        430,
+        1579,
+        705
+      ],
+      "size": [
+        190,
+        275
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/campus_student/parts/campus_student_head.png",
+      "source_box": [
+        28,
+        686,
+        143,
+        889
+      ],
+      "size": [
+        115,
+        203
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/campus_student/parts/campus_student_torso.png",
+      "source_box": [
+        197,
+        740,
+        371,
+        937
+      ],
+      "size": [
+        174,
+        197
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/campus_student/parts/campus_student_left_arm.png",
+      "source_box": [
+        408,
+        686,
+        1338,
+        916
+      ],
+      "size": [
+        930,
+        230
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/campus_student/parts/campus_student_right_arm.png",
+      "source_box": [
+        1371,
+        785,
+        1454,
+        844
+      ],
+      "size": [
+        83,
+        59
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/campus_student/parts/campus_student_legs.png",
+      "source_box": [
+        1497,
+        686,
+        1591,
+        852
+      ],
+      "size": [
+        94,
+        166
+      ]
+    }
   ]
 }

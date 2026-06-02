@@ -1,7 +1,7 @@
 {
   "id": "burnout_clerk",
   "displayName": "Burnout Clerk",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/burnout_clerk/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -12,18 +12,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "plannedSprites": [
     "portraits/burnout_clerk_profile_bust-source-green.png",
@@ -40,5 +76,393 @@
     "emotions/burnout_clerk_passive_calm.png",
     "emotions/burnout_clerk_cardboard.png",
     "emotions/burnout_clerk_nomad.png"
+  ],
+  "displayNameRu": "Уставший клерк",
+  "source_green": "apps/web/src/assets/generated/characters/burnout_clerk/burnout_clerk-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/burnout_clerk/burnout_clerk-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/burnout_clerk/portrait_refs/burnout_clerk_profile_bust.png",
+    "apps/web/src/assets/generated/characters/burnout_clerk/portrait_refs/burnout_clerk_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "work_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/turnaround/burnout_clerk_front.png",
+      "source_box": [
+        111,
+        15,
+        278,
+        375
+      ],
+      "size": [
+        167,
+        360
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/turnaround/burnout_clerk_three_quarter.png",
+      "source_box": [
+        399,
+        15,
+        567,
+        377
+      ],
+      "size": [
+        168,
+        362
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/turnaround/burnout_clerk_side.png",
+      "source_box": [
+        711,
+        16,
+        829,
+        376
+      ],
+      "size": [
+        118,
+        360
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/turnaround/burnout_clerk_back_three_quarter.png",
+      "source_box": [
+        959,
+        18,
+        1082,
+        370
+      ],
+      "size": [
+        123,
+        352
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/turnaround/burnout_clerk_back.png",
+      "source_box": [
+        1269,
+        17,
+        1416,
+        368
+      ],
+      "size": [
+        147,
+        351
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_stable.png",
+      "source_box": [
+        18,
+        393,
+        172,
+        739
+      ],
+      "size": [
+        154,
+        346
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_overworked.png",
+      "source_box": [
+        204,
+        397,
+        344,
+        739
+      ],
+      "size": [
+        140,
+        342
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_overleveraged.png",
+      "source_box": [
+        388,
+        394,
+        544,
+        739
+      ],
+      "size": [
+        156,
+        345
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_tax_panic.png",
+      "source_box": [
+        570,
+        389,
+        760,
+        739
+      ],
+      "size": [
+        190,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_work_crisis.png",
+      "source_box": [
+        781,
+        395,
+        1016,
+        739
+      ],
+      "size": [
+        235,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_futures_liq.png",
+      "source_box": [
+        781,
+        395,
+        1016,
+        739
+      ],
+      "size": [
+        235,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_passive_calm.png",
+      "source_box": [
+        1034,
+        395,
+        1168,
+        739
+      ],
+      "size": [
+        134,
+        344
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_cardboard.png",
+      "source_box": [
+        1211,
+        395,
+        1350,
+        689
+      ],
+      "size": [
+        139,
+        294
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/emotions/burnout_clerk_nomad.png",
+      "source_box": [
+        1387,
+        405,
+        1580,
+        693
+      ],
+      "size": [
+        193,
+        288
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_head.png",
+      "source_box": [
+        34,
+        685,
+        157,
+        868
+      ],
+      "size": [
+        123,
+        183
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_torso.png",
+      "source_box": [
+        196,
+        685,
+        454,
+        927
+      ],
+      "size": [
+        258,
+        242
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_left_arm.png",
+      "source_box": [
+        497,
+        685,
+        574,
+        913
+      ],
+      "size": [
+        77,
+        228
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_right_arm.png",
+      "source_box": [
+        599,
+        685,
+        1044,
+        889
+      ],
+      "size": [
+        445,
+        204
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_legs.png",
+      "source_box": [
+        1079,
+        685,
+        1131,
+        892
+      ],
+      "size": [
+        52,
+        207
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_open_hand.png",
+      "source_box": [
+        1161,
+        732,
+        1212,
+        892
+      ],
+      "size": [
+        51,
+        160
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_fist.png",
+      "source_box": [
+        1264,
+        777,
+        1345,
+        830
+      ],
+      "size": [
+        81,
+        53
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_eyes_open.png",
+      "source_box": [
+        1376,
+        774,
+        1461,
+        833
+      ],
+      "size": [
+        85,
+        59
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_closed",
+      "label": "eyes closed",
+      "file": "apps/web/src/assets/generated/characters/burnout_clerk/parts/burnout_clerk_eyes_closed.png",
+      "source_box": [
+        1499,
+        685,
+        1548,
+        840
+      ],
+      "size": [
+        49,
+        155
+      ]
+    }
   ]
 }

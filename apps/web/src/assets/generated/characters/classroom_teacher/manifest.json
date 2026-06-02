@@ -1,7 +1,7 @@
 {
   "id": "classroom_teacher",
   "displayName": "Classroom Teacher",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/classroom_teacher/references/source-reference.png",
   "referenceSet": {
     "primary": "apps/web/src/assets/generated/characters/classroom_teacher/references/source-reference.png",
@@ -16,18 +16,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "variantSlots": [
     "hair",
@@ -53,5 +89,345 @@
     "emotions/classroom_teacher_passive_calm.png",
     "emotions/classroom_teacher_cardboard.png",
     "emotions/classroom_teacher_nomad.png"
+  ],
+  "displayNameRu": "Учительница",
+  "source_green": "apps/web/src/assets/generated/characters/classroom_teacher/classroom_teacher-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/classroom_teacher/classroom_teacher-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/classroom_teacher/portrait_refs/classroom_teacher_profile_bust.png",
+    "apps/web/src/assets/generated/characters/classroom_teacher/portrait_refs/classroom_teacher_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "classroom_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/turnaround/classroom_teacher_front.png",
+      "source_box": [
+        123,
+        13,
+        276,
+        389
+      ],
+      "size": [
+        153,
+        376
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/turnaround/classroom_teacher_three_quarter.png",
+      "source_box": [
+        416,
+        7,
+        572,
+        389
+      ],
+      "size": [
+        156,
+        382
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/turnaround/classroom_teacher_side.png",
+      "source_box": [
+        717,
+        15,
+        829,
+        389
+      ],
+      "size": [
+        112,
+        374
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/turnaround/classroom_teacher_back_three_quarter.png",
+      "source_box": [
+        961,
+        18,
+        1097,
+        389
+      ],
+      "size": [
+        136,
+        371
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/turnaround/classroom_teacher_back.png",
+      "source_box": [
+        1236,
+        17,
+        1416,
+        389
+      ],
+      "size": [
+        180,
+        372
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_stable.png",
+      "source_box": [
+        32,
+        389,
+        176,
+        739
+      ],
+      "size": [
+        144,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_overworked.png",
+      "source_box": [
+        214,
+        389,
+        357,
+        739
+      ],
+      "size": [
+        143,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_overleveraged.png",
+      "source_box": [
+        391,
+        389,
+        547,
+        739
+      ],
+      "size": [
+        156,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_tax_panic.png",
+      "source_box": [
+        573,
+        401,
+        748,
+        739
+      ],
+      "size": [
+        175,
+        338
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_work_crisis.png",
+      "source_box": [
+        763,
+        389,
+        1000,
+        739
+      ],
+      "size": [
+        237,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_futures_liq.png",
+      "source_box": [
+        763,
+        389,
+        1000,
+        739
+      ],
+      "size": [
+        237,
+        350
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_passive_calm.png",
+      "source_box": [
+        1026,
+        389,
+        1156,
+        705
+      ],
+      "size": [
+        130,
+        316
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_cardboard.png",
+      "source_box": [
+        1204,
+        389,
+        1341,
+        703
+      ],
+      "size": [
+        137,
+        314
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/emotions/classroom_teacher_nomad.png",
+      "source_box": [
+        1381,
+        389,
+        1577,
+        703
+      ],
+      "size": [
+        196,
+        314
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_head.png",
+      "source_box": [
+        19,
+        685,
+        366,
+        938
+      ],
+      "size": [
+        347,
+        253
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_torso.png",
+      "source_box": [
+        387,
+        685,
+        1029,
+        920
+      ],
+      "size": [
+        642,
+        235
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_left_arm.png",
+      "source_box": [
+        1071,
+        685,
+        1134,
+        905
+      ],
+      "size": [
+        63,
+        220
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_right_arm.png",
+      "source_box": [
+        1156,
+        685,
+        1335,
+        905
+      ],
+      "size": [
+        179,
+        220
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_legs.png",
+      "source_box": [
+        1372,
+        685,
+        1459,
+        839
+      ],
+      "size": [
+        87,
+        154
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/classroom_teacher/parts/classroom_teacher_open_hand.png",
+      "source_box": [
+        1502,
+        685,
+        1587,
+        847
+      ],
+      "size": [
+        85,
+        162
+      ]
+    }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "id": "fixer_consultant",
   "displayName": "Fixer Consultant",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/fixer_consultant/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -12,18 +12,54 @@
     "gameUse": "full-body avatar views and emotion states"
   },
   "defaultAnchors": {
-    "head_top": [0.5, 0.08],
-    "hairline": [0.5, 0.16],
-    "eyes": [0.5, 0.25],
-    "mouth": [0.5, 0.34],
-    "neck": [0.5, 0.42],
-    "chest": [0.5, 0.52],
-    "left_wrist": [0.28, 0.58],
-    "right_wrist": [0.72, 0.58],
-    "waist": [0.5, 0.66],
-    "feet": [0.5, 0.96],
-    "pet_slot_left": [-0.18, 0.82],
-    "pet_slot_right": [1.12, 0.82]
+    "head_top": [
+      0.5,
+      0.08
+    ],
+    "hairline": [
+      0.5,
+      0.16
+    ],
+    "eyes": [
+      0.5,
+      0.25
+    ],
+    "mouth": [
+      0.5,
+      0.34
+    ],
+    "neck": [
+      0.5,
+      0.42
+    ],
+    "chest": [
+      0.5,
+      0.52
+    ],
+    "left_wrist": [
+      0.28,
+      0.58
+    ],
+    "right_wrist": [
+      0.72,
+      0.58
+    ],
+    "waist": [
+      0.5,
+      0.66
+    ],
+    "feet": [
+      0.5,
+      0.96
+    ],
+    "pet_slot_left": [
+      -0.18,
+      0.82
+    ],
+    "pet_slot_right": [
+      1.12,
+      0.82
+    ]
   },
   "plannedSprites": [
     "portraits/fixer_consultant_profile_bust-source-green.png",
@@ -40,5 +76,329 @@
     "emotions/fixer_consultant_passive_calm.png",
     "emotions/fixer_consultant_cardboard.png",
     "emotions/fixer_consultant_nomad.png"
+  ],
+  "displayNameRu": "Консультантка",
+  "source_green": "apps/web/src/assets/generated/characters/fixer_consultant/fixer_consultant-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/fixer_consultant/fixer_consultant-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/fixer_consultant/portrait_refs/fixer_consultant_profile_bust.png",
+    "apps/web/src/assets/generated/characters/fixer_consultant/portrait_refs/fixer_consultant_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "consulting_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/turnaround/fixer_consultant_front.png",
+      "source_box": [
+        122,
+        12,
+        267,
+        376
+      ],
+      "size": [
+        145,
+        364
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/turnaround/fixer_consultant_three_quarter.png",
+      "source_box": [
+        428,
+        12,
+        564,
+        376
+      ],
+      "size": [
+        136,
+        364
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/turnaround/fixer_consultant_side.png",
+      "source_box": [
+        694,
+        17,
+        849,
+        376
+      ],
+      "size": [
+        155,
+        359
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/turnaround/fixer_consultant_back_three_quarter.png",
+      "source_box": [
+        991,
+        19,
+        1108,
+        376
+      ],
+      "size": [
+        117,
+        357
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/turnaround/fixer_consultant_back.png",
+      "source_box": [
+        1296,
+        15,
+        1428,
+        376
+      ],
+      "size": [
+        132,
+        361
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_stable.png",
+      "source_box": [
+        30,
+        396,
+        166,
+        708
+      ],
+      "size": [
+        136,
+        312
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_overworked.png",
+      "source_box": [
+        217,
+        376,
+        371,
+        707
+      ],
+      "size": [
+        154,
+        331
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_overleveraged.png",
+      "source_box": [
+        406,
+        376,
+        556,
+        704
+      ],
+      "size": [
+        150,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_tax_panic.png",
+      "source_box": [
+        582,
+        376,
+        765,
+        704
+      ],
+      "size": [
+        183,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_work_crisis.png",
+      "source_box": [
+        780,
+        376,
+        1026,
+        698
+      ],
+      "size": [
+        246,
+        322
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_futures_liq.png",
+      "source_box": [
+        780,
+        376,
+        1026,
+        698
+      ],
+      "size": [
+        246,
+        322
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_passive_calm.png",
+      "source_box": [
+        1044,
+        403,
+        1170,
+        693
+      ],
+      "size": [
+        126,
+        290
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_cardboard.png",
+      "source_box": [
+        1222,
+        376,
+        1364,
+        695
+      ],
+      "size": [
+        142,
+        319
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/emotions/fixer_consultant_nomad.png",
+      "source_box": [
+        1396,
+        376,
+        1609,
+        702
+      ],
+      "size": [
+        213,
+        326
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/parts/fixer_consultant_head.png",
+      "source_box": [
+        30,
+        663,
+        179,
+        903
+      ],
+      "size": [
+        149,
+        240
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/parts/fixer_consultant_torso.png",
+      "source_box": [
+        205,
+        663,
+        379,
+        915
+      ],
+      "size": [
+        174,
+        252
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/parts/fixer_consultant_left_arm.png",
+      "source_box": [
+        411,
+        663,
+        470,
+        898
+      ],
+      "size": [
+        59,
+        235
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/parts/fixer_consultant_right_arm.png",
+      "source_box": [
+        500,
+        663,
+        1362,
+        912
+      ],
+      "size": [
+        862,
+        249
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/fixer_consultant/parts/fixer_consultant_legs.png",
+      "source_box": [
+        1386,
+        663,
+        1619,
+        834
+      ],
+      "size": [
+        233,
+        171
+      ]
+    }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "id": "sky_pilot",
   "displayName": "Sky Pilot",
-  "status": "profile_bust_generated_chromakey_alpha",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/sky_pilot/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,329 @@
   "plannedSprites": [
     "portraits/sky_pilot_profile_bust-source-green.png",
     "portraits/sky_pilot_profile_bust.png"
+  ],
+  "displayNameRu": "Летчик",
+  "source_green": "apps/web/src/assets/generated/characters/sky_pilot/sky_pilot-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/sky_pilot/sky_pilot-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/sky_pilot/portrait_refs/sky_pilot_profile_bust.png",
+    "apps/web/src/assets/generated/characters/sky_pilot/portrait_refs/sky_pilot_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "flight_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/turnaround/sky_pilot_front.png",
+      "source_box": [
+        147,
+        14,
+        312,
+        379
+      ],
+      "size": [
+        165,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/turnaround/sky_pilot_three_quarter.png",
+      "source_box": [
+        437,
+        12,
+        596,
+        379
+      ],
+      "size": [
+        159,
+        367
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/turnaround/sky_pilot_side.png",
+      "source_box": [
+        767,
+        9,
+        887,
+        379
+      ],
+      "size": [
+        120,
+        370
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/turnaround/sky_pilot_back_three_quarter.png",
+      "source_box": [
+        999,
+        13,
+        1139,
+        379
+      ],
+      "size": [
+        140,
+        366
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/turnaround/sky_pilot_back.png",
+      "source_box": [
+        1283,
+        12,
+        1448,
+        379
+      ],
+      "size": [
+        165,
+        367
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_stable.png",
+      "source_box": [
+        28,
+        391,
+        180,
+        720
+      ],
+      "size": [
+        152,
+        329
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_overworked.png",
+      "source_box": [
+        215,
+        379,
+        373,
+        707
+      ],
+      "size": [
+        158,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_overleveraged.png",
+      "source_box": [
+        404,
+        391,
+        570,
+        711
+      ],
+      "size": [
+        166,
+        320
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_tax_panic.png",
+      "source_box": [
+        589,
+        380,
+        777,
+        708
+      ],
+      "size": [
+        188,
+        328
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_work_crisis.png",
+      "source_box": [
+        794,
+        379,
+        1035,
+        697
+      ],
+      "size": [
+        241,
+        318
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_futures_liq.png",
+      "source_box": [
+        794,
+        379,
+        1035,
+        697
+      ],
+      "size": [
+        241,
+        318
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_passive_calm.png",
+      "source_box": [
+        1051,
+        387,
+        1199,
+        699
+      ],
+      "size": [
+        148,
+        312
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_cardboard.png",
+      "source_box": [
+        1229,
+        388,
+        1377,
+        703
+      ],
+      "size": [
+        148,
+        315
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/emotions/sky_pilot_nomad.png",
+      "source_box": [
+        1413,
+        396,
+        1619,
+        706
+      ],
+      "size": [
+        206,
+        310
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/parts/sky_pilot_head.png",
+      "source_box": [
+        33,
+        668,
+        166,
+        902
+      ],
+      "size": [
+        133,
+        234
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/parts/sky_pilot_torso.png",
+      "source_box": [
+        191,
+        668,
+        482,
+        918
+      ],
+      "size": [
+        291,
+        250
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/parts/sky_pilot_left_arm.png",
+      "source_box": [
+        508,
+        668,
+        1378,
+        906
+      ],
+      "size": [
+        870,
+        238
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/parts/sky_pilot_right_arm.png",
+      "source_box": [
+        1406,
+        668,
+        1498,
+        835
+      ],
+      "size": [
+        92,
+        167
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/sky_pilot/parts/sky_pilot_legs.png",
+      "source_box": [
+        1534,
+        668,
+        1625,
+        842
+      ],
+      "size": [
+        91,
+        174
+      ]
+    }
   ]
 }

@@ -1,7 +1,7 @@
 {
   "id": "artist",
   "displayName": "Artist",
-  "status": "reference_ingested",
+  "status": "model_sheet_sliced_alpha_content_aware",
   "source_reference": "apps/web/src/assets/generated/characters/artist/references/source-reference.png",
   "style": "DYOR 2.5D toy-comic, matte clay/plastic, richer sculpted detail, chroma-key source converted to PNG alpha",
   "outputContract": {
@@ -14,5 +14,377 @@
   "plannedSprites": [
     "portraits/artist_profile_bust-source-green.png",
     "portraits/artist_profile_bust.png"
+  ],
+  "displayNameRu": "Художник",
+  "source_green": "apps/web/src/assets/generated/characters/artist/artist-model-sheet-source-green.png",
+  "alpha_sheet": "apps/web/src/assets/generated/characters/artist/artist-model-sheet-alpha.png",
+  "portraitRefs": [
+    "apps/web/src/assets/generated/characters/artist/portrait_refs/artist_profile_bust.png",
+    "apps/web/src/assets/generated/characters/artist/portrait_refs/artist_source_reference.png"
+  ],
+  "slicingContract": {
+    "layout": "wide model sheet, 3 fraction-defined row bands",
+    "rows": [
+      "turnaround",
+      "emotions",
+      "parts"
+    ],
+    "workCrisisKey": "art_crisis",
+    "method": "alpha X-projection valley split per row band; tight alpha bbox per figure",
+    "coordinateSpace": "source sheet pixels"
+  },
+  "sprites": [
+    {
+      "group": "turnaround",
+      "key": "front",
+      "label": "front",
+      "file": "apps/web/src/assets/generated/characters/artist/turnaround/artist_front.png",
+      "source_box": [
+        111,
+        15,
+        314,
+        387
+      ],
+      "size": [
+        203,
+        372
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "three_quarter",
+      "label": "three quarter",
+      "file": "apps/web/src/assets/generated/characters/artist/turnaround/artist_three_quarter.png",
+      "source_box": [
+        389,
+        19,
+        590,
+        387
+      ],
+      "size": [
+        201,
+        368
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "side",
+      "label": "side",
+      "file": "apps/web/src/assets/generated/characters/artist/turnaround/artist_side.png",
+      "source_box": [
+        689,
+        22,
+        856,
+        387
+      ],
+      "size": [
+        167,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back_three_quarter",
+      "label": "back three quarter",
+      "file": "apps/web/src/assets/generated/characters/artist/turnaround/artist_back_three_quarter.png",
+      "source_box": [
+        946,
+        22,
+        1105,
+        387
+      ],
+      "size": [
+        159,
+        365
+      ]
+    },
+    {
+      "group": "turnaround",
+      "key": "back",
+      "label": "back",
+      "file": "apps/web/src/assets/generated/characters/artist/turnaround/artist_back.png",
+      "source_box": [
+        1220,
+        23,
+        1421,
+        387
+      ],
+      "size": [
+        201,
+        364
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "stable",
+      "label": "stable",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_stable.png",
+      "source_box": [
+        22,
+        387,
+        189,
+        726
+      ],
+      "size": [
+        167,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overworked",
+      "label": "overworked",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_overworked.png",
+      "source_box": [
+        203,
+        387,
+        370,
+        723
+      ],
+      "size": [
+        167,
+        336
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "overleveraged",
+      "label": "overleveraged",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_overleveraged.png",
+      "source_box": [
+        393,
+        387,
+        544,
+        728
+      ],
+      "size": [
+        151,
+        341
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "tax_panic",
+      "label": "tax panic",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_tax_panic.png",
+      "source_box": [
+        565,
+        387,
+        774,
+        724
+      ],
+      "size": [
+        209,
+        337
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "work_crisis",
+      "label": "work crisis",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_work_crisis.png",
+      "source_box": [
+        784,
+        387,
+        1016,
+        726
+      ],
+      "size": [
+        232,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "futures_liq",
+      "label": "futures liq / chaos alias",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_futures_liq.png",
+      "source_box": [
+        784,
+        387,
+        1016,
+        726
+      ],
+      "size": [
+        232,
+        339
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "passive_calm",
+      "label": "passive calm",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_passive_calm.png",
+      "source_box": [
+        1049,
+        387,
+        1177,
+        710
+      ],
+      "size": [
+        128,
+        323
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "cardboard",
+      "label": "cardboard",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_cardboard.png",
+      "source_box": [
+        1220,
+        387,
+        1357,
+        705
+      ],
+      "size": [
+        137,
+        318
+      ]
+    },
+    {
+      "group": "emotions",
+      "key": "nomad",
+      "label": "nomad",
+      "file": "apps/web/src/assets/generated/characters/artist/emotions/artist_nomad.png",
+      "source_box": [
+        1398,
+        387,
+        1578,
+        706
+      ],
+      "size": [
+        180,
+        319
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "head",
+      "label": "head",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_head.png",
+      "source_box": [
+        31,
+        682,
+        156,
+        880
+      ],
+      "size": [
+        125,
+        198
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "torso",
+      "label": "torso",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_torso.png",
+      "source_box": [
+        180,
+        682,
+        344,
+        949
+      ],
+      "size": [
+        164,
+        267
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "left_arm",
+      "label": "left arm",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_left_arm.png",
+      "source_box": [
+        379,
+        682,
+        461,
+        920
+      ],
+      "size": [
+        82,
+        238
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "right_arm",
+      "label": "right arm",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_right_arm.png",
+      "source_box": [
+        491,
+        682,
+        1035,
+        926
+      ],
+      "size": [
+        544,
+        244
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "legs",
+      "label": "legs",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_legs.png",
+      "source_box": [
+        1058,
+        682,
+        1207,
+        906
+      ],
+      "size": [
+        149,
+        224
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "open_hand",
+      "label": "open hand",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_open_hand.png",
+      "source_box": [
+        1234,
+        682,
+        1352,
+        859
+      ],
+      "size": [
+        118,
+        177
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "fist",
+      "label": "fist",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_fist.png",
+      "source_box": [
+        1378,
+        682,
+        1471,
+        846
+      ],
+      "size": [
+        93,
+        164
+      ]
+    },
+    {
+      "group": "parts",
+      "key": "eyes_open",
+      "label": "eyes open",
+      "file": "apps/web/src/assets/generated/characters/artist/parts/artist_eyes_open.png",
+      "source_box": [
+        1515,
+        682,
+        1590,
+        853
+      ],
+      "size": [
+        75,
+        171
+      ]
+    }
   ]
 }

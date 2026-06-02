@@ -15,8 +15,9 @@ import accessoryGlasses from './generated/shop-v2/accessories/items/accessory_gl
 import accessoryWatch from './generated/shop-v2/accessories/items/accessory_watch.png';
 import accessoryBackpack from './generated/shop-v2/accessories/items/accessory_backpack.png';
 import accessoryContract from './generated/shop-v2/accessories/items/accessory_contract.png';
+import { GENERATED_CHARACTERS } from './generatedCharacterCatalog';
 
-export type ShopTab = 'hosts' | 'tables' | 'housing' | 'accessories' | 'cards';
+export type ShopTab = 'characters' | 'hosts' | 'tables' | 'housing' | 'accessories' | 'cards';
 export type ShopCurrency = 'stars' | 'coins';
 export type LocalizedText = { ru: string; en: string };
 
@@ -29,9 +30,11 @@ export interface ShopItem {
   price: number;
   currency: ShopCurrency;
   starterOwned?: boolean;
+  visualType?: 'character';
 }
 
 export const SHOP_TABS: { id: ShopTab; label: LocalizedText; fallbackIcon: string }[] = [
+  { id: 'characters', label: { ru: 'Персонажи', en: 'Characters' }, fallbackIcon: '👤' },
   { id: 'hosts', label: { ru: 'Хосты', en: 'Hosts' }, fallbackIcon: '🤖' },
   { id: 'tables', label: { ru: 'Стол', en: 'Table' }, fallbackIcon: '🎨' },
   { id: 'housing', label: { ru: 'Жилье', en: 'Housing' }, fallbackIcon: '🏠' },
@@ -39,7 +42,23 @@ export const SHOP_TABS: { id: ShopTab; label: LocalizedText; fallbackIcon: strin
   { id: 'cards', label: { ru: 'Карты', en: 'Cards' }, fallbackIcon: '🎴' },
 ];
 
+const CHARACTER_SHOP_ITEMS: ShopItem[] = GENERATED_CHARACTERS.map((character, index) => ({
+  id: `character-${character.id}`,
+  tab: 'characters',
+  name: { ru: character.displayNameRu, en: character.displayName },
+  description: {
+    ru: `Игровой образ для стола: ${character.engineOutfit.toUpperCase()}.`,
+    en: `Table-ready character skin: ${character.engineOutfit.toUpperCase()}.`,
+  },
+  image: character.profile,
+  price: character.starterOwned ? 0 : 350 + index * 25,
+  currency: 'coins',
+  starterOwned: character.starterOwned,
+  visualType: 'character',
+}));
+
 export const SHOP_ITEMS: ShopItem[] = [
+  ...CHARACTER_SHOP_ITEMS,
   {
     id: 'host-judge',
     tab: 'hosts',
