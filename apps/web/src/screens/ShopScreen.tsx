@@ -5,7 +5,7 @@ import { useI18n } from '../i18n';
 import { addItemToInventory, loadPlayerData, spendCurrency } from '../store/persistence';
 import { SHOP_ITEMS, SHOP_TABS, type ShopItem, type ShopTab } from '../assets/shopCatalog';
 import starsIcon from '../assets/generated/ui/stars-icon.svg';
-import traderStable from '../assets/generated/characters/trader/emotions/trader_stable.png';
+import { resolveAvatarImage } from '../assets/characterRenderer';
 import dogCostume from '../assets/generated/pets-v2/dog/states/dog_costume.png';
 
 function owned(item: ShopItem, ownedItems: string[]): boolean {
@@ -14,7 +14,7 @@ function owned(item: ShopItem, ownedItems: string[]): boolean {
 
 export const ShopScreen: React.FC = () => {
   const { locale } = useI18n();
-  const [activeTab, setActiveTab] = useState<ShopTab>('hosts');
+  const [activeTab, setActiveTab] = useState<ShopTab>('characters');
   const [playerData, setPlayerData] = useState(() => loadPlayerData());
   const setScreen = useStore((s) => s.setScreen);
 
@@ -51,7 +51,12 @@ export const ShopScreen: React.FC = () => {
 
       <button onClick={() => setScreen('editor')} className="shop-editor-card tactile-card">
         <div className="shop-editor-art">
-          <img src={traderStable} alt="" className="shop-editor-person" draggable={false} />
+          <img
+            src={resolveAvatarImage(undefined, playerData.outfit ?? 'trader', playerData.characterId)}
+            alt=""
+            className="shop-editor-person"
+            draggable={false}
+          />
           <img src={dogCostume} alt="" className="shop-editor-pet" draggable={false} />
         </div>
         <div style={{ flex: 1, textAlign: 'left' }}>
@@ -91,17 +96,25 @@ export const ShopScreen: React.FC = () => {
             >
               {isOwned && <div className="shop-owned-badge">{locale === 'ru' ? 'КУПЛЕНО' : 'OWNED'}</div>}
 
-              <div className="shop-item-art">
+              <div className={`shop-item-art ${item.visualType === 'character' ? 'shop-character-art' : ''}`}>
                 <img
                   src={item.image}
                   alt={item.name[locale]}
-                  style={{
-                    width: '112%',
-                    height: '112%',
-                    objectFit: 'contain',
-                    opacity: isOwned ? 1 : 0.84,
-                    filter: 'drop-shadow(0 12px 20px rgba(0,0,0,.45))',
-                  }}
+                  className={item.visualType === 'character' ? 'shop-character-img' : undefined}
+                  style={
+                    item.visualType === 'character'
+                      ? {
+                          opacity: isOwned ? 1 : 0.84,
+                          filter: 'drop-shadow(0 12px 20px rgba(0,0,0,.45))',
+                        }
+                      : {
+                          width: '112%',
+                          height: '112%',
+                          objectFit: 'contain',
+                          opacity: isOwned ? 1 : 0.84,
+                          filter: 'drop-shadow(0 12px 20px rgba(0,0,0,.45))',
+                        }
+                  }
                   draggable={false}
                 />
               </div>

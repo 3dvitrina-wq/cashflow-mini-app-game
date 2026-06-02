@@ -10,6 +10,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const [soundVolume, setSoundVolume] = useState(70);
   const [haptics, setHaptics] = useState(true);
   const [gameSpeed, setGameSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
+  const [volatility, setVolatility] = useState<'calm' | 'normal' | 'wild'>('normal');
+  const [turnTimer, setTurnTimer] = useState<45 | 90 | 180>(90);
+  const [commMode, setCommMode] = useState<'reactions' | 'chat'>('reactions');
 
   // Initialize locale on mount
   useEffect(() => {
@@ -228,6 +231,111 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
                   : (locale === 'ru' ? 'Быстро' : 'Fast')}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Match Settings */}
+        <div
+          style={{
+            background: 'rgba(255, 255, 255, 0.04)',
+            borderRadius: 16,
+            padding: 16,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+            <span style={{ fontSize: 20 }}>🎛️</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>
+              {locale === 'ru' ? 'Настройки матча' : 'Match Settings'}
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#B8B6A9', marginBottom: 8 }}>
+                {locale === 'ru' ? 'Волатильность' : 'Volatility'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {(['calm', 'normal', 'wild'] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setVolatility(value)}
+                    style={{
+                      padding: '10px',
+                      borderRadius: 12,
+                      background:
+                        volatility === value ? 'rgba(245, 197, 36, 0.20)' : 'rgba(255, 255, 255, 0.04)',
+                      border: `2px solid ${volatility === value ? '#F5C524' : 'transparent'}`,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: volatility === value ? '#F5C524' : '#F5F4ED',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {value === 'calm'
+                      ? (locale === 'ru' ? 'Спокойно' : 'Calm')
+                      : value === 'normal'
+                      ? (locale === 'ru' ? 'Норм' : 'Normal')
+                      : (locale === 'ru' ? 'Дико' : 'Wild')}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#B8B6A9', marginBottom: 8 }}>
+                {locale === 'ru' ? 'Таймер хода' : 'Turn Timer'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {([45, 90, 180] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setTurnTimer(value)}
+                    style={{
+                      padding: '10px',
+                      borderRadius: 12,
+                      background:
+                        turnTimer === value ? 'rgba(91, 215, 224, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                      border: `2px solid ${turnTimer === value ? '#5BD7E0' : 'transparent'}`,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#F5F4ED',
+                    }}
+                  >
+                    {value}s
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, fontWeight: 800, color: '#B8B6A9', marginBottom: 8 }}>
+                {locale === 'ru' ? 'Коммуникация' : 'Communication'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {(['reactions', 'chat'] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setCommMode(value)}
+                    style={{
+                      padding: '10px',
+                      borderRadius: 12,
+                      background:
+                        commMode === value ? 'rgba(123, 91, 215, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                      border: `2px solid ${commMode === value ? '#7B5BD7' : 'transparent'}`,
+                      fontSize: 12,
+                      fontWeight: 800,
+                      color: '#F5F4ED',
+                      textTransform: 'uppercase',
+                    }}
+                  >
+                    {value === 'reactions'
+                      ? (locale === 'ru' ? 'Реакции' : 'Reactions')
+                      : (locale === 'ru' ? 'Чат' : 'Chat')}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 

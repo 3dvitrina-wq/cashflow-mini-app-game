@@ -13,12 +13,13 @@ import { ToastContainer } from './components/Toast';
 import { CharacterPreviewScreen } from './screens/CharacterPreviewScreen';
 
 const App: React.FC = () => {
-  const { screen, rulesReturnScreen, setScreen } = useStore();
+  const { screen, rulesReturnScreen, settingsReturnScreen, setScreen } = useStore();
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const preview = params?.get('preview');
   const forceRules = params?.get('rules') === '1';
   const autostart = params?.get('autostart') === '1';
-
+  const forceShop = params?.get('shop') === '1';
+  const forceEditor = params?.get('editor') === '1';
   // Dev visual harness: ?preview=avatars (does not affect normal navigation)
   if (preview === 'avatars') {
     return <CharacterPreviewScreen />;
@@ -27,6 +28,16 @@ const App: React.FC = () => {
   // Dev QA harness: ?rules=1 opens the same rules screen used by the top menu.
   if (forceRules) {
     return <OnboardingScreen mode="rules" onComplete={() => setScreen(screen === 'onboarding' ? 'lobby' : screen)} />;
+  }
+
+  // Dev QA harness: ?shop=1 opens the real shop screen directly.
+  if (forceShop) {
+    return <ShopScreen />;
+  }
+
+  // Dev QA harness: ?editor=1 opens character editor directly.
+  if (forceEditor) {
+    return <CharacterEditorScreen onClose={() => setScreen('main')} />;
   }
 
   // Dev QA harness: ?autostart=1 lets mobile screenshots skip onboarding.
@@ -46,7 +57,7 @@ const App: React.FC = () => {
 
   // Settings as overlay/full screen
   if (screen === 'settings') {
-    return <SettingsScreen onClose={() => setScreen('main')} />;
+    return <SettingsScreen onClose={() => setScreen(settingsReturnScreen)} />;
   }
 
   // Character editor

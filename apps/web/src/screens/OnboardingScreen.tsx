@@ -1,7 +1,7 @@
 import React from 'react';
-import welcomeImg from '../assets/generated/onboarding/welcome.png';
-import dashboardDemoImg from '../assets/generated/onboarding/dashboard-demo.png';
-import tradingDemoImg from '../assets/generated/onboarding/trading-demo.png';
+import introCrisisImg from '../assets/generated/onboarding/intro-crisis-v2.png';
+import introDecisionImg from '../assets/generated/onboarding/intro-decision-v2.png';
+import introTableImg from '../assets/generated/onboarding/intro-table-v2.png';
 import {
   IconAlert,
   IconChart,
@@ -19,13 +19,13 @@ interface OnboardingScreenProps {
 }
 
 const ru = {
-  eyebrow: 'финансовая партия на 15 месяцев',
+  eyebrow: '15 месяцев · 2-6 игроков · фиктивный рынок',
   title: 'DYOR',
-  subtitle: 'Выжми деньги из хаоса: выбирай карты, покупай активы, заключай сделки и доживи до финансовой свободы.',
+  subtitle: 'Садись за стол: каждый месяц дает карту, сделку или катастрофу. Твоя задача - вырастить cashflow и не сгореть от стресса.',
   start: 'Начать игру',
   close: 'Вернуться',
-  rulesTitle: 'Правила игры',
-  rulesSubtitle: 'Коротко: каждый ход - это месяц. Решение меняет деньги, доход, расходы, стресс и доверие.',
+  rulesTitle: 'Мини-обучение',
+  rulesSubtitle: 'Пролистай три сцены: стол, решение месяца и кризис. Этого хватит, чтобы нажать Start без лекции.',
   goalTitle: 'Цель',
   goalText: 'Побеждает игрок с лучшим Freedom Score: наличные, активы, cashflow и низкий стресс.',
   monthTitle: 'Ход месяца',
@@ -38,17 +38,40 @@ const ru = {
   dangerText: 'Кризисы, долги и фьючерсы могут ускорить рост, но стресс и банкротство быстро режут варианты.',
   protectionTitle: 'Защита',
   protectionText: 'Бухгалтер, страховка и резерв не выглядят ярко, зато спасают партию в плохой месяц.',
-  footer: 'Не надо угадывать идеальный ход. Смотри на cashflow, держи запас и не покупай актив, если его расходы съедают доход.',
+  footer: 'Не ищи идеальный ход. Держи запас, смотри на cashflow и превращай чужую панику в свой шанс.',
+  slides: [
+    {
+      badge: '1/3 · вход за стол',
+      title: 'Ты не смотришь презентацию. Ты уже за столом.',
+      text: 'Каждый игрок пришел со своей ролью, деньгами, стрессом и планом. Через минуту кто-то купит актив, кто-то сорвется в хаос.',
+      chips: ['2-6 игроков', '15 месяцев', 'боты вместо выбывших'],
+      tone: 'gold',
+    },
+    {
+      badge: '2/3 · ход месяца',
+      title: 'Открыл карту - выбирай быстро.',
+      text: 'Сделка, пас, помощь или защита меняют cash, cashflow, доверие, долг и стресс. Красивый актив бесполезен, если расходы съели доход.',
+      chips: ['cashflow важнее шума', 'сделки через контракт', 'стресс режет варианты'],
+      tone: 'violet',
+    },
+    {
+      badge: '3/3 · кризис',
+      title: 'Кризис смешной, пока он не твой.',
+      text: 'Налоги, фьючерсы и долги бьют больно. Но резерв, страховка и скучный бухгалтер превращают катастрофу в comeback.',
+      chips: ['fictional market', 'не инвестсовет', 'выжить и обогнать'],
+      tone: 'red',
+    },
+  ],
 };
 
 const en = {
-  eyebrow: 'a 15-month financial match',
+  eyebrow: '15 months · 2-6 players · fictional market',
   title: 'DYOR',
-  subtitle: 'Turn chaos into cash: choose cards, buy assets, make deals, and survive into financial freedom.',
+  subtitle: 'Take a seat: every month brings a card, a deal, or a disaster. Grow cashflow and avoid stress burnout.',
   start: 'Start game',
   close: 'Back',
-  rulesTitle: 'Game Rules',
-  rulesSubtitle: 'Short version: each turn is a month. Every decision changes cash, income, expenses, stress, and trust.',
+  rulesTitle: 'Mini Tutorial',
+  rulesSubtitle: 'Three scenes are enough: table, monthly decision, and crisis. No lecture before Start.',
   goalTitle: 'Goal',
   goalText: 'Win with the best Freedom Score: cash, assets, cashflow, and low stress.',
   monthTitle: 'Monthly Turn',
@@ -61,8 +84,33 @@ const en = {
   dangerText: 'Crises, debt, and futures can speed up growth, but stress and bankruptcy shrink your options.',
   protectionTitle: 'Protection',
   protectionText: 'Accountants, insurance, and reserves look boring until they save the match.',
-  footer: 'You do not need a perfect move. Watch cashflow, keep a buffer, and avoid assets whose expenses eat their income.',
+  footer: 'Do not hunt for the perfect move. Keep a buffer, watch cashflow, and turn panic into your opening.',
+  slides: [
+    {
+      badge: '1/3 · take a seat',
+      title: 'This is not a deck. You are already at the table.',
+      text: 'Every player has a role, money, stress, and a plan. In one minute someone buys an asset, someone chooses chaos.',
+      chips: ['2-6 players', '15 months', 'bots replace dropouts'],
+      tone: 'gold',
+    },
+    {
+      badge: '2/3 · monthly turn',
+      title: 'Open a card, choose fast.',
+      text: 'Deal, pass, help, or protection changes cash, cashflow, trust, debt, and stress. A shiny asset fails if expenses eat income.',
+      chips: ['cashflow beats noise', 'contracts matter', 'stress closes options'],
+      tone: 'violet',
+    },
+    {
+      badge: '3/3 · crisis',
+      title: 'Crisis is funny until it is yours.',
+      text: 'Taxes, futures, and debt hit hard. Reserves, insurance, and a boring accountant turn disaster into a comeback.',
+      chips: ['fictional market', 'not advice', 'survive and pass them'],
+      tone: 'red',
+    },
+  ],
 };
+
+const slideImages = [introTableImg, introDecisionImg, introCrisisImg];
 
 export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'start', onComplete }) => {
   const { locale } = useI18n();
@@ -81,9 +129,13 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
   return (
     <div className="intro-shell">
       <div className="intro-scroll no-scrollbar">
-        <header className="intro-hero">
-          <img src={welcomeImg} alt="" className="intro-hero-img" draggable={false} />
+        <header className="intro-hero intro-game-hero">
+          <img src={introTableImg} alt="" className="intro-hero-img" draggable={false} />
           <div className="intro-hero-shade" />
+          <div className="intro-brand-row" aria-hidden="true">
+            <span>DYOR</span>
+            <span>Fictional Market</span>
+          </div>
           <div className="intro-hero-copy">
             <span className="intro-eyebrow">{copy.eyebrow}</span>
             <h1>{isRules ? copy.rulesTitle : copy.title}</h1>
@@ -91,15 +143,28 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
           </div>
         </header>
 
-        <section className="intro-snapshot">
-          <div className="intro-snapshot-copy">
-            <span className="intro-section-label">{copy.rulesTitle}</span>
-            <strong>{copy.rulesSubtitle}</strong>
-          </div>
-          <img src={dashboardDemoImg} alt="" draggable={false} />
+        <section className="intro-story">
+          {copy.slides.map((slide, index) => (
+            <article key={slide.title} className={`intro-story-card intro-story-${slide.tone}`}>
+              <div className="intro-story-art">
+                <img src={slideImages[index]} alt="" draggable={false} />
+                <div className="intro-story-art-shade" />
+              </div>
+              <div className="intro-story-copy">
+                <span className="intro-section-label">{slide.badge}</span>
+                <h2>{slide.title}</h2>
+                <p>{slide.text}</p>
+                <div className="intro-chip-row">
+                  {slide.chips.map((chip) => (
+                    <span key={chip}>{chip}</span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
         </section>
 
-        <section className="intro-rule-grid">
+        <section className="intro-rule-grid" aria-label={copy.rulesTitle}>
           {rules.map((rule) => (
             <article key={rule.title} className={`intro-rule-card intro-rule-${rule.tone}`}>
               <div className="intro-rule-icon">{rule.icon}</div>
@@ -112,7 +177,6 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
         </section>
 
         <section className="intro-final">
-          <img src={tradingDemoImg} alt="" draggable={false} />
           <div>
             <IconChart size={22} />
             <p>{copy.footer}</p>

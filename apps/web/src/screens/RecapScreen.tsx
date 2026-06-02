@@ -55,7 +55,7 @@ export const RecapScreen: React.FC = () => {
       {/* My result card */}
       <div className="mx-4 bg-surface rounded-2xl p-5 border border-border-strong text-center">
         <div className="flex justify-center mb-3">
-          <CharacterAvatar name={me.name} outfit={me.outfit} mood={me.mood} size={80} />
+          <CharacterAvatar name={me.name} characterId={me.characterId} outfit={me.outfit} mood={me.mood} size={80} />
         </div>
         <p className="text-accent-gold text-sm font-bold">#{myRank} {t('ui.place')}</p>
         <h2 className="text-xl font-extrabold mt-1">"{myTitle}"</h2>
@@ -96,7 +96,7 @@ export const RecapScreen: React.FC = () => {
           {sorted.map((p, i) => (
             <div key={p.id} className="flex items-center gap-3">
               <span className="text-sm font-bold w-6 text-text-muted">#{i + 1}</span>
-              <CharacterAvatar name={p.name} outfit={p.outfit} mood={p.mood} size={32} />
+              <CharacterAvatar name={p.name} characterId={p.characterId} outfit={p.outfit} mood={p.mood} size={32} />
               <span className="flex-1 text-sm font-semibold">{p.name}</span>
               <span className="text-sm font-bold text-accent-cash">${p.cash.toLocaleString()}</span>
             </div>

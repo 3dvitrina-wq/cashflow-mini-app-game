@@ -1,49 +1,23 @@
-import React, { useState, useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { Outfit } from '../store/types';
-import { useI18n } from '../i18n';
 import { showToast } from '../components/Toast';
-import { savePlayerData, loadPlayerData } from '../store/persistence';
-import traderFutures from '../assets/generated/characters/trader/emotions/trader_futures_liq.png';
-import traderOverworked from '../assets/generated/characters/trader/emotions/trader_overworked.png';
-import traderNomad from '../assets/generated/characters/trader/emotions/trader_nomad.png';
-import traderPassive from '../assets/generated/characters/trader/emotions/trader_passive_calm.png';
-import traderCardboard from '../assets/generated/characters/trader/emotions/trader_cardboard.png';
-import operatorStable from '../assets/generated/characters/operator/emotions/operator_stable.png';
-import operatorOverworked from '../assets/generated/characters/operator/emotions/operator_overworked.png';
-import operatorTaxPanic from '../assets/generated/characters/operator/emotions/operator_tax_panic.png';
-import operatorPassiveCalm from '../assets/generated/characters/operator/emotions/operator_passive_calm.png';
-import nomadStable from '../assets/generated/characters/nomad/emotions/nomad_stable.png';
-import nomadNomad from '../assets/generated/characters/nomad/emotions/nomad_nomad.png';
-import nomadPassiveCalm from '../assets/generated/characters/nomad/emotions/nomad_passive_calm.png';
-import nomadCardboard from '../assets/generated/characters/nomad/emotions/nomad_cardboard.png';
-import creatorStable from '../assets/generated/characters/creator/emotions/creator_stable.png';
-import creatorOverworked from '../assets/generated/characters/creator/emotions/creator_overworked.png';
-import creatorPassiveCalm from '../assets/generated/characters/creator/emotions/creator_passive_calm.png';
-import creatorCardboard from '../assets/generated/characters/creator/emotions/creator_cardboard.png';
-import officeStable from '../assets/generated/characters/office/emotions/office_stable.png';
-import officeOverworked from '../assets/generated/characters/office/emotions/office_overworked.png';
-import officePassiveCalm from '../assets/generated/characters/office/emotions/office_passive_calm.png';
-import officeCardboard from '../assets/generated/characters/office/emotions/office_cardboard.png';
-import hustlerStable from '../assets/generated/characters/hustler/emotions/hustler_stable.png';
+import { loadPlayerData, savePlayerData } from '../store/persistence';
+import {
+  GENERATED_CHARACTERS,
+  resolveGeneratedCharacter,
+  type CharacterId,
+  type GeneratedCharacter,
+} from '../assets/generatedCharacterCatalog';
+import { getCharacterEmotionStates } from '../assets/characterRenderer';
 
 interface CharacterEditorScreenProps {
   onClose: () => void;
 }
 
 type EditorTab = 'role' | 'style' | 'accessory' | 'mood';
-
 type Accessory = 'none' | 'glasses' | 'watch' | 'chain' | 'hat' | 'headphones';
 type Mood = 'confident' | 'chill' | 'focused' | 'smug' | 'zen';
 type ColorTheme = 'gold' | 'purple' | 'cyan' | 'green' | 'red' | 'dark';
-
-const OUTFIT_IMAGES: Record<Outfit, string> = {
-  hustler: hustlerStable,
-  trader: traderFutures,
-  operator: operatorStable,
-  nomad: nomadStable,
-  creator: creatorStable,
-  office: officeStable,
-};
 
 const ROLE_STATS: Record<Outfit, { icon: string; desc: string; bonus: string; color: string; abilities: string[] }> = {
   hustler: {
@@ -116,218 +90,158 @@ const COLOR_THEMES: { id: ColorTheme; name: string; gradient: string; colors: [s
   { id: 'dark', name: 'Тень', gradient: 'linear-gradient(135deg, #2A2D35, #1A1D25)', colors: ['#2A2D35', '#1A1D25'] },
 ];
 
-const ROLES: Outfit[] = ['hustler', 'trader', 'operator', 'nomad', 'creator', 'office'];
+const TABS: { id: EditorTab; label: string; icon: string }[] = [
+  { id: 'role', label: 'Роль', icon: '👤' },
+  { id: 'style', label: 'Стиль', icon: '🎨' },
+  { id: 'accessory', label: 'Аксессуар', icon: '💎' },
+  { id: 'mood', label: 'Настрой', icon: '😎' },
+];
+
+function fallbackCharacter(savedId: string | undefined, savedOutfit: Outfit): GeneratedCharacter {
+  return (
+    resolveGeneratedCharacter(savedId) ??
+    GENERATED_CHARACTERS.find((character) => character.engineOutfit === savedOutfit) ??
+    GENERATED_CHARACTERS[0]
+  );
+}
 
 export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ onClose }) => {
-  const { t } = useI18n();
   const saved = loadPlayerData();
+  const initialCharacter = useMemo(() => fallbackCharacter(saved.characterId, saved.outfit || 'hustler'), [saved.characterId, saved.outfit]);
   const [tab, setTab] = useState<EditorTab>('role');
-  const [selectedOutfit, setSelectedOutfit] = useState<Outfit>(saved.outfit || 'hustler');
-  const [selectedAccessory, setSelectedAccessory] = useState<Accessory>(saved.accessory as Accessory || 'none');
+  const [selectedCharacterId, setSelectedCharacterId] = useState<CharacterId>(initialCharacter.id);
+  const [selectedAccessory, setSelectedAccessory] = useState<Accessory>((saved.accessory as Accessory) || 'none');
   const [selectedMood, setSelectedMood] = useState<Mood>('confident');
   const [selectedColor, setSelectedColor] = useState<ColorTheme>('gold');
   const [isAnimating, setIsAnimating] = useState(false);
+  const [previewEmotionKey, setPreviewEmotionKey] = useState<string>('stable');
+
+  // Tabs (Роль/Стиль/Аксессуар/Настрой) скрыты для текущей итерации — код сохранён, не удалён.
+  const SHOW_EDITOR_TABS = false;
+
+  const currentCharacter = resolveGeneratedCharacter(selectedCharacterId) ?? GENERATED_CHARACTERS[0];
+  const currentRole = ROLE_STATS[currentCharacter.engineOutfit];
+  const currentColor = COLOR_THEMES.find((theme) => theme.id === selectedColor) ?? COLOR_THEMES[0];
+  // Each generated character now ships its OWN phase set, so the swiper shows
+  // that character's real states; legacy outfits fall back to the outfit set.
+  const emotionStates = useMemo(
+    () => getCharacterEmotionStates(currentCharacter.id, currentCharacter.engineOutfit),
+    [currentCharacter.id, currentCharacter.engineOutfit],
+  );
+  const previewSrc = emotionStates.find((s) => s.key === previewEmotionKey)?.src ?? currentCharacter.stable;
+
+  // Листание эмоций прямо на превью персонажа (стрелки лево/право).
+  const cycleEmotion = useCallback(
+    (dir: number) => {
+      if (emotionStates.length < 2) return;
+      const len = emotionStates.length;
+      const cur = emotionStates.findIndex((s) => s.key === previewEmotionKey);
+      const base = cur < 0 ? 0 : cur;
+      const next = (base + dir + len) % len;
+      setPreviewEmotionKey(emotionStates[next].key);
+    },
+    [emotionStates, previewEmotionKey],
+  );
 
   const triggerAnimation = useCallback(() => {
     setIsAnimating(true);
-    setTimeout(() => setIsAnimating(false), 400);
+    setTimeout(() => setIsAnimating(false), 320);
   }, []);
 
-  const handleRoleChange = (role: Outfit) => {
-    setSelectedOutfit(role);
+  const handleCharacterChange = (character: GeneratedCharacter) => {
+    setSelectedCharacterId(character.id);
+    setPreviewEmotionKey('stable');
     triggerAnimation();
   };
 
   const handleSave = () => {
     savePlayerData({
-      outfit: selectedOutfit,
+      outfit: currentCharacter.engineOutfit,
+      characterId: currentCharacter.id,
       accessory: selectedAccessory,
     });
-    showToast(`Персонаж сохранён: ${t(`outfit.${selectedOutfit}`)} ${ROLE_STATS[selectedOutfit].icon}`, 'success');
+    showToast(`Персонаж сохранён: ${currentCharacter.displayNameRu} ${currentRole.icon}`, 'success');
     onClose();
   };
 
   const handleRandomize = () => {
-    const randomRole = ROLES[Math.floor(Math.random() * ROLES.length)];
-    const randomAcc = ACCESSORIES.filter(a => !a.locked)[Math.floor(Math.random() * 5)]?.id || 'none';
+    const randomCharacter = GENERATED_CHARACTERS[Math.floor(Math.random() * GENERATED_CHARACTERS.length)];
+    const randomAcc = ACCESSORIES.filter((accessory) => !accessory.locked)[Math.floor(Math.random() * 4)]?.id ?? 'none';
     const randomMood = MOODS[Math.floor(Math.random() * MOODS.length)].id;
     const randomColor = COLOR_THEMES[Math.floor(Math.random() * COLOR_THEMES.length)].id;
 
-    setSelectedOutfit(randomRole);
+    setSelectedCharacterId(randomCharacter.id);
     setSelectedAccessory(randomAcc as Accessory);
     setSelectedMood(randomMood);
     setSelectedColor(randomColor);
     triggerAnimation();
-    showToast('🎲 Случайный образ!', 'info');
+    showToast('Случайный образ!', 'info');
   };
-
-  const currentRole = ROLE_STATS[selectedOutfit];
-  const currentColor = COLOR_THEMES.find(c => c.id === selectedColor)!;
-  const currentMood = MOODS.find(m => m.id === selectedMood)!;
-
-  const TABS: { id: EditorTab; label: string; icon: string }[] = [
-    { id: 'role', label: 'Роль', icon: '👤' },
-    { id: 'style', label: 'Стиль', icon: '🎨' },
-    { id: 'accessory', label: 'Аксессуар', icon: '💎' },
-    { id: 'mood', label: 'Настрой', icon: '😎' },
-  ];
 
   return (
     <div className="editor-shell">
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '16px 20px',
-        }}
-      >
+      <div className="editor-header">
         <button onClick={onClose} className="chip-button">
           Закрыть
         </button>
-        <h1 style={{ fontSize: 16, fontWeight: 900, margin: 0, textTransform: 'uppercase' }}>
-          Редактор персонажа
-        </h1>
+        <h1>Редактор персонажа</h1>
         <button onClick={handleRandomize} className="chip-button chip-button-gold" aria-label="Случайный образ">
           🎲
         </button>
       </div>
 
-      {/* Character Preview */}
-      <div style={{ display: 'flex', justifyContent: 'center', padding: '0 20px 16px' }}>
-        <div
-          style={{
-            position: 'relative',
-            width: 250,
-            height: 300,
-            borderRadius: 24,
-            overflow: 'visible',
-          }}
-        >
-          {/* Background glow */}
+      <div className="editor-preview-wrap">
+        <div className="editor-preview-shell">
           <div
-            style={{
-              position: 'absolute',
-              inset: -20,
-              borderRadius: '50%',
-              background: `radial-gradient(circle, ${currentColor.colors[0]}30, transparent 70%)`,
-              animation: 'pulse 3s ease-in-out infinite',
-              pointerEvents: 'none',
-            }}
+            className="editor-preview-glow"
+            style={{ background: `radial-gradient(circle, ${currentColor.colors[0]}30, transparent 70%)` }}
           />
 
-            {/* Main stage */}
-            <div
-              className="character-preview-stage"
-              style={{
+          <div
+            className="character-preview-stage"
+            style={{
               borderColor: `${currentColor.colors[0]}55`,
               boxShadow: `0 18px 48px ${currentColor.colors[0]}22, inset 0 1px 0 rgba(255,255,255,0.08)`,
-              transition: 'all 0.4s ease',
             }}
           >
-            {/* Character image */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                display: 'grid',
-                placeItems: 'center',
-                transform: isAnimating ? 'scale(0.9) rotate(-3deg)' : 'scale(1) rotate(0deg)',
-                opacity: isAnimating ? 0.5 : 1,
-                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-              }}
-            >
-              <img
-                src={OUTFIT_IMAGES[selectedOutfit]}
-                alt={selectedOutfit}
-                style={{
-                  width: selectedOutfit === 'nomad' ? '105%' : '92%',
-                  height: selectedOutfit === 'nomad' ? '92%' : '105%',
-                  objectFit: 'contain',
-                  objectPosition: 'center bottom',
-                  filter: `drop-shadow(0 8px 24px ${currentColor.colors[0]}40)`,
-                  transform: 'translateY(18px)',
-                }}
-              />
+            <div className={`editor-character-fit ${isAnimating ? 'editor-character-fit-pop' : ''}`}>
+              <img src={previewSrc} alt={currentCharacter.displayNameRu} className="editor-character-img" draggable={false} />
             </div>
 
-            {/* Mood overlay */}
-            <div
-              style={{
-                position: 'absolute',
-                top: 12,
-                left: 12,
-                padding: '4px 10px',
-                borderRadius: 20,
-                background: 'rgba(0, 0, 0, 0.6)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                fontSize: 12,
-              }}
-            >
-              <span style={{ fontSize: 16 }}>{currentMood.icon}</span>
-              <span style={{ fontWeight: 700 }}>{currentMood.name}</span>
-            </div>
-
-            {/* Accessory overlay */}
-            {selectedAccessory !== 'none' && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: 12,
-                  right: 12,
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: 'rgba(0, 0, 0, 0.6)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  fontSize: 24,
-                  animation: 'bounceIn 0.4s ease',
-                }}
-              >
-                {ACCESSORIES.find(a => a.id === selectedAccessory)?.icon}
-              </div>
+            {emotionStates.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="editor-emotion-arrow editor-emotion-arrow-left"
+                  onClick={() => cycleEmotion(-1)}
+                  aria-label="Предыдущая эмоция"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  className="editor-emotion-arrow editor-emotion-arrow-right"
+                  onClick={() => cycleEmotion(1)}
+                  aria-label="Следующая эмоция"
+                >
+                  ›
+                </button>
+              </>
             )}
 
-            {/* Role badge */}
-            <div
-              style={{
-                position: 'absolute',
-                bottom: 12,
-                left: 12,
-                right: selectedAccessory !== 'none' ? 64 : 12,
-                padding: '6px 12px',
-                borderRadius: 10,
-                background: 'rgba(0, 0, 0, 0.7)',
-                backdropFilter: 'blur(8px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 6,
-              }}
-            >
-              <span style={{ fontSize: 14 }}>{currentRole.icon}</span>
-              <span style={{ fontSize: 12, fontWeight: 900, letterSpacing: '0.05em' }}>
-                {t(`outfit.${selectedOutfit}`)}
-              </span>
+            <div className="editor-role-badge">
+              <strong>{currentCharacter.displayNameRu}</strong>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Role stats bar */}
       <div
-          className="editor-info-card"
-          style={{
+        className="editor-info-card"
+        style={{
           margin: '0 20px 16px',
           background: `${currentRole.color}10`,
           borderColor: `${currentRole.color}30`,
-          animation: 'fadeInUp 0.3s ease',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
@@ -338,9 +252,9 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
           {currentRole.desc}
         </p>
         <div style={{ display: 'flex', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
-          {currentRole.abilities.map((ab, i) => (
+          {currentRole.abilities.map((ability) => (
             <span
-              key={i}
+              key={ability}
               style={{
                 padding: '3px 8px',
                 borderRadius: 6,
@@ -351,100 +265,28 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                 color: currentRole.color,
               }}
             >
-              {ab}
+              {ability}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Tabs */}
+      {SHOW_EDITOR_TABS && (
+      <>
       <div className="editor-tabs">
-        {TABS.map((t) => (
+        {TABS.map((item) => (
           <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            style={{
-              flex: 1,
-              background: tab === t.id ? 'rgba(123, 91, 215, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-              border: `2px solid ${tab === t.id ? '#7B5BD7' : 'rgba(255, 255, 255, 0.06)'}`,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 4,
-              transition: 'all 0.2s ease',
-            }}
+            key={item.id}
+            onClick={() => setTab(item.id)}
+            className={tab === item.id ? 'editor-tab-active' : ''}
           >
-            <span style={{ fontSize: 18 }}>{t.icon}</span>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                color: tab === t.id ? '#7B5BD7' : '#7D7B6F',
-              }}
-            >
-              {t.label}
-            </span>
+            <span style={{ fontSize: 18 }}>{item.icon}</span>
+            <span>{item.label}</span>
           </button>
         ))}
       </div>
 
-      {/* Tab content */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '0 20px 16px' }}>
-        {/* Role tab */}
-        {tab === 'role' && (
-          <div style={{ animation: 'fadeInUp 0.3s ease' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-              {ROLES.map((role) => {
-                const stats = ROLE_STATS[role];
-                const isSelected = selectedOutfit === role;
-                return (
-                  <button
-                    key={role}
-                    onClick={() => handleRoleChange(role)}
-                    style={{
-                      padding: 10,
-                      borderRadius: 14,
-                      background: isSelected ? `${stats.color}18` : 'rgba(255, 255, 255, 0.04)',
-                      border: `2px solid ${isSelected ? stats.color : 'rgba(255, 255, 255, 0.06)'}`,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: 6,
-                      transition: 'all 0.2s ease',
-                      transform: isSelected ? 'scale(1.02)' : 'scale(1)',
-                    }}
-                  >
-                    <img
-                      src={OUTFIT_IMAGES[role]}
-                      alt={role}
-                      style={{
-                        width: 72,
-                        height: 72,
-                        borderRadius: 12,
-                        objectFit: 'contain',
-                        background: 'radial-gradient(circle at 50% 60%, rgba(255,255,255,.08), transparent 70%)',
-                        border: isSelected ? `2px solid ${stats.color}` : '2px solid transparent',
-                      }}
-                    />
-                    <span style={{ fontSize: 14 }}>{stats.icon}</span>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 900,
-                        color: isSelected ? stats.color : '#7D7B6F',
-                        textTransform: 'uppercase',
-                      }}
-                    >
-                      {t(`outfit.${role}`)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Style tab (color theme) */}
+      <div className="editor-scroll-panel">
         {tab === 'style' && (
           <div style={{ animation: 'fadeInUp 0.3s ease' }}>
             <h3 style={{ fontSize: 13, fontWeight: 900, margin: '0 0 12px', color: '#F5F4ED' }}>
@@ -456,7 +298,10 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                 return (
                   <button
                     key={theme.id}
-                    onClick={() => { setSelectedColor(theme.id); triggerAnimation(); }}
+                    onClick={() => {
+                      setSelectedColor(theme.id);
+                      triggerAnimation();
+                    }}
                     style={{
                       padding: 14,
                       borderRadius: 14,
@@ -478,13 +323,7 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                         boxShadow: isSelected ? `0 4px 16px ${theme.colors[0]}40` : 'none',
                       }}
                     />
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: isSelected ? theme.colors[0] : '#7D7B6F',
-                      }}
-                    >
+                    <span style={{ fontSize: 11, fontWeight: 800, color: isSelected ? theme.colors[0] : '#7D7B6F' }}>
                       {theme.name}
                     </span>
                   </button>
@@ -494,24 +333,23 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
           </div>
         )}
 
-        {/* Accessory tab */}
         {tab === 'accessory' && (
           <div style={{ animation: 'fadeInUp 0.3s ease' }}>
             <h3 style={{ fontSize: 13, fontWeight: 900, margin: '0 0 12px', color: '#F5F4ED' }}>
               Аксессуары
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-              {ACCESSORIES.map((acc) => {
-                const isSelected = selectedAccessory === acc.id;
+              {ACCESSORIES.map((accessory) => {
+                const isSelected = selectedAccessory === accessory.id;
                 return (
                   <button
-                    key={acc.id}
+                    key={accessory.id}
                     onClick={() => {
-                      if (acc.locked) {
-                        showToast('🔒 Разблокируй в магазине!', 'warning');
+                      if (accessory.locked) {
+                        showToast('Разблокируй в магазине!', 'warning');
                         return;
                       }
-                      setSelectedAccessory(acc.id);
+                      setSelectedAccessory(accessory.id);
                       triggerAnimation();
                     }}
                     style={{
@@ -524,31 +362,14 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                       alignItems: 'center',
                       gap: 6,
                       transition: 'all 0.2s ease',
-                      opacity: acc.locked ? 0.5 : 1,
+                      opacity: accessory.locked ? 0.5 : 1,
                       position: 'relative',
                     }}
                   >
-                    {acc.locked && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          top: 6,
-                          right: 6,
-                          fontSize: 12,
-                        }}
-                      >
-                        🔒
-                      </div>
-                    )}
-                    <span style={{ fontSize: 32 }}>{acc.icon}</span>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 800,
-                        color: isSelected ? '#5BD7E0' : '#7D7B6F',
-                      }}
-                    >
-                      {acc.name}
+                    {accessory.locked && <div style={{ position: 'absolute', top: 6, right: 6, fontSize: 12 }}>🔒</div>}
+                    <span style={{ fontSize: 32 }}>{accessory.icon}</span>
+                    <span style={{ fontSize: 11, fontWeight: 800, color: isSelected ? '#5BD7E0' : '#7D7B6F' }}>
+                      {accessory.name}
                     </span>
                   </button>
                 );
@@ -557,7 +378,6 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
           </div>
         )}
 
-        {/* Mood tab */}
         {tab === 'mood' && (
           <div style={{ animation: 'fadeInUp 0.3s ease' }}>
             <h3 style={{ fontSize: 13, fontWeight: 900, margin: '0 0 12px', color: '#F5F4ED' }}>
@@ -569,7 +389,10 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                 return (
                   <button
                     key={mood.id}
-                    onClick={() => { setSelectedMood(mood.id); triggerAnimation(); }}
+                    onClick={() => {
+                      setSelectedMood(mood.id);
+                      triggerAnimation();
+                    }}
                     style={{
                       padding: 14,
                       borderRadius: 14,
@@ -589,9 +412,7 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
                       </div>
                       <div style={{ fontSize: 12, color: '#7D7B6F', marginTop: 2 }}>{mood.desc}</div>
                     </div>
-                    {isSelected && (
-                      <div style={{ marginLeft: 'auto', color: '#F5C524', fontSize: 18 }}>✓</div>
-                    )}
+                    {isSelected && <div style={{ marginLeft: 'auto', color: '#F5C524', fontSize: 18 }}>✓</div>}
                   </button>
                 );
               })}
@@ -599,8 +420,34 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
           </div>
         )}
       </div>
+      </>
+      )}
 
-      {/* Save button */}
+      <div className="editor-character-rail-wrap">
+        <div className="editor-character-rail">
+          {GENERATED_CHARACTERS.map((character) => {
+            const stats = ROLE_STATS[character.engineOutfit];
+            const isSelected = selectedCharacterId === character.id;
+            return (
+              <button
+                key={character.id}
+                onClick={() => handleCharacterChange(character)}
+                className={`editor-character-card${isSelected ? ' editor-character-card-selected' : ''}`}
+                style={{
+                  background: isSelected ? `${stats.color}18` : 'rgba(255, 255, 255, 0.04)',
+                  borderColor: isSelected ? stats.color : 'rgba(255, 255, 255, 0.06)',
+                }}
+              >
+                <span className="editor-character-card-art">
+                  <img src={character.stable} alt={character.displayNameRu} draggable={false} />
+                </span>
+                <strong style={{ color: isSelected ? stats.color : '#B8B6A9' }}>{character.displayNameRu}</strong>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div style={{ padding: '12px 20px' }}>
         <button
           onClick={handleSave}
