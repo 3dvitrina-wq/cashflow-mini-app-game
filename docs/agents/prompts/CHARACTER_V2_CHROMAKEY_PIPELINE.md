@@ -121,3 +121,33 @@ QA result:
 - All three final portrait PNGs are `1024x1536` RGBA.
 - All four image corners have alpha `0`.
 - Source-green files are retained beside final PNGs for retry/debug.
+
+## Sliced Model Sheet Intake
+
+Current slicing tool:
+
+- `tools/slice_character_model_sheets.py`
+
+Generated sliced outputs for the newly drawn model sheets:
+
+- `turnaround/`
+- `emotions/`
+- `parts/`
+- `portrait_refs/`
+
+Character index:
+
+- `apps/web/src/assets/generated/characters/character-index.json`
+
+Game-integration handoff prompt:
+
+- `docs/agents/prompts/CHARACTER_GAME_IMPORT_PROMPT.md`
+
+QA preview:
+
+- `tmp/imagegen/character-v2-alpha/sliced-character-contact-sheet.png`
+
+Note:
+
+- Full-body state crops are usable for shop/game integration.
+- Lower-row `parts/` are best-effort; keep each complete `*-model-sheet-alpha.png` as the authoritative source for any future manual rig slicing.

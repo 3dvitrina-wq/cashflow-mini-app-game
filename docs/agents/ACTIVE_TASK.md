@@ -7,7 +7,7 @@
 
 ## Task
 
-Ingest new character PNG references and prepare a chroma-key asset generation process.
+Ingest new character PNG references, prepare chroma-key assets, and slice generated model sheets into game-ready character folders.
 
 ## Goal
 
@@ -18,7 +18,8 @@ Create a consistent DYOR character asset pipeline that preserves the richer refe
 - Reference intake and folder organization.
 - Character naming and per-character asset manifests.
 - Prompt/runbook for chroma-key source generation and local alpha extraction.
-- No game renderer import changes until generated PNGs exist.
+- Slice existing alpha model sheets into `turnaround/`, `emotions/`, `parts/`, and `portrait_refs/`.
+- No game renderer import changes until sliced PNGs are reviewed.
 - Use chroma-key extraction for this V2 character pass because API native transparency is not available in the current setup.
 
 ## Decisions
@@ -33,10 +34,17 @@ Create a consistent DYOR character asset pipeline that preserves the richer refe
 - Native transparent API generation is deferred; ChatGPT Plus does not provide the required API key/billing path for the local CLI.
 - Replace real logos/tickers with fictional DYOR-world marks such as NEON, DRIFT, or VOLT.
 - `street_hustler` must read as a young adult, not a child.
+- Integration prompt for a fresh context window: `docs/agents/prompts/CHARACTER_GAME_IMPORT_PROMPT.md`.
+- New sliced character index: `apps/web/src/assets/generated/characters/character-index.json`.
+- Russian labels added in manifests: `Художник`, `Уставший клерк`, `Мажор-студент`, `Кассирша`, `Учительница`, `Переговорщица`, `Консультантка`, `Стюардесса`, `Бабка`, `Студентка`, `Мажор`, `Полицейский`, `Реперша`, `Летчик`.
+- UI intake started with `apps/web/src/assets/generatedCharacterCatalog.ts`.
+- New characters are wired as visual `characterId` skins over the existing six engine-safe outfits.
+- The shop now has a direct character tab, the game table uses portrait busts in small player slots, and the character editor uses the same generated-character catalog.
+- QA routes: `?shop=1`, `?editor=1`, and `?autostart=1`.
 
 ## Next Step
 
-Review the generated role-pass profile contact sheet for `rap_queen`, `checkout_cashier`, and `classroom_teacher`, then expand one approved character to turnaround views and emotion states using `docs/agents/prompts/CHARACTER_V2_CHROMAKEY_PIPELINE.md`.
+Continue character intake by adding real character selection/save flow in settings/editor after the current visual slot/shop QA pass.
 
 ## Advisory
 
