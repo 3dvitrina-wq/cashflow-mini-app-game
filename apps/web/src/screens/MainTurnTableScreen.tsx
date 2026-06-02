@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import hostImage from '../assets/generated/ai-host.png';
 import reactionArrow from '../assets/generated/reaction-arrow.png';
 import reactionCat from '../assets/generated/reaction-cat.png';
@@ -7,11 +7,13 @@ import reactionLol from '../assets/generated/reaction-lol.png';
 import reactionPanda from '../assets/generated/reaction-panda.png';
 import reactionWtf from '../assets/generated/reaction-wtf.png';
 import taxApocalypseImage from '../assets/generated/tax-apocalypse.png';
-import { CharacterAvatar } from '../assets/CharacterAvatar';
-import { resolveAvatarImage } from '../assets/characterRenderer';
+import { resolveCharacterImage } from '../assets/characterRenderer';
 import { useStore } from '../store';
+import { wsClient } from '../lib/wsClient';
 import type { PlayerState, CharacterMood } from '../store/types';
 import { PlayerProfile } from '../components/PlayerProfile';
+import { InterestWindowBanner } from '../components/negotiation/InterestWindowBanner';
+import { OfferBuilderModal } from '../components/negotiation/OfferBuilderModal';
 import { MarketBoardScreen } from './MarketBoardScreen';
 import { LaborMarketScreen } from './LaborMarketScreen';
 import { PetShopScreen } from './PetShopScreen';
@@ -47,7 +49,6 @@ import {
   IconShield,
   IconShop,
   IconSprout,
-  IconStar,
   IconStress,
   IconTimer,
   IconTrust,
@@ -64,6 +65,7 @@ const RING_COLORS: Record<CharacterMood, string> = {
   overleveraged: '#E84B2A',
   cardboard: '#7D7B6F',
   passive_calm: '#34D399',
+  nomad: '#5BD7E0',
   chaos: '#D7445B',
 };
 
@@ -129,16 +131,19 @@ const PlayerTile: React.FC<{ player: PlayerState; onTap?: (player: PlayerState) 
   const displayedCashflow = player.netCashflow ?? player.cashflowPerMonth;
   const positive = displayedCashflow >= 0;
 
-  const badge =
-    player.mood === 'tax_panic' ? (
-      <span className="player-mood-badge" style={{ background: '#E84B2A' }}>
-        <IconExclaim size={9} style={{ color: '#fff' }} />
-      </span>
-    ) : player.mood === 'happy' ? (
-      <span className="player-mood-badge" style={{ background: '#28C76F' }}>
-        <IconCheck size={9} style={{ color: '#fff' }} />
-      </span>
-    ) : null;
+  const badge = player.isNegotiating ? (
+    <span className="player-mood-badge player-negotiating-badge" title="В переговорах">
+      ⚖
+    </span>
+  ) : player.mood === 'tax_panic' ? (
+    <span className="player-mood-badge" style={{ background: '#E84B2A' }}>
+      <IconExclaim size={9} style={{ color: '#fff' }} />
+    </span>
+  ) : player.mood === 'happy' ? (
+    <span className="player-mood-badge" style={{ background: '#28C76F' }}>
+      <IconCheck size={9} style={{ color: '#fff' }} />
+    </span>
+  ) : null;
 
   return (
     <div className="player-tile" onClick={() => onTap?.(player)} style={{ cursor: 'pointer' }}>
@@ -155,13 +160,12 @@ const PlayerTile: React.FC<{ player: PlayerState; onTap?: (player: PlayerState) 
           }}
         >
           <img
-            src={resolveAvatarImage(player.name, player.outfit)}
+            src={resolveCharacterImage(player.name, player.outfit, player.mood, player.characterId)}
             alt={player.name}
             className="player-avatar-img"
             draggable={false}
           />
           <div className="player-portrait-info">
-            <span className="player-name">{player.name}</span>
             <span className="player-pnl" style={{ color: positive ? '#28C76F' : '#E84B2A' }}>
               {positive ? '↑' : '↓'} {positive ? '+' : '-'}${compactMoney(Math.abs(displayedCashflow))}
             </span>
@@ -179,6 +183,7 @@ const PlayerTile: React.FC<{ player: PlayerState; onTap?: (player: PlayerState) 
         </div>
         {badge}
       </div>
+      <span className="player-name-block">{player.name}</span>
     </div>
   );
 };
@@ -227,11 +232,64 @@ function choiceIcon(text: string): React.ReactNode {
 }
 
 // ─────────────────────────────────────────────────────────
+// CHOICE PREVIEW: "if confirmed" before→after formatting
+// ─────────────────────────────────────────────────────────
+
+type PreviewKey = 'cash' | 'passive' | 'expenses' | 'cashflow';
+
+const PREVIEW_PANEL_KEYS: PreviewKey[] = ['cash', 'passive', 'expenses', 'cashflow'];
+
+const PREVIEW_LABELS: Record<PreviewKey, [string, string]> = {
+  cash: ['Наличные', 'Cash'],
+  passive: ['Пассив', 'Passive'],
+  expenses: ['Расходы', 'Burn'],
+  cashflow: ['Кэшфлоу', 'Flow'],
+};
+
+// true = рост = хорошо (зелёный), false = рост = плохо (красный)
+const PREVIEW_HIGHER_IS_GOOD: Record<PreviewKey, boolean> = {
+  cash: true,
+  passive: true,
+  expenses: false,
+  cashflow: true,
+};
+
+function fmtMoneyAbs(value: number): string {
+  return `${value < 0 ? '-' : ''}$${moneyShort(Math.abs(value))}`;
+}
+
+// Цвет значения "to" исходя из направления изменения и того, хорошо это или плохо.
+function previewToColor(key: PreviewKey, from: number, to: number): string {
+  if (to === from) return '#D8D4C8';
+  const grew = to > from;
+  const good = grew === PREVIEW_HIGHER_IS_GOOD[key];
+  return good ? '#28C76F' : '#E84B2A';
+}
+
+// ─────────────────────────────────────────────────────────
 // MAIN SCREEN
 // ─────────────────────────────────────────────────────────
 
 export const MainTurnTableScreen: React.FC = () => {
-  const { match, setScreen, openRules, nextRound, applyCardChoice, requestTableHelp } = useStore();
+  const {
+    match,
+    setScreen,
+    openSettings,
+    openRules,
+    nextRound,
+    applyCardChoice,
+    previewChoice,
+    requestTableHelp,
+    isMultiplayer,
+    localPlayerId,
+    receiveServerState,
+    // Phase 3
+    interestWindow,
+    triggerInterestWindow,
+    expressInterest,
+    passInterest,
+    applyDealEffects,
+  } = useStore();
   const { locale, t, tCard } = useI18n();
   const [timer, setTimer] = useState(47);
   const [reactionSent, setReactionSent] = useState<string | null>(null);
@@ -247,16 +305,31 @@ export const MainTurnTableScreen: React.FC = () => {
   const [isDailyOpen, setIsDailyOpen] = useState(false);
   const [isPlayerStatsOpen, setIsPlayerStatsOpen] = useState(false);
   const [fabExpanded, setFabExpanded] = useState(false);
-  const [reactionDrawerOpen, setReactionDrawerOpen] = useState(false);
-  const [reactionTouchStart, setReactionTouchStart] = useState<number | null>(null);
+  const [reactionsOpen, setReactionsOpen] = useState(false);
+  const [isConfirmPreviewOpen, setIsConfirmPreviewOpen] = useState(false);
+  const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
+  const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
+  // Phase 3
+  const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
 
   useEffect(() => {
     setTimer(match.timer);
     const iv = setInterval(() => setTimer((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(iv);
   }, [match.round, match.timer]);
+
+  // In multiplayer, receive server state updates via wsClient singleton
+  useEffect(() => {
+    if (!isMultiplayer) return;
+    return wsClient.addListener((msg: unknown) => {
+      const m = msg as Record<string, unknown>;
+      if (m.type === 'state_update' || m.type === 'match_started') {
+        receiveServerState(m.state as import('../../../../packages/shared/src').MatchState);
+      }
+    });
+  }, [isMultiplayer, receiveServerState]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('you') === '1') {
@@ -266,12 +339,12 @@ export const MainTurnTableScreen: React.FC = () => {
       setFabExpanded(true);
     }
     if (new URLSearchParams(window.location.search).get('reactions') === '1') {
-      setReactionDrawerOpen(true);
+      setReactionsOpen(true);
     }
   }, []);
 
   const card = match.currentCard ? tCard(match.currentCard) : null;
-  const me = match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
+  const me = (isMultiplayer && localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) || match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
 
   useEffect(() => {
     setSelectedChoiceIdx(0);
@@ -314,12 +387,45 @@ export const MainTurnTableScreen: React.FC = () => {
     setFabExpanded((open) => !open);
   };
 
-  const handleReactionTouchEnd = (y: number) => {
-    if (reactionTouchStart === null) return;
-    const delta = y - reactionTouchStart;
-    if (delta < -24) setReactionDrawerOpen(true);
-    if (delta > 24) setReactionDrawerOpen(false);
-    setReactionTouchStart(null);
+  // Swipe the character left→right to reveal the vertical reaction stack.
+  const handleYouTouchStart = (event: React.TouchEvent) => {
+    const touch = event.touches[0];
+    if (!touch) return;
+    swipeStart.current = { x: touch.clientX, y: touch.clientY, t: Date.now() };
+    swipedRef.current = false;
+  };
+
+  const handleYouTouchMove = (event: React.TouchEvent) => {
+    const start = swipeStart.current;
+    const touch = event.touches[0];
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    if (dx > 18 && Math.abs(dx) > Math.abs(dy) * 1.4) swipedRef.current = true;
+  };
+
+  const handleYouTouchEnd = (event: React.TouchEvent) => {
+    const start = swipeStart.current;
+    const touch = event.changedTouches[0];
+    swipeStart.current = null;
+    if (!start || !touch) return;
+    const dx = touch.clientX - start.x;
+    const dy = touch.clientY - start.y;
+    const velocity = Math.abs(dx) / Math.max(Date.now() - start.t, 1);
+    const horizontal = Math.abs(dx) > Math.abs(dy) * 1.4;
+    if (horizontal && dx > 0 && (dx > 44 || velocity > 0.35)) {
+      hapticImpact('light');
+      setReactionsOpen(true);
+      swipedRef.current = true;
+    }
+  };
+
+  const handleYouClick = () => {
+    if (swipedRef.current) {
+      swipedRef.current = false;
+      return;
+    }
+    setIsPlayerStatsOpen(true);
   };
 
   if (!me || !card) {
@@ -338,15 +444,25 @@ export const MainTurnTableScreen: React.FC = () => {
   const timerColor = timer > 30 ? '#F5F4ED' : timer > 10 ? '#F5A524' : '#E84B2A';
   const isLightCard = card.type === 'crisis';
   const selectedChoice = card.choices[selectedChoiceIdx] ?? card.choices[0];
-  const selectedChoiceLabel = selectedChoice ? stripFirstEmoji(selectedChoice) || selectedChoice : '';
-  const selectedChoiceEffects = card.choiceEffects?.[selectedChoiceIdx] ?? [];
+
+  // Phase: "if confirmed" preview — one dry-run per visible choice.
+  const choicePreviews = useMemo(
+    () => card.choices.slice(0, 3).map((_, i) => previewChoice(i)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [card.id, match.round, previewChoice]
+  );
+  const selectedPreview = choicePreviews[selectedChoiceIdx] ?? null;
+
+  useEffect(() => {
+    setIsConfirmPreviewOpen(false);
+  }, [card.id, selectedChoiceIdx]);
+
   const tableToolItems = [
     {
       icon: '🤝',
       label: locale === 'ru' ? 'Сделка' : 'Deal',
       onClick: () => {
-        setCollabPartnerId(null);
-        setIsCollabOpen(true);
+        triggerInterestWindow();
         setFabExpanded(false);
       },
     },
@@ -372,7 +488,7 @@ export const MainTurnTableScreen: React.FC = () => {
     { icon: '🐾', label: locale === 'ru' ? 'Питомцы' : 'Pets', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
     { icon: '📰', label: locale === 'ru' ? 'События' : 'Events', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
     { icon: '🎁', label: locale === 'ru' ? 'Бонус' : 'Bonus', onClick: () => { setIsDailyOpen(true); setFabExpanded(false); } },
-    { icon: '⚙️', label: locale === 'ru' ? 'Настройки' : 'Settings', onClick: () => { setScreen('settings'); setFabExpanded(false); } },
+    { icon: '⚙️', label: locale === 'ru' ? 'Настройки' : 'Settings', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
 
   return (
@@ -418,7 +534,7 @@ export const MainTurnTableScreen: React.FC = () => {
           <span style={{ fontSize: 11.5, fontWeight: 900 }}>{match.players.length}/6</span>
         </div>
 
-        <button className="topbar-icon-btn" aria-label="settings" onClick={() => setScreen('settings')}>
+        <button className="topbar-icon-btn" aria-label="settings" onClick={() => openSettings('main')}>
           <IconDots size={18} />
         </button>
       </header>
@@ -426,7 +542,7 @@ export const MainTurnTableScreen: React.FC = () => {
       {/* ========== PLAYER RAIL ========== */}
       <section className="relative z-10 shrink-0">
         <div className="player-rail">
-          {match.players.filter((p) => p.id !== me.id).slice(0, 4).map((p) => (
+          {match.players.filter((p) => p.id !== me.id).slice(0, 5).map((p) => (
             <PlayerTile key={p.id} player={p} onTap={handlePlayerTap} />
           ))}
         </div>
@@ -570,66 +686,76 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* ========== YOU PANEL ========== */}
       <section className="relative z-10 shrink-0 px-3 pt-2.5">
-        <div className="you-panel" onClick={() => setIsPlayerStatsOpen(true)} style={{ cursor: 'pointer' }}>
+        <div
+          className="you-panel"
+          onClick={handleYouClick}
+          onTouchStart={handleYouTouchStart}
+          onTouchMove={handleYouTouchMove}
+          onTouchEnd={handleYouTouchEnd}
+          style={{ cursor: 'pointer' }}
+        >
           <span className="you-tag">{locale === 'ru' ? 'ВЫ' : 'YOU'}</span>
 
           <div className="you-grid">
             <div className="you-avatar-stage">
-              <div className="you-avatar-frame" />
-              <CharacterAvatar
-                variant="bare"
-                outfit={me.outfit}
-                mood={me.mood}
-                stress={me.stress}
-                name={me.name}
+              <div className="you-avatar-halo" />
+              <div className="you-avatar-shadow" />
+              <span className="you-swipe-hint" aria-hidden="true">
+                <i />
+                <i />
+                <i />
+              </span>
+              <img
+                src={resolveCharacterImage(me.name, me.outfit, me.mood, me.characterId)}
+                alt={me.name}
                 className="you-avatar-img"
+                draggable={false}
               />
-              <div className="you-avatar-overlay">
-                <span className="you-overlay-pill you-overlay-cash">
-                  <IconCoin size={12} /> ${moneyShort(me.cash)}
-                </span>
-                <span className={`you-overlay-pill ${(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-overlay-good' : 'you-overlay-bad'}`}>
-                  <IconChart size={12} />
-                  {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
-                </span>
-                <div className="you-overlay-meter">
-                  <IconStress size={12} />
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <span key={i} style={{ background: i < Math.ceil(me.stress / 2) ? '#E84B2A' : 'rgba(255,255,255,.18)' }} />
-                  ))}
-                </div>
-              </div>
             </div>
 
             <div className="you-hud-side">
-              <div className="you-hud-title">
-                <span className="level-name">
-                  HUSTLER <IconStar size={10} />
+              <div className="you-hud-row">
+                <span className="you-stat-card you-stat-primary">
+                  <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
+                  <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
                 </span>
-                <strong>LVL 12</strong>
-              </div>
-              <div className="level-card-bar">
-                <i style={{ width: '64%' }} />
+                <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'}>
+                  <em>{locale === 'ru' ? 'ПОТОК' : 'FLOW'}</em>
+                  <strong>
+                    <IconChart size={14} />
+                    {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
+                  </strong>
+                </span>
+                <span className="you-stat-card">
+                  <em>{locale === 'ru' ? 'РАСХОДЫ' : 'BURN'}</em>
+                  <strong><IconDebt size={14} /> ${moneyShort(me.monthlyExpenses ?? 0)}</strong>
+                </span>
               </div>
 
-              <div className="you-hud-row">
+              <div className="you-risk-row">
                 <span>
-                  <IconSprout size={13} /> +${moneyShort(me.passiveIncome)}
+                  <IconStress size={12} />
+                  <em>{locale === 'ru' ? 'Стресс' : 'Stress'}</em>
+                  <strong>{me.stress}/10</strong>
                 </span>
                 <span>
-                  <IconTrust size={13} /> {me.trust}/10
+                  <IconDebt size={12} />
+                  <em>{locale === 'ru' ? 'Долг' : 'Debt'}</em>
+                  <strong>{me.debt}/10</strong>
                 </span>
                 <span>
-                  <IconDebt size={13} /> {me.debt}/10
+                  <IconSprout size={12} />
+                  <em>{locale === 'ru' ? 'Пассив' : 'Passive'}</em>
+                  <strong>+${moneyShort(me.passiveIncome)}</strong>
                 </span>
               </div>
 
               <div className="you-hud-inventory">
                 <div>
-                  <span className="mini-panel-label">{locale === 'ru' ? 'БИЗНЕС' : 'BUSINESS'}</span>
+                  <span className="mini-panel-label">{locale === 'ru' ? 'СЛОТЫ БИЗНЕСА' : 'BUSINESS SLOTS'}</span>
                   <div className="mini-panel-icons">
                     {Array.from({ length: 5 }).map((_, i) =>
-                      i < me.businessSlots ? <IconShop key={i} size={15} /> : <span key={i} className="empty-slot" />
+                      i < me.businessSlots ? <IconShop key={i} size={13} /> : <span key={i} className="empty-slot" />
                     )}
                   </div>
                 </div>
@@ -637,11 +763,11 @@ export const MainTurnTableScreen: React.FC = () => {
                   <span className="mini-panel-label">{t('ui.protections').toUpperCase()}</span>
                   <div className="mini-panel-icons">
                     <span className="shield-with-count">
-                      <IconShield size={15} />
+                      <IconShield size={13} />
                       <span className="shield-count-badge">1</span>
                     </span>
-                    <IconUmbrella size={15} />
-                    <IconDoc size={15} />
+                    <IconUmbrella size={13} />
+                    <IconDoc size={13} />
                   </div>
                 </div>
               </div>
@@ -654,7 +780,6 @@ export const MainTurnTableScreen: React.FC = () => {
       <section className="turn-action-dock">
         {card.choices.length > 0 && (
           <div className="decision-choice-panel">
-            <span className="survival-title">{t('ui.howToSurvive')}</span>
             <div className="survival-row">
               {card.choices.slice(0, 3).map((choice, i) => {
                 const label = stripFirstEmoji(choice) || choice;
@@ -675,23 +800,56 @@ export const MainTurnTableScreen: React.FC = () => {
         )}
         {selectedChoice ? (
           <div className="turn-action-main">
-            <div className="turn-action-selected">
-              <span>{locale === 'ru' ? 'Выбран ход' : 'Selected move'}</span>
-              <strong>{selectedChoiceLabel}</strong>
-              {selectedChoiceEffects.length > 0 && (
-                <div className="turn-action-effects">
-                  {selectedChoiceEffects.slice(0, 2).map((effect) => (
-                    <em key={effect}>{stripFirstEmoji(effect) || effect}</em>
-                  ))}
+            {selectedPreview && isConfirmPreviewOpen && (
+              <div className="confirm-preview confirm-preview-popover">
+                <span className="confirm-preview-title">
+                  {locale === 'ru' ? 'ЕСЛИ ПОДТВЕРДИТЬ' : 'IF CONFIRMED'}
+                </span>
+                <div className="confirm-preview-grid">
+                  {PREVIEW_PANEL_KEYS.map((key) => {
+                    const line = selectedPreview.lines.find((l) => l.key === key);
+                    if (!line) return null;
+                    const [labelRu, labelEn] = PREVIEW_LABELS[key];
+                    return (
+                      <div key={key} className="confirm-preview-cell">
+                        <em>{locale === 'ru' ? labelRu : labelEn}</em>
+                        <span>
+                          <i className="cp-from">{fmtMoneyAbs(line.from)}</i>
+                          <i className="cp-arrow">→</i>
+                          <i className="cp-to" style={{ color: previewToColor(key, line.from, line.to) }}>
+                            {fmtMoneyAbs(line.to)}
+                          </i>
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+            <button
+              className="turn-preview-button"
+              type="button"
+              aria-label={locale === 'ru' ? 'Что изменится после подтверждения' : 'Preview confirmation effects'}
+              aria-pressed={isConfirmPreviewOpen}
+              disabled={!selectedPreview || isAdvancingTime}
+              onPointerDown={(event) => {
+                event.preventDefault();
+                setIsConfirmPreviewOpen(true);
+              }}
+              onPointerUp={() => setIsConfirmPreviewOpen(false)}
+              onPointerCancel={() => setIsConfirmPreviewOpen(false)}
+              onPointerLeave={() => setIsConfirmPreviewOpen(false)}
+              onContextMenu={(event) => event.preventDefault()}
+              onFocus={() => setIsConfirmPreviewOpen(true)}
+              onBlur={() => setIsConfirmPreviewOpen(false)}
+            >
+              ?
+            </button>
             <button
               className="turn-confirm-button"
               onClick={() => queueAdvance(selectedChoiceIdx)}
               disabled={isAdvancingTime}
             >
-              <span className="turn-confirm-icon">{choiceIcon(selectedChoice)}</span>
               <span>{locale === 'ru' ? 'Подтвердить' : 'Confirm'}</span>
             </button>
           </div>
@@ -702,30 +860,6 @@ export const MainTurnTableScreen: React.FC = () => {
         )}
       </section>
 
-      {/* ========== REACTIONS ========== */}
-      <section
-        className={`reaction-drawer ${reactionDrawerOpen ? 'reaction-drawer-open' : ''}`}
-        onTouchStart={(event) => setReactionTouchStart(event.touches[0]?.clientY ?? null)}
-        onTouchEnd={(event) => handleReactionTouchEnd(event.changedTouches[0]?.clientY ?? 0)}
-      >
-        <button className="reaction-drawer-handle" onClick={() => setReactionDrawerOpen((open) => !open)}>
-          <span />
-          <strong>{locale === 'ru' ? 'СТИКЕРЫ' : 'STICKERS'}</strong>
-        </button>
-        <div className="reaction-row no-scrollbar">
-          {REACTIONS.map((reaction, idx) => (
-            <button
-              key={idx}
-              className={`reaction-sticker ${reaction.className}`}
-              onClick={() => handleReaction(reaction.label || 'NEXT')}
-            >
-              <img src={reaction.image} alt="" draggable={false} />
-              {reaction.label && <span>{reaction.label}</span>}
-            </button>
-          ))}
-        </div>
-      </section>
-
       {fabExpanded && (
         <div className="table-tools-menu">
           {tableToolItems.map((item) => (
@@ -734,6 +868,29 @@ export const MainTurnTableScreen: React.FC = () => {
               <span>{item.label}</span>
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Reactions — revealed by swiping the character left→right */}
+      {reactionsOpen && (
+        <div className="reaction-veil" onClick={() => setReactionsOpen(false)}>
+          <div className="reaction-stack" onClick={(event) => event.stopPropagation()}>
+            {REACTIONS.map((reaction, idx) => (
+              <button
+                key={idx}
+                className={`reaction-pop ${reaction.className}`}
+                style={{ ['--i' as string]: idx } as React.CSSProperties}
+                onClick={() => {
+                  hapticImpact('light');
+                  handleReaction(reaction.label || 'NEXT');
+                  setReactionsOpen(false);
+                }}
+              >
+                <img src={reaction.image} alt="" draggable={false} />
+                {reaction.label && <span>{reaction.label}</span>}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -754,6 +911,52 @@ export const MainTurnTableScreen: React.FC = () => {
           }}
         />
       )}
+
+      {/* Phase 3: Interest Window Banner */}
+      {interestWindow?.status === 'open' && (
+        <div className="negot-banner-wrapper">
+          <InterestWindowBanner
+            window={interestWindow}
+            myPlayerId={me.id}
+            onExpressInterest={() => {
+              expressInterest();
+              // simulate window close after short delay, then open offer builder
+              setTimeout(() => {
+                passInterest();
+                setIsOfferBuilderOpen(true);
+              }, 800);
+            }}
+            onPass={() => {
+              passInterest();
+            }}
+          />
+        </div>
+      )}
+
+      {/* Phase 3: Offer Builder Modal */}
+      {isOfferBuilderOpen && (() => {
+        const partner = match.players.find((p) => p.id !== me.id) ?? match.players[1];
+        if (!partner) return null;
+        return (
+          <OfferBuilderModal
+            me={me}
+            partner={partner}
+            cardTitle={card?.title ?? 'Инвестиция'}
+            onAccept={(offer) => {
+              applyDealEffects({
+                cashDelta: -(offer.cashOffer ?? 0),
+                cashflowDelta: Math.round(partner.passiveIncome * 0.3),
+                businessName: card?.title ?? 'Партнёрство',
+              });
+              setIsOfferBuilderOpen(false);
+            }}
+            onCounter={() => {
+              // counter = stay open with swapped preset handled by component state
+            }}
+            onPass={() => setIsOfferBuilderOpen(false)}
+          />
+        );
+      })()}
 
       {/* Player Profile Bottom Sheet */}
       <PlayerProfile
