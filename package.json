@@ -10,6 +10,7 @@
   "scripts": {
     "sync": "python3 tools/agent_autosync.py",
     "typecheck": "npx tsc --noEmit -p apps/web/tsconfig.json",
+    "typecheck:server": "npx tsc --noEmit -p apps/server/tsconfig.json",
     "test": "npx vitest run packages/game-engine/src/__tests__/",
     "test:watch": "npx vitest packages/game-engine/src/__tests__/",
     "sim": "npx tsx packages/sim/src/index.ts",
