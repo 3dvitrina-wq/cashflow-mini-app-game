@@ -457,6 +457,20 @@ export const useStore = create<AppState>((set, get) => ({
         return { screen: 'recap', engineMatch: result.state, match: nextMatch };
       }
 
+      // Auto-trigger interest window for opportunity/social cards (server-authoritative).
+      const drawnCard = getCard(result.state.currentCardId);
+      if (drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
+        const next = result.state;
+        const eligibleIds = next.players.filter((p) => p.alive && !p.bankrupt).map((p) => p.id);
+        const events = openInterestWindow(next, drawnCard.id, drawnCard.title, eligibleIds, 45000);
+        next.eventLog.push(...events);
+        return {
+          engineMatch: next,
+          interestWindow: next.activeInterestWindow,
+          match: toUiMatch(next, st.negotiatingPlayerIds),
+        };
+      }
+
       return { engineMatch: result.state, match: nextMatch };
     }),
 

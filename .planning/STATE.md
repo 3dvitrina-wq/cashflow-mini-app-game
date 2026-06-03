@@ -5,9 +5,9 @@
 See: `.planning/PROJECT.md`
 
 **Core value:** A short social match that teaches cashflow, leverage, risk, timing, negotiation, and safe choices through play.
-**Current focus:** Phase 3 - Structured Negotiation. Engine-side DONE & verified (2026-06-01, 62/62 tests, determinism YES, auditable proven in sim). UI-side ("fast on mobile") dispatched to engine 2026-06-01. Spec ready (`docs/.../PHASE3_NEGOTIATION_SPEC.md` + `PHASE3_UI_AND_FEEL_SPEC.md`). Phase 2 CLOSED on literal exit gate (operator decision 2026-06-01 — 3 viable strategies, none dominant; σ≥1.8× proxy retired as math-blocked, futures kept as light comedic risk; tension/release re-scoped to gameplay-feel/UI). Phase 2.1 Profession Catalog CLOSED. Phase 1 CLOSED.
+**Current focus (2026-06-02):** Engine stubs KILLED — all monetary mutations now route through resolveCommand (engine #1 DONE). Next: wire LobbyScreen↔useWebSocket↔apps/server so 2+ local clients join a room and play (engine #2). Operator steer: external agents reshaped the design (home + character editor) and wired per-character reactions from the library — treat as the new norm. ROOT CAUSE resolved (engine, 2026-06-02): 3 stubs in `apps/web/src/store/index.ts` removed — applyDealEffects now routes through propose_deal+accept_deal (both sides debited/credited), addReputation writes to engineMatch.players[id].trust (not separate map), passInterest uses closeInterestWindow(). validateCommand extended: deal commands allowed in all non-finished phases. 66/66 tests PASS. apps/server (rooms.ts) is engine-authoritative & ready; useWebSocket.ts exists but no screen uses it. Phase 2 CLOSED on literal exit gate (operator decision 2026-06-01 — 3 viable strategies, none dominant; σ≥1.8× proxy retired as math-blocked, futures kept as light comedic risk; tension/release re-scoped to gameplay-feel/UI). Phase 2.1 Profession Catalog CLOSED. Phase 1 CLOSED.
 
-## Current Status (2026-06-01)
+## Current Status (2026-06-02)
 
 ### Phase 0 - COMPLETE
 - Project brain, GSD docs, second brain initialized.
@@ -39,21 +39,26 @@ See: `.planning/PROJECT.md`
 - Files: NEW professions.ts; MOD schemas.ts, shared/index.ts, engine.ts, sim/balance-audit.ts.
 - **Held for later wave:** UI task (PlayerProfile.tsx PROFESSION swipe-tab via existing TabBar.tsx).
 
-### Phase 3 - Structured Negotiation - IN PROGRESS (engine-side complete 2026-06-01, orch verified)
+### Phase 3 - Structured Negotiation - COMPLETE (exit gate CLOSED 2026-06-03, engine)
 - **Engine-side DONE:** NEW `negotiation.ts` (openInterestWindow / registerInterest / closeInterestWindow / selectByFocusTokens / checkDealFairness); 4 typed-effects (interest.window.open/close, deal.fairness_check, selection.by_focus_tokens) — no cardId switch (invariant 3 holds); `focusTokens` on PlayerState, `activeInterestWindow` on MatchState; `express_interest` command; bot auto-interest; trust-deltas wired (accept +1, reject -0.5).
-- **Verified:** 62/62 tests PASS (+23 negotiation), determinism YES (sim 2000/2000), 640 fairness events / 2000 matches (auditable proven), 0 invariant breaks.
-- **Exit gate "Deals are fast on mobile AND auditable":** *auditable* half MET (event log + fairness + replay). *fast on mobile* half PENDING — negotiation UI in apps/web not built. Dispatched to engine 2026-06-01.
-- **UNCOMMITTED:** negotiation.ts + negotiation.test.ts (untracked) + M deals.ts/effects.ts/engine.ts/shared schemas — commit dispatched to docs.
+- **UI-side DONE (2026-06-01):** `InterestWindowBanner.tsx` (45s countdown, eligible-only INTERESTED idempotent + PASS), `OfferBuilderModal.tsx` (split presets, side-payment slider, enforcement level, FairnessWarning on `deal.fairness_check`, focus-token event line); store actions `triggerInterestWindow/expressInterest/passInterest/computeFairness`; MainTurnTableScreen negotiating badge + focus-token row + Сделка FAB.
+- **Auto-trigger DONE (2026-06-03):** `nextRound()` in store/index.ts auto-opens interest window when drawn card type is `opportunity` or `social` (45s timer, eligible non-bankrupt players). Manual FAB kept as fallback. Closes "Random limited attention" FOMO deliverable.
+- **Exit gate "Deals are fast on mobile AND auditable":** BOTH halves MET. typecheck 0 errors, 66/66 tests PASS.
+- **COMMITTED:** bbd8b09 / d19920f / 0c7c813 / 2f74daf / 21f02f1 / 036a5b9 / e27481f + pending commit (auto-trigger uncommitted).
 
-### apps/server - CREATED (2026-05-31, ORCA session)
+### apps/server - WIRED (2026-06-02, engine)
 - Fastify + WebSocket room server (port 3001/3002)
 - In-memory room store: createRoom, joinRoom, startRoom, applyCommand, broadcast
-- apps/web/src/hooks/useWebSocket.ts created
+- engine-authoritative: applyCommand = resolveCommand + advanceRound per turn
 
-### apps/web - BUILT
+### apps/web - LOCAL MULTIPLAYER CONNECTED (2026-06-02, engine)
 - All screens: MainTurnTableScreen, LobbyScreen, DashboardScreen + others
-- Zustand store connected directly to engine (single-player mode)
-- WebSocket client hook added but not wired to screens yet
+- `apps/web/src/lib/wsClient.ts` — singleton WebSocket (survives screen changes)
+- LobbyScreen: 3 modes (offline/create-room/join-by-code), room_update/match_started listeners
+- store/index.ts: isMultiplayer, localPlayerId, startMultiplayerMatch, receiveServerState
+- MainTurnTableScreen: wsClient listener for state_update, identifies localPlayerId as "me"
+- applyCardChoice → wsClient.send(command) in multiplayer (server-authoritative, invariant #1)
+- Offline-with-bots mode unchanged
 
 ## Critical Gaps (RESOLVED)
 
@@ -65,8 +70,9 @@ See: `.planning/PROJECT.md`
 
 ## Next Best Step
 
-1. **Commit dirty tree (engine, dispatched)** — 62 uncommitted files = work-loss risk. Logical groups, by file path, no push.
-2. **Speculator variance fix (engine, dispatched)** — diagnose why σ≈0.99x despite futures in deck; make bot size leveraged positions; target σ ≥ 1.8× safe, win-rate 15-35%. Closes Phase 2 honestly.
-3. **Phase 3 Structured Negotiation spec (docs, dispatched)** — map interest buttons / offer builder / split ownership / limited-attention FOMO / fairness check to existing deals.ts + contracts.ts hooks. Tees up the core social fun lever.
-4. After σ fix re-run sim → if bimodal + balanced, close Phase 2 (ROADMAP Status: complete, focus → Phase 3 build).
-5. Later: PlayerProfile profession swipe-tab UI; wire LobbyScreen → WebSocket → server room (Phase 4 prep).
+engine verified 2026-06-03: `npm test` 66/66 PASS; typecheck 0 errors; Phase 3 auto-trigger committed; local multiplayer chain fully wired (wsClient ↔ LobbyScreen ↔ rooms.ts).
+
+1. **Commit pending: store/index.ts auto-trigger** — 15-line auto-trigger change uncommitted (from 2026-06-03 session). Commit `feat(web): auto-trigger interest window on opportunity/social card` before next task.
+2. **Phase 3 CLOSE** — orch: mark ROADMAP Phase 3 status complete, advance focus to Phase 4.
+3. **Phase 4 — Production readiness** — real Telegram auth, WebSocket reconnect/timeout, Postgres/Drizzle, deploy pipeline.
+4. **Later:** PlayerProfile profession swipe-tab UI; bot-turns in multiplayer (server-side bot logic); test on real device.
