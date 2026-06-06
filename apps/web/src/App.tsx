@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useStore } from './store';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { MainTurnTableScreen } from './screens/MainTurnTableScreen';
@@ -12,8 +12,27 @@ import { CharacterEditorScreen } from './screens/CharacterEditorScreen';
 import { ToastContainer } from './components/Toast';
 import { CharacterPreviewScreen } from './screens/CharacterPreviewScreen';
 
+const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
+
+const GAME_SCREENS = new Set(['main', 'deal', 'futures', 'recap']);
+
 const App: React.FC = () => {
   const { screen, rulesReturnScreen, settingsReturnScreen, setScreen } = useStore();
+
+  useEffect(() => {
+    if (!tg) return;
+    tg.ready();
+    tg.expand();
+  }, []);
+
+  useEffect(() => {
+    if (!tg) return;
+    if (GAME_SCREENS.has(screen)) {
+      tg.enableClosingConfirmation();
+    } else {
+      tg.disableClosingConfirmation();
+    }
+  }, [screen]);
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const preview = params?.get('preview');
   const forceRules = params?.get('rules') === '1';
