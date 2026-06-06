@@ -12,6 +12,7 @@ __pycache__/
 *.pyc
 docs/agents/AUTO_CONTEXT.md
 test-results/
+**/.console/
 .console/*.jsonl
 .console/*.offset
 .console/status.json

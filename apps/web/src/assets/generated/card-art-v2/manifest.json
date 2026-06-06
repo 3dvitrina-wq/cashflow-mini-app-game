@@ -1,0 +1,426 @@
+{
+  "count": 60,
+  "generated_count": 7,
+  "items": [
+    {
+      "id": "opp-storage",
+      "type": "opportunity",
+      "title": "STORAGE POD INVESTMENT",
+      "text": "A storage unit full of \"valuable\" stuff. Gold, or old newspapers.",
+      "generated": true
+    },
+    {
+      "id": "opp-ai-shop",
+      "type": "opportunity",
+      "title": "AI TEMPLATE SHOP",
+      "text": "A shop that sells AI-generated templates. Low effort, high vibes.",
+      "generated": true
+    },
+    {
+      "id": "opp-route",
+      "type": "opportunity",
+      "title": "LOCAL SERVICE ROUTE",
+      "text": "A delivery route in your area. Boring but steady income.",
+      "generated": true
+    },
+    {
+      "id": "opp-laundromat",
+      "type": "opportunity",
+      "title": "LAUNDROMAT ACQUISITION",
+      "text": "A laundromat with 12 machines and a loyal customer base of insomniacs.",
+      "generated": true
+    },
+    {
+      "id": "opp-vending",
+      "type": "opportunity",
+      "title": "VENDING MACHINE EMPIRE",
+      "text": "Three vending machines in a college dorm. Snacks = passive income.",
+      "generated": true
+    },
+    {
+      "id": "opp-rental",
+      "type": "opportunity",
+      "title": "SUBLET ARBITRAGE",
+      "text": "Rent a large apartment, sublet rooms. Landlord hates this one trick.",
+      "generated": true
+    },
+    {
+      "id": "opp-course",
+      "type": "opportunity",
+      "title": "ONLINE COURSE CREATION",
+      "text": "Package your knowledge into a course. \"How to not go broke 101.\"",
+      "generated": true
+    },
+    {
+      "id": "opp-fleet",
+      "type": "opportunity",
+      "title": "DELIVERY FLEET",
+      "text": "Five electric scooters for last-mile delivery. Batteries not included.",
+      "generated": false
+    },
+    {
+      "id": "opp-franchise",
+      "type": "opportunity",
+      "title": "COFFEE FRANCHISE SLOT",
+      "text": "A coffee franchise in a business district. Caffeine is recession-proof.",
+      "generated": false
+    },
+    {
+      "id": "opp-consulting",
+      "type": "opportunity",
+      "title": "CONSULTING GIG",
+      "text": "A 3-month consulting contract. Pays well, sleeps poorly.",
+      "generated": false
+    },
+    {
+      "id": "market-winter",
+      "type": "market_pulse",
+      "title": "CRYPTO WINTER",
+      "text": "The market decided to hibernate. All crypto tokens frozen.",
+      "generated": false
+    },
+    {
+      "id": "market-boom",
+      "type": "market_pulse",
+      "title": "BORING BUSINESSES BOOM",
+      "text": "Turns out laundromats and car washes are the real money printers.",
+      "generated": false
+    },
+    {
+      "id": "market-inflation",
+      "type": "market_pulse",
+      "title": "INFLATION SPIKE",
+      "text": "Everything costs more. Your salary didn\\",
+      "generated": false
+    },
+    {
+      "id": "market-ai-wave",
+      "type": "market_pulse",
+      "title": "AI PRODUCTIVITY WAVE",
+      "text": "AI tools made everyone 20% more productive. Employers noticed.",
+      "generated": false
+    },
+    {
+      "id": "market-rent-control",
+      "type": "market_pulse",
+      "title": "RENT CONTROL PASSED",
+      "text": "New law caps rent increases. Landlords furious, tenants relieved.",
+      "generated": false
+    },
+    {
+      "id": "market-supply-chain",
+      "type": "market_pulse",
+      "title": "SUPPLY CHAIN CRISIS",
+      "text": "Global shipping is backed up. Your Amazon order arrives in 2029.",
+      "generated": false
+    },
+    {
+      "id": "market-gig-boom",
+      "type": "market_pulse",
+      "title": "GIG ECONOMY BOOM",
+      "text": "Everyone\\",
+      "generated": false
+    },
+    {
+      "id": "market-energy",
+      "type": "market_pulse",
+      "title": "ENERGY PRICE CRASH",
+      "text": "Oil prices crashed. Gas stations are cheaper, solar startups are crying.",
+      "generated": false
+    },
+    {
+      "id": "crisis-tax",
+      "type": "crisis",
+      "title": "TAX APOCALYPSE",
+      "text": "You forgot that \"optional\" payments are not optional.",
+      "generated": false
+    },
+    {
+      "id": "crisis-internet",
+      "type": "crisis",
+      "title": "INTERNET DOWN",
+      "text": "Your ISP had \"scheduled maintenance\" that lasted 3 days.",
+      "generated": false
+    },
+    {
+      "id": "crisis-rent",
+      "type": "crisis",
+      "title": "RENT SPIKE",
+      "text": "Landlord discovered what \"market rate\" means.",
+      "generated": false
+    },
+    {
+      "id": "crisis-health",
+      "type": "crisis",
+      "title": "BURNOUT CRISIS",
+      "text": "Your body sent you an invoice. It\\",
+      "generated": false
+    },
+    {
+      "id": "crisis-lawsuit",
+      "type": "crisis",
+      "title": "SURPRISE LAWSUIT",
+      "text": "Someone you forgot about remembered you exist — in court.",
+      "generated": false
+    },
+    {
+      "id": "crisis-theft",
+      "type": "crisis",
+      "title": "EQUIPMENT STOLEN",
+      "text": "Your laptop, phone, and dignity — all gone in one grab.",
+      "generated": false
+    },
+    {
+      "id": "crisis-platform",
+      "type": "crisis",
+      "title": "PLATFORM BLOCK",
+      "text": "Your main income platform banned your account. No explanation given.",
+      "generated": false
+    },
+    {
+      "id": "crisis-partner",
+      "type": "crisis",
+      "title": "BUSINESS PARTNER GHOST",
+      "text": "Your business partner disappeared with the shared funds.",
+      "generated": false
+    },
+    {
+      "id": "prot-accountant",
+      "type": "protection",
+      "title": "ACCOUNTANT SHIELD",
+      "text": "Hire an accountant who actually answers their phone.",
+      "generated": false
+    },
+    {
+      "id": "prot-fund",
+      "type": "protection",
+      "title": "EMERGENCY FUND",
+      "text": "Stash cash for rainy days. Or cardboard-box days.",
+      "generated": false
+    },
+    {
+      "id": "prot-insurance",
+      "type": "protection",
+      "title": "HEALTH INSURANCE",
+      "text": "Monthly premium that feels like a scam until it isn\\",
+      "generated": false
+    },
+    {
+      "id": "prot-legal",
+      "type": "protection",
+      "title": "LEGAL RETAINER",
+      "text": "Keep a lawyer on speed dial. Not for the reasons you think.",
+      "generated": false
+    },
+    {
+      "id": "prot-backup",
+      "type": "protection",
+      "title": "DATA BACKUP SYSTEM",
+      "text": "Cloud backups, local backups, paranoid-level redundancy.",
+      "generated": false
+    },
+    {
+      "id": "prot-diversify",
+      "type": "protection",
+      "title": "INCOME DIVERSIFICATION",
+      "text": "Don\\",
+      "generated": false
+    },
+    {
+      "id": "staff-va",
+      "type": "staff",
+      "title": "VIRTUAL ASSISTANT",
+      "text": "A VA who handles emails, scheduling, and existential dread.",
+      "generated": false
+    },
+    {
+      "id": "staff-bookkeeper",
+      "type": "staff",
+      "title": "BOOKKEEPER",
+      "text": "Someone to make your numbers look presentable to the tax office.",
+      "generated": false
+    },
+    {
+      "id": "staff-social",
+      "type": "staff",
+      "title": "SOCIAL MEDIA MANAGER",
+      "text": "Someone to post memes professionally.",
+      "generated": false
+    },
+    {
+      "id": "staff-coder",
+      "type": "staff",
+      "title": "JUNIOR DEVELOPER",
+      "text": "A junior dev who writes code that works... mostly.",
+      "generated": false
+    },
+    {
+      "id": "staff-cleaner",
+      "type": "staff",
+      "title": "CLEANING SERVICE",
+      "text": "A clean space, a clean mind. Also, fewer surprise health inspections.",
+      "generated": false
+    },
+    {
+      "id": "staff-trader",
+      "type": "staff",
+      "title": "TRADING BOT",
+      "text": "An algorithmic trading bot. Backtested, probably. Maybe.",
+      "generated": false
+    },
+    {
+      "id": "earn-channel",
+      "type": "modern_earning",
+      "title": "CONTENT CHANNEL",
+      "text": "Start a channel about your niche. Growth is slow, compound is real.",
+      "generated": false
+    },
+    {
+      "id": "earn-miniapp",
+      "type": "modern_earning",
+      "title": "TELEGRAM MINI-APP",
+      "text": "Build a mini-app for Telegram. Users, ads, revenue.",
+      "generated": false
+    },
+    {
+      "id": "earn-freelance",
+      "type": "modern_earning",
+      "title": "FREELANCE PLATFORM",
+      "text": "Join a freelance platform. Compete with 10 million others. Win anyway.",
+      "generated": false
+    },
+    {
+      "id": "earn-vibe",
+      "type": "modern_earning",
+      "title": "VIBE-CODING AGENCY",
+      "text": "An agency where AI writes 80% of the code and humans do 80% of the debugging.",
+      "generated": false
+    },
+    {
+      "id": "earn-airbnb",
+      "type": "modern_earning",
+      "title": "SPARE ROOM AIRBNB",
+      "text": "Rent your spare room. Your house becomes a hotel.",
+      "generated": false
+    },
+    {
+      "id": "earn-newsletter",
+      "type": "modern_earning",
+      "title": "PAID NEWSLETTER",
+      "text": "Write a paid newsletter. Subscribers pay, you write, the cycle continues.",
+      "generated": false
+    },
+    {
+      "id": "e2a-gym",
+      "type": "expense_to_asset",
+      "title": "GYM MEMBERSHIP",
+      "text": "Monthly gym membership. Your body is your first asset.",
+      "generated": false
+    },
+    {
+      "id": "e2a-coworking",
+      "type": "expense_to_asset",
+      "title": "COWORKING MEMBERSHIP",
+      "text": "A desk, fast wifi, and free coffee. Networking included.",
+      "generated": false
+    },
+    {
+      "id": "e2a-tools",
+      "type": "expense_to_asset",
+      "title": "PREMIUM TOOLS STACK",
+      "text": "ChatGPT Pro, Figma, Notion, Cursor. The productivity holy grail.",
+      "generated": false
+    },
+    {
+      "id": "e2a-education",
+      "type": "expense_to_asset",
+      "title": "SKILL BOOTCAMP",
+      "text": "A 3-month bootcamp in a high-demand skill. Expensive but transformative.",
+      "generated": false
+    },
+    {
+      "id": "e2a-networking",
+      "type": "expense_to_asset",
+      "title": "INDUSTRY CONFERENCE",
+      "text": "A 3-day conference. Talks are okay, the hallway track is where deals happen.",
+      "generated": false
+    },
+    {
+      "id": "e2a-legal-setup",
+      "type": "expense_to_asset",
+      "title": "BUSINESS REGISTRATION",
+      "text": "Register your business properly. LLC, bank account, the boring stuff.",
+      "generated": false
+    },
+    {
+      "id": "economy-deposit-standard",
+      "type": "protection",
+      "title": "HIGH-YIELD SAVINGS",
+      "text": "Open a savings account. 1% annual yield. Boring, safe, reliable.",
+      "generated": false
+    },
+    {
+      "id": "economy-deposit-locked",
+      "type": "protection",
+      "title": "LOCKED DEPOSIT",
+      "text": "Lock your money for 6 rounds. 2% annual yield. Early withdrawal = penalty.",
+      "generated": false
+    },
+    {
+      "id": "economy-synergy-content",
+      "type": "expense_to_asset",
+      "title": "CONTENT STRATEGY",
+      "text": "Invest in content creation. Pairs well with digital assets.",
+      "generated": false
+    },
+    {
+      "id": "economy-synergy-network",
+      "type": "expense_to_asset",
+      "title": "PROFESSIONAL NETWORK",
+      "text": "Join industry events and meetups. Connections compound over time.",
+      "generated": false
+    },
+    {
+      "id": "economy-synergy-ai",
+      "type": "expense_to_asset",
+      "title": "AI TOOLS SUBSCRIPTION",
+      "text": "Subscribe to premium AI tools. Automate everything.",
+      "generated": false
+    },
+    {
+      "id": "economy-deal-partner",
+      "type": "social",
+      "title": "BUSINESS PARTNERSHIP",
+      "text": "Propose a 50/50 partnership with another player. Trust required.",
+      "generated": false
+    },
+    {
+      "id": "economy-deal-loan",
+      "type": "social",
+      "title": "PEER-TO-PEER LOAN",
+      "text": "Lend money to another player at 10% interest. High trust, high risk.",
+      "generated": false
+    },
+    {
+      "id": "economy-market-volatility",
+      "type": "market_pulse",
+      "title": "MARKET VOLATILITY SPIKE",
+      "text": "Markets go wild. Big swings in both directions.",
+      "generated": false
+    },
+    {
+      "id": "economy-opportunity-boring",
+      "type": "opportunity",
+      "title": "BORING BUSINESS FUND",
+      "text": "Invest in a fund of laundromats, car washes, and vending machines.",
+      "generated": false
+    },
+    {
+      "id": "economy-recovery-restructure",
+      "type": "crisis",
+      "title": "DEBT RESTRUCTURING",
+      "text": "Negotiate with creditors to reduce payments. Reputation hit.",
+      "generated": false
+    }
+  ]
+}
