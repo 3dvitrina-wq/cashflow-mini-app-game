@@ -45,11 +45,12 @@ export function proposeDeal(
     return [{ type: 'command_rejected', playerId: proposer.id, message: 'insufficient funds for offer' }];
   }
 
+  const dealId = nextDealId(state);
   const deal: PendingDeal = {
-    id: nextDealId(state),
+    id: dealId,
     proposerId: proposer.id,
     targetId: target.id,
-    offer: { ...offer, id: nextDealId(state) },
+    offer: { ...offer, id: dealId },
     status: 'pending',
     createdRound: state.round,
     expiresRound: state.round + DEAL_EXPIRY_ROUNDS,

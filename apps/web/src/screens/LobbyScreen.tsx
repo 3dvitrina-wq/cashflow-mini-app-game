@@ -343,7 +343,7 @@ export const LobbyScreen: React.FC = () => {
     ? earnedAchievements.slice(0, 4)
     : ACHIEVEMENTS.slice(1, 5);
   const hostAchievementCount = Math.max(playerData.achievements.length, 3);
-  const onlineCount = 1284 + Math.max(0, playerData.matchesPlayed * 7);
+  const onlineCount = 1284;
   const activeLobbyPet = useMemo(
     () => PET_ITEMS.find((pet) => pet.id === lobbyPetId) ?? PET_ITEMS[0] ?? null,
     [lobbyPetId],

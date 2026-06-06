@@ -82,6 +82,7 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
         acquiredRound: _s.round,
       };
       p.assets.push(asset);
+      p.businessSlotsUsed = Math.min(p.businessSlotsMax, p.businessSlotsUsed + 1);
     }
     return [{ type: 'effect', playerId: p.id, effectType: 'asset.add', amount: e.amount }];
   },

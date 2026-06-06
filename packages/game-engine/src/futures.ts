@@ -85,19 +85,34 @@ export function settleAllFutures(state: MatchState, player: PlayerState): GameEv
 
   for (const pos of player.futuresPositions) {
     const finalPrice = state.marketPrices[pos.tokenSymbol] ?? pos.entryPrice;
-    const priceDelta = pos.direction === 'long'
-      ? finalPrice - pos.entryPrice
-      : pos.entryPrice - finalPrice;
-    const pnl = priceDelta * pos.quantity;
+    const liquidated = (pos.direction === 'long' && finalPrice <= pos.liquidationPrice)
+      || (pos.direction === 'short' && finalPrice >= pos.liquidationPrice);
 
-    player.cash = Math.max(0, player.cash + pos.margin + pnl);
-    events.push({
-      type: 'futures',
-      playerId: player.id,
-      effectType: 'futures.resolve',
-      amount: pos.margin + pnl,
-      message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x final settle: margin+${Math.round(pnl >= 0 ? pnl : pnl)}`,
-    });
+    if (liquidated) {
+      player.stress = Math.min(10, player.stress + 2);
+      player.avatarState = 'futures_liq';
+      player.recapTags.push('futures_liquidated');
+      events.push({
+        type: 'futures',
+        playerId: player.id,
+        effectType: 'futures.resolve',
+        amount: -pos.margin,
+        message: `${pos.tokenSymbol} liquidated at game end`,
+      });
+    } else {
+      const priceDelta = pos.direction === 'long'
+        ? finalPrice - pos.entryPrice
+        : pos.entryPrice - finalPrice;
+      const pnl = priceDelta * pos.quantity;
+      player.cash = Math.max(0, player.cash + pos.margin + pnl);
+      events.push({
+        type: 'futures',
+        playerId: player.id,
+        effectType: 'futures.resolve',
+        amount: pos.margin + pnl,
+        message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x final settle`,
+      });
+    }
   }
 
   player.futuresPositions = [];

@@ -937,7 +937,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         const existingBankLoans = player.liabilities
           .filter((l) => l.creditor === 'Bank')
           .reduce((s, l) => s + l.principal, 0);
-        const maxLoan = Math.max(0, monthlyCashflow(state, player).net * 10 * loanCapMultiplier(player));
+        const maxLoan = Math.max(2000, monthlyCashflow(state, player).income * 10 * loanCapMultiplier(player));
         if (cmd.amount <= 0) {
           events.push({ type: 'command_rejected', playerId: player.id, message: 'loan amount must be positive' });
         } else if (existingBankLoans + cmd.amount > maxLoan) {
@@ -1033,6 +1033,7 @@ export function resolveAllIntents(prev: MatchState): CommandResult {
   const card = getCard(state.currentCardId);
   const coInvestors: { playerId: string; contribution: number; fullCost: number }[] = [];
 
+  let currentState = state;
   for (const [playerId, intent] of Object.entries(state.pendingIntents)) {
     if (intent) {
       if (intent.type === 'choose_option') {
@@ -1043,13 +1044,13 @@ export function resolveAllIntents(prev: MatchState): CommandResult {
           coInvestors.push({ playerId, contribution, fullCost });
         }
       }
-      const result = resolveCommand(state, intent);
+      const result = resolveCommand(currentState, intent);
       events.push(...result.events);
-      // Merge state changes
-      Object.assign(state, result.state);
+      currentState = result.state;
     }
-    state.pendingIntents[playerId] = null;
+    currentState.pendingIntents[playerId] = null;
   }
+  Object.assign(state, currentState);
 
   events.push(...formPartnerships(state, coInvestors));
 
@@ -1211,7 +1212,7 @@ export function advanceRound(prev: MatchState): CommandResult {
     p.avatarState = deriveAvatarState(p);
 
     // Bankruptcy check
-    if (p.cash === 0 && p.passiveIncome < p.expenses && p.stress >= 8) {
+    if (p.cash === 0 && p.passiveIncome < p.expenses && p.stress >= 7) {
       p.bankrupt = true;
       p.alive = false;
       p.avatarState = 'cardboard';

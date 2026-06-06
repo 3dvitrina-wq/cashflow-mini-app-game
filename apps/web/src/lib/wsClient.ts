@@ -28,6 +28,7 @@ export const wsClient = {
   connect(url: string) {
     if (socket && socket.readyState < WebSocket.CLOSING) socket.close();
     _connected = false;
+    openQueue.length = 0; // drop stale callbacks from previous connect attempts
     socket = new WebSocket(url);
     socket.onopen = onSocketOpen;
     socket.onclose = onSocketClose;

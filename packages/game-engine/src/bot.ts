@@ -162,25 +162,14 @@ export function botIntent(state: MatchState, player: PlayerState): Command {
       c.effects.some((e) => e.type === 'futures.open'),
     );
     if (hasFuturesEffect && player.cash > 500) {
-      const best3xChoice =
-        card.choices.find((c) =>
-          c.effects.some(
-            (e) => e.type === 'futures.open' && ((e.payload?.['leverage'] as number) ?? 0) >= 3,
-          ),
-        ) ?? card.choices.find((c) => c.effects.some((e) => e.type === 'futures.open'));
-      const fe = best3xChoice?.effects.find((e) => e.type === 'futures.open');
-      if (fe) {
-        const tokenSymbol = (fe.payload?.['tokenSymbol'] as string) ?? 'NEON';
-        const direction = (fe.payload?.['direction'] as FuturesDirection) ?? 'long';
-        const amount = Math.max(500, Math.min(Math.floor(player.cash * 0.60), 8000));
-        return {
-          type: 'open_futures_position',
-          playerId: player.id,
-          tokenSymbol,
-          direction,
-          leverage: 3,
-          amount,
-        };
+      const best3xIdx = card.choices.findIndex((c) =>
+        c.effects.some((e) => e.type === 'futures.open' && ((e.payload?.['leverage'] as number) ?? 0) >= 3),
+      );
+      const choiceIndex = best3xIdx >= 0
+        ? best3xIdx
+        : card.choices.findIndex((c) => c.effects.some((e) => e.type === 'futures.open'));
+      if (choiceIndex >= 0) {
+        return { type: 'choose_option', playerId: player.id, choiceIndex };
       }
     }
   }
