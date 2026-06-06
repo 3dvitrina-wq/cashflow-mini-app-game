@@ -64,15 +64,21 @@ function moneyShort(n: number): string {
 }
 
 function assetKindLabel(p: DealProposal): string {
-  const kind = p.assetKind.charAt(0).toUpperCase() + p.assetKind.slice(1);
-  const inc =
-    p.incomeKind === 'recurring'
-      ? 'Recurring Income'
-      : p.incomeKind === 'royalty'
-      ? 'Royalty'
-      : p.incomeKind === 'speculative'
-      ? 'Speculative'
-      : 'One-time';
+  const kinds: Record<string, string> = {
+    property: 'Недвижимость',
+    business: 'Бизнес',
+    license: 'Лицензия',
+    crypto: 'Крипто',
+    service: 'Сервис',
+  };
+  const incs: Record<string, string> = {
+    recurring: 'Постоянный доход',
+    royalty: 'Роялти',
+    speculative: 'Спекулятивный',
+    one_time: 'Разовый',
+  };
+  const kind = kinds[p.assetKind] ?? p.assetKind;
+  const inc = incs[p.incomeKind] ?? p.incomeKind;
   return `${kind} · ${inc}`;
 }
 
@@ -92,7 +98,7 @@ const PnL: React.FC<{ value: number }> = ({ value }) => {
 const MiniPlayerTile: React.FC<{ p: PlayerState; isMe?: boolean }> = ({ p, isMe }) => (
   <div className="deal-mini-player-tile">
     <div className={`deal-mini-player-frame ${isMe ? 'deal-mini-you-glow' : ''}`}>
-      {isMe && <span className="deal-mini-you-tag">YOU</span>}
+      {isMe && <span className="deal-mini-you-tag">ВЫ</span>}
       <img src={avatarSrc(p.name)} alt={p.name} draggable={false} />
     </div>
     <span className="deal-mini-player-name">{p.name}</span>
@@ -137,7 +143,7 @@ export const DealModalScreen: React.FC = () => {
   const ownerPartner = owners.find((o) => o.id === ownerId) || proposal.proposer;
   const verdict = trustVerdict(ownerPartner.rep);
   const verdictLabel =
-    verdict === 'safe' ? 'safe' : verdict === 'careful' ? 'careful' : verdict === 'risky' ? 'risky' : 'avoid';
+    verdict === 'safe' ? 'надёжный' : verdict === 'careful' ? 'осторожно' : verdict === 'risky' ? 'рискованно' : 'избегай';
 
   const enforcement = ENFORCEMENT_OPTIONS.find((e) => e.id === enforcementId)!;
   const heroArtwork = resolveDealArtwork(proposal.illustration);
@@ -182,7 +188,7 @@ export const DealModalScreen: React.FC = () => {
           <IconTimer size={14} />
           <span style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>00:47</span>
         </div>
-        <div className="center">YOUR TURN</div>
+        <div className="center">ВАШ ХОД</div>
         <button className="right" onClick={() => setScreen('main')} aria-label="more">
           <IconDots size={18} />
         </button>
@@ -193,11 +199,11 @@ export const DealModalScreen: React.FC = () => {
         <span className="arrow">◀</span>
         <span className="item-up">NEON +12%</span>
         <span style={{ opacity: 0.4 }}>·</span>
-        <span className="item-mid">Tax Office wakes up</span>
+        <span className="item-mid">Налоговая просыпается</span>
         <span style={{ opacity: 0.4 }}>·</span>
-        <span className="item-mid">Influencer scandal at Drift-DAO</span>
+        <span className="item-mid">Скандал инфлюенсера в Drift-DAO</span>
         <span style={{ opacity: 0.4 }}>·</span>
-        <span className="item-mid">Banks raise 0.5%</span>
+        <span className="item-mid">Банки поднимают ставку на 0.5%</span>
         <span className="arrow" style={{ marginLeft: 'auto' }}>▶</span>
       </div>
 
@@ -217,7 +223,7 @@ export const DealModalScreen: React.FC = () => {
           <button className="deal-sheet-icon-btn" onClick={() => setScreen('main')} aria-label="close">
             <IconClose size={14} />
           </button>
-          <h2 className="deal-sheet-title">Co-investment proposal</h2>
+          <h2 className="deal-sheet-title">Совместная инвестиция</h2>
           <button className="deal-sheet-icon-btn" aria-label="help">
             <IconHelp size={14} />
           </button>
@@ -254,13 +260,13 @@ export const DealModalScreen: React.FC = () => {
             </div>
             <div className="title-row">
               <span className="tags">{assetKindLabel(proposal)}</span>
-              <span className="asset-sub">Asset Value</span>
+              <span className="asset-sub">Стоимость актива</span>
             </div>
             <div className="income">
               <span className="income-label">
-                Est. Income <IconInfo size={11} style={{ color: '#7D7B6F' }} />
+                Ожид. доход <IconInfo size={11} style={{ color: '#7D7B6F' }} />
               </span>
-              <span className="income-value">+ ${proposal.monthlyIncome.toLocaleString()} /mo</span>
+              <span className="income-value">+ ${proposal.monthlyIncome.toLocaleString()} /мес</span>
             </div>
           </div>
         </div>
@@ -268,7 +274,7 @@ export const DealModalScreen: React.FC = () => {
         {/* Your share */}
         <div className="deal-slider-card">
           <div className="deal-slider-header">
-            <span className="deal-slider-label">Your share</span>
+            <span className="deal-slider-label">Твоя доля</span>
             <span className="deal-slider-value" style={{ marginLeft: 'auto', marginRight: '50%', transform: `translateX(${(share - 50) * 2.6}px)` }}>
               {share}%
             </span>
@@ -288,7 +294,7 @@ export const DealModalScreen: React.FC = () => {
           </div>
           <div className="deal-slider-foot">
             <span>
-              Your contribution: <span className="lavender">${contribution.toLocaleString()}</span>
+              Твой взнос: <span className="lavender">${contribution.toLocaleString()}</span>
             </span>
           </div>
         </div>
@@ -296,7 +302,7 @@ export const DealModalScreen: React.FC = () => {
         {/* Payout split */}
         <div className="deal-slider-card">
           <div className="deal-slider-header">
-            <span className="deal-slider-label">Payout split on sale</span>
+            <span className="deal-slider-label">Раздел выплат при продаже</span>
             <span className="deal-slider-value amber" style={{ marginLeft: 'auto', marginRight: '50%', transform: `translateX(${(payout - 50) * 2.6}px)` }}>
               {payout} / {100 - payout}
             </span>
@@ -315,14 +321,14 @@ export const DealModalScreen: React.FC = () => {
             />
           </div>
           <div className="deal-slider-foot">
-            <span>You {payout}%</span>
-            <span className="right">Partner {100 - payout}%</span>
+            <span>Ты {payout}%</span>
+            <span className="right">Партнёр {100 - payout}%</span>
           </div>
         </div>
 
         {/* Legal owner */}
         <div style={{ marginBottom: 8 }}>
-          <span className="deal-section-title">Legal owner</span>
+          <span className="deal-section-title">Юр. владелец</span>
           <div className="deal-legal-row">
             {owners.map((o) => (
               <button
@@ -344,7 +350,7 @@ export const DealModalScreen: React.FC = () => {
                         o.rep > 0 ? 'positive' : o.rep < 0 ? 'negative' : 'neutral'
                       }`}
                     >
-                      rep {o.rep > 0 ? `+${o.rep}` : o.rep}
+                      реп {o.rep > 0 ? `+${o.rep}` : o.rep}
                     </span>
                   )}
                 </span>
@@ -355,7 +361,7 @@ export const DealModalScreen: React.FC = () => {
 
         {/* Deal preset */}
         <div style={{ marginBottom: 8 }}>
-          <span className="deal-section-title">Deal preset</span>
+          <span className="deal-section-title">Шаблон сделки</span>
           <div className="deal-preset-row">
             <div className="deal-preset-dropdown" onClick={() => setPresetMenuOpen(!presetMenuOpen)}>
               <div className="deal-preset-dropdown-left">
@@ -368,7 +374,7 @@ export const DealModalScreen: React.FC = () => {
             </div>
 
             <div className="deal-presets-other">
-              <span className="deal-presets-other-label">Other presets</span>
+              <span className="deal-presets-other-label">Другие шаблоны</span>
               <span>
                 {DEAL_PRESETS.filter((p) => p.id !== presetId).map((p, i, arr) => (
                   <React.Fragment key={p.id}>
@@ -416,7 +422,7 @@ export const DealModalScreen: React.FC = () => {
 
         {/* Enforcement */}
         <div style={{ marginBottom: 6 }}>
-          <span className="deal-section-title">Enforcement</span>
+          <span className="deal-section-title">Тип контракта</span>
           <div className="deal-enforce-row">
             {ENFORCEMENT_OPTIONS.map((e) => {
               const Icon =
@@ -455,11 +461,11 @@ export const DealModalScreen: React.FC = () => {
             <IconWarning size={18} />
             <div>
               <span className="copy">
-                Trust: <strong>{ownerPartner.handle} rep {ownerPartner.rep > 0 ? `+${ownerPartner.rep}` : ownerPartner.rep}</strong> ({verdictLabel})
+                Доверие: <strong>{ownerPartner.handle} реп {ownerPartner.rep > 0 ? `+${ownerPartner.rep}` : ownerPartner.rep}</strong> ({verdictLabel})
               </span>
               {(ownerPartner.brokenPromises || ownerPartner.ghosted) && (
                 <div className="copy" style={{ opacity: 0.8, marginTop: 2 }}>
-                  Past deals: {ownerPartner.brokenPromises || 0} broken promises, {ownerPartner.ghosted || 0} ghosted
+                  Прошлые сделки: {ownerPartner.brokenPromises || 0} нарушений, {ownerPartner.ghosted || 0} проигнорировано
                 </div>
               )}
             </div>

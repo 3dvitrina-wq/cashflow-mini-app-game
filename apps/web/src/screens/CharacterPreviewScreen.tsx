@@ -26,7 +26,7 @@ export const CharacterPreviewScreen: React.FC = () => {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0B0D11', color: '#F5F4ED', padding: 16, fontFamily: 'Inter, sans-serif' }}>
-      <h1 style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Avatar preview</h1>
+      <h1 style={{ fontSize: 18, fontWeight: 900, marginBottom: 4 }}>Предпросмотр аватара</h1>
       <p style={{ fontSize: 12, color: '#B8B6A9', marginBottom: 12 }}>
         All 6 characters with emotion sets (state swaps + breathe). Stress ≥ 7 → shake.
       </p>
@@ -60,7 +60,7 @@ export const CharacterPreviewScreen: React.FC = () => {
             marginLeft: 'auto',
           }}
         >
-          {forceShake ? 'shake: ON' : 'shake: off'}
+          {forceShake ? 'тряска: ВКЛ' : 'тряска: выкл'}
         </button>
       </div>
 

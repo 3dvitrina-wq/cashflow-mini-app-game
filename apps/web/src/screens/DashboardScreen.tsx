@@ -43,7 +43,7 @@ export const DashboardScreen: React.FC = () => {
           <span style={{ fontSize: 36, fontWeight: 900, color: '#F5C524' }}>
             ${netWorth.toLocaleString()}
           </span>
-          <span style={{ fontSize: 14, color: '#7D7B6F' }}>Net Worth</span>
+          <span style={{ fontSize: 14, color: '#7D7B6F' }}>Состояние</span>
         </div>
       </div>
 
@@ -217,7 +217,7 @@ export const DashboardScreen: React.FC = () => {
           }}
         >
           <img src={iconCash} alt="cash" style={{ width: 20, height: 20, marginBottom: 4 }} />
-          <div style={{ fontSize: 10, color: '#7D7B6F', marginBottom: 2 }}>CASH</div>
+          <div style={{ fontSize: 10, color: '#7D7B6F', marginBottom: 2 }}>КЭШ</div>
           <div style={{ fontSize: 14, fontWeight: 900, color: '#F5C524' }}>
             ${me.cash.toLocaleString()}
           </div>

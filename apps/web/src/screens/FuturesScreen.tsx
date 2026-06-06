@@ -112,10 +112,10 @@ export const FuturesScreen: React.FC = () => {
   };
 
   const hostLines = [
-    "HODL? More like HODL on for dear life.",
-    "Charts don't lie, but they do mislead.",
-    "Your portfolio called. It's crying.",
-    "Congratulations, you're now a financial analyst!",
+    "HODL? Скорее держись за жизнь.",
+    "Графики не лгут, но очень любят вводить в заблуждение.",
+    "Твой портфель звонил. Он плакал.",
+    "Поздравляю, ты теперь финансовый аналитик!",
   ];
 
   return (
@@ -124,7 +124,7 @@ export const FuturesScreen: React.FC = () => {
       <div className="flex items-center justify-between px-4 py-3">
         <button onClick={() => setScreen('main')} className="text-text-secondary text-xl">✕</button>
         <h2 className="text-lg font-bold">📈 FUTURES</h2>
-        <span className="text-xs text-text-muted">Mini-game</span>
+        <span className="text-xs text-text-muted">Мини-игра</span>
       </div>
 
       {/* Token selector */}
@@ -196,7 +196,7 @@ export const FuturesScreen: React.FC = () => {
       <div className="px-4 py-3">
         <div className="bg-surface rounded-2xl p-3 border border-border-subtle">
           <div className="flex justify-between text-xs mb-2">
-            <span className="text-text-secondary">LEVERAGE</span>
+            <span className="text-text-secondary">КРЕДИТНОЕ ПЛЕЧО</span>
             <span className="font-bold text-accent-warning">{leverage}x</span>
           </div>
           <input
@@ -208,13 +208,13 @@ export const FuturesScreen: React.FC = () => {
             className="w-full accent-accent-warning"
           />
           <div className="flex justify-between text-[10px] text-text-muted">
-            <span>1x Safe</span>
-            <span>3x Risky</span>
+            <span>1x Безопасно</span>
+            <span>3x Рискованно</span>
             <span>5x YOLO</span>
           </div>
           {leverage >= 4 && (
             <p className="text-[10px] text-accent-debt mt-1 font-semibold">
-              ⚠ Margin call territory. You sure about this?
+              ⚠ Зона маржин-колла. Уверен?
             </p>
           )}
         </div>
@@ -271,7 +271,7 @@ export const FuturesScreen: React.FC = () => {
           className="flex-1 h-14 rounded-2xl bg-surface-elev border border-border-strong text-text-secondary font-bold text-sm
             active:scale-95 transition-transform"
         >
-          Exit
+          Выход
         </button>
         <button
           onClick={handleTrade}
@@ -279,7 +279,7 @@ export const FuturesScreen: React.FC = () => {
           className="flex-1 h-14 rounded-2xl bg-accent-epoch text-canvas font-bold text-sm
             disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-transform"
         >
-          {loading ? '⏳ Connecting...' : `🚀 ${position.toUpperCase()} ${leverage}x`}
+          {loading ? '⏳ Отправка...' : `🚀 ${position.toUpperCase()} ${leverage}x`}
         </button>
       </div>
       <ToastContainer />
