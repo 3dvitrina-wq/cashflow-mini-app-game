@@ -484,7 +484,7 @@ export const LobbyScreen: React.FC = () => {
     setIsConnecting(true);
     try {
       const res = await fetch(HTTP_URL + '/rooms', { method: 'POST' });
-      if (!res.ok) throw new Error('Server unavailable');
+      if (!res.ok) throw new Error(`Сервер вернул ${res.status}`);
       const data = await res.json() as { code: string };
       const code = data.code;
       setRoomCode(code);
@@ -497,7 +497,8 @@ export const LobbyScreen: React.FC = () => {
         if (pendingJoinRef.current) { wsClient.send(pendingJoinRef.current); pendingJoinRef.current = null; }
       });
     } catch (e: unknown) {
-      setWsError(e instanceof Error ? e.message : 'Cannot reach server');
+      const msg = e instanceof Error ? e.message : 'Нет ответа';
+      setWsError(`${msg} [${HTTP_URL}]`);
       setIsConnecting(false);
     }
   }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
@@ -752,7 +753,11 @@ export const LobbyScreen: React.FC = () => {
                 </button>
               </section>
 
-              {wsError && <div className="lobby-ws-error">{wsError}</div>}
+              {wsError && (
+                <div style={{ background: '#7f1d1d', color: '#fca5a5', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginTop: 6, wordBreak: 'break-all' }}>
+                  ⚠ {wsError}
+                </div>
+              )}
 
               <section className="lobby-hook-online" aria-label="Сейчас в сети">
                 <span className="lobby-online-dot" />
