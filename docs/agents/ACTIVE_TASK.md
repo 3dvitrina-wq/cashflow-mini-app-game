@@ -2,53 +2,68 @@
 
 ## Session
 
-- Date: 2026-06-01
-- Session log: `docs/agents/sessions/2026-06-01.md`
+- Date: 2026-06-05
+- Session log: `docs/agents/sessions/2026-06-05.md`
 
 ## Task
 
-Ingest new character PNG references, prepare chroma-key assets, and slice generated model sheets into game-ready character folders.
+Turn the current prototype into a genuinely playable slice: reduce engine/UI truth drift,
+make economy clicks resolve through the deterministic engine, and clarify the first-session
+flow so players understand who acts now, how deals work, and why money moved.
 
 ## Goal
 
-Create a consistent DYOR character asset pipeline that preserves the richer reference detail level, keeps portraits close to source, adapts full-body proportions to the current game style, and outputs final PNG alpha assets from flat chroma-key sources.
+Ship a "friends-playable" rules slice for the current build:
+
+- bank / market / pets / labor actions resolve through engine commands instead of local hacks;
+- online room flow stops advancing the whole month on every side-action;
+- deal contracts and enforcement levels (`word` / `iou` / `written` / `lawyer`) have real differentiated behavior;
+- first-turn comprehension improves with clearer phase/turn copy and control hints;
+- recap and event log rely on real match history instead of fabricated flavor text.
 
 ## Scope
 
-- Reference intake and folder organization.
-- Character naming and per-character asset manifests.
-- Prompt/runbook for chroma-key source generation and local alpha extraction.
-- Slice existing alpha model sheets into `turnaround/`, `emotions/`, `parts/`, and `portrait_refs/`.
-- No game renderer import changes until sliced PNGs are reviewed.
-- Use chroma-key extraction for this V2 character pass because API native transparency is not available in the current setup.
+- Patch `packages/game-engine` and `packages/shared` so contract/deal behavior is formula-driven and typed.
+- Patch `apps/server` so multiplayer respects side-actions without incorrectly rotating the turn/month.
+- Patch `apps/web/src/store` to remove local authoritative mutations for economy/deal actions.
+- Wire `BankScreen` to deposits as well as loans.
+- Tighten `MainTurnTableScreen`, `EventLogScreen`, `RecapScreen`, and onboarding copy for clarity.
+- Land the strongest Wave 2 / Wave 3 playability items from `.planning/phases/PHASE_4_1_PLAYABILITY_EXPANSION_PLAN.md`:
+  - real profession surfacing and start differentiation;
+  - hero powers that modify live economy instead of sitting as flavor text;
+  - recovery actions: sell asset, restructure debt, take ugly job;
+  - longer offline match pacing via round presets and `Long 25`.
 
 ## Decisions
 
-- New character ids: `burnout_clerk`, `deal_maven`, `whale_broker`, `street_hustler`, `fixer_consultant`.
-- Second character ids: `grandma_collector`, `mad_fashion`, `korean_student`, `campus_student`, `sky_pilot`, `police_officer`, `flight_attendant`, `vibe_coder`.
-- Role pass character ids: `rap_queen`, `checkout_cashier`, `classroom_teacher`.
-- Each character gets its own folder under `apps/web/src/assets/generated/characters/`.
-- Source refs are copied into each character's `references/source-reference.png`.
-- First generation pass should produce `profile_bust` portraits for all five characters.
-- Existing model-sheet/source-green flow remains legacy for sheets, but this V2 pass now uses per-asset source-green PNGs followed by local alpha extraction.
-- Native transparent API generation is deferred; ChatGPT Plus does not provide the required API key/billing path for the local CLI.
-- Replace real logos/tickers with fictional DYOR-world marks such as NEON, DRIFT, or VOLT.
-- `street_hustler` must read as a young adult, not a child.
-- Integration prompt for a fresh context window: `docs/agents/prompts/CHARACTER_GAME_IMPORT_PROMPT.md`.
-- New sliced character index: `apps/web/src/assets/generated/characters/character-index.json`.
-- Russian labels added in manifests: `Художник`, `Уставший клерк`, `Мажор-студент`, `Кассирша`, `Учительница`, `Переговорщица`, `Консультантка`, `Стюардесса`, `Бабка`, `Студентка`, `Мажор`, `Полицейский`, `Реперша`, `Летчик`.
-- UI intake started with `apps/web/src/assets/generatedCharacterCatalog.ts`.
-- New characters are wired as visual `characterId` skins over the existing six engine-safe outfits.
-- The shop now has a direct character tab, the game table uses portrait busts in small player slots, and the character editor uses the same generated-character catalog.
-- QA routes: `?shop=1`, `?editor=1`, and `?autostart=1`.
+- Current session prioritizes rules truth and playability over additional art polish.
+- Multiplayer deal acceptance between two live humans remains incomplete; current UI must not pretend it is fully real if the engine/server path is not there.
+- Safe "boring money" play should be visible in MVP, so deposits are exposed in the bank UI.
+- Turn ownership should be explicit in the top bar rather than inferred from timer alone.
+- Profession identity now belongs to shared/game-engine truth, not only to UI flavor:
+  profession bonus text must map to a real engine modifier.
+- Recovery actions should live where players already look for self-management:
+  hero sheet, labor screen, and bank screen.
+- Lobby now has a social-hook entry screen and richer host-room composition:
+  pet/interior/regalia are cosmetic identity signals, not gameplay advantage claims.
+- `?lobby=1` is the QA route for lobby screenshots; `?autostart=1` still starts a match.
 
 ## Next Step
 
-Continue character intake by adding real character selection/save flow in settings/editor after the current visual slot/shop QA pass.
+Run targeted local playtests on offline and room flows to verify:
+
+- side-actions no longer advance the month unexpectedly;
+- deposits/loans/assets/pets all change state through engine commands;
+- recap/event log reflect actual engine history;
+- deal prompts feel honest about what the current multiplayer slice can and cannot do.
+- profession power math is visible and believable on hero screen;
+- `sell asset` / `restructure debt` / `survival job` each create a meaningful rescue path;
+- `Long 25` actually gives enough room for starts to diverge.
+- lobby entry and room-open views remain readable at mobile viewport sizes without horizontal overflow.
 
 ## Advisory
 
 - `docs/second_brain/10_game_design/CHARACTER_VISUAL_STYLE_PROMPT.md` - canonical DYOR character style direction.
-- `docs/second_brain/10_game_design/IMAGE_GEN_PROMPTS.md` - shared visual preamble and UI palette.
-- `docs/agents/prompts/CHARACTER_V2_CHROMAKEY_PIPELINE.md` - current prompt/runbook for this character pass.
-- `docs/agents/prompts/CHARACTER_V2_NATIVE_ALPHA_PIPELINE.md` - deferred API-native alpha alternative.
+- `docs/second_brain/10_game_design/IMAGE_GEN_PROMPTS.md` - shared UI palette and older asset prompts.
+- `docs/agents/prompts/CHARACTER_V2_CHROMAKEY_PIPELINE.md` - current chroma-key runbook used for PNG alpha extraction.
+- `.planning/phases/PHASE_4_1_PLAYABILITY_EXPANSION_PLAN.md` - founder-requested follow-up plan for first-session hook, profession/job surfacing, housing lifecycle, recovery economy, and pet reset rules.

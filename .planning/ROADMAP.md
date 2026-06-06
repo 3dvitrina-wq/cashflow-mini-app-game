@@ -92,7 +92,7 @@ Deliverables:
 Exit gate:
 - Deals are fast on mobile and auditable.
 
-Status: in progress (engine-side complete & verified 2026-06-01). Engine half DONE: negotiation.ts (interest window open/close, selection ≤3, selectByFocusTokens tiebreaker, checkDealFairness equity audit), 4 typed-effects with no cardId switch, focusTokens + activeInterestWindow on state, express_interest command, trust-deltas wired; 62/62 tests PASS, determinism YES, 640 fairness events / 2000 sim matches (auditable half of exit gate MET). REMAINING for exit gate: "fast on mobile" — negotiation UI in apps/web (interest-window banner + timer, offer builder modal, fairness warning, focus-token indicator, player-strip negotiating badge) per PHASE3_NEGOTIATION_SPEC.md + PHASE3_UI_AND_FEEL_SPEC.md. Dispatched to engine 2026-06-01.
+Status: complete (exit gate CLOSED 2026-06-03, orch verified). Both halves of "Deals are fast on mobile AND auditable" MET. AUDITABLE: negotiation.ts (interest window open/close, selection ≤3, selectByFocusTokens tiebreaker, checkDealFairness equity audit), 4 typed-effects with no cardId switch (invariant 3 holds), focusTokens + activeInterestWindow on state, express_interest command, trust-deltas wired; 640 fairness events / 2000 sim matches. FAST ON MOBILE: negotiation UI in apps/web — InterestWindowBanner.tsx (45s countdown, eligible-only INTERESTED idempotent + PASS), OfferBuilderModal.tsx (split presets, side-payment slider, enforcement level, FairnessWarning, focus-token event line), store actions triggerInterestWindow/expressInterest/passInterest/computeFairness, MainTurnTableScreen negotiating badge + focus-token row + Сделка FAB. AUTO-TRIGGER (2026-06-03): nextRound() auto-opens interest window on drawn card type opportunity|social (closes "Random limited attention" deliverable); committed 8c223a2. typecheck 0 errors, 66/66 tests PASS.
 
 ## Phase 4 - Telegram Multiplayer MVP
 
@@ -107,6 +107,26 @@ Deliverables:
 
 Exit gate:
 - 2-6 players can finish a match in Telegram.
+
+## Phase 4.1 - Playability Expansion
+
+Goal: turn the current truthful prototype into a more competitive, replayable, and socially legible
+friends-playable game.
+
+Deliverables:
+- playable first-session prologue with skip path;
+- profession identity surfaced in UI, plus self-job / recovery job actions;
+- asset portfolio lifecycle: sell, mortgage, restructure, and housing decisions;
+- draft / match-length / room-mode framing that reduces same-card symmetry;
+- pet economy split between per-match gameplay state and persistent meta ownership.
+
+Exit gate:
+- first-time players learn through one short playable month;
+- professions, taxes, debt, and job reality are visible in the live match;
+- players can sell or mortgage their way out of trouble instead of only buying;
+- gameplay pets reset correctly between matches unless a mode explicitly persists them.
+
+Status: planned (see `.planning/phases/PHASE_4_1_PLAYABILITY_EXPANSION_PLAN.md`, added 2026-06-05 after founder mobile playtest feedback).
 
 ## Phase 5 - AI Host Text Layer
 
