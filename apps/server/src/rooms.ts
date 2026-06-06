@@ -19,6 +19,14 @@ export interface RoomMember {
   connected: boolean;
   /** Timestamp of last pong received; used for heartbeat timeout. */
   lastPong: number;
+  /** Lightweight lobby meta so peers can "visit" this player's profile. */
+  meta?: {
+    characterId?: string;
+    level?: number;
+    housingId?: string | null;
+    petId?: string | null;
+    achievements?: number;
+  };
 }
 
 export interface Room {
@@ -34,6 +42,17 @@ export interface Room {
 }
 
 const rooms = new Map<string, Room>();
+
+function commandAdvancesRound(command: Command): boolean {
+  return command.type === 'choose_option' || command.type === 'pass' || command.type === 'draw_card';
+}
+
+function normalizeBotCommand(playerId: string, command: Command): Command {
+  if (command.type === 'open_futures_position' || command.type === 'take_loan' || command.type === 'repay_loan') {
+    return { type: 'pass', playerId };
+  }
+  return command;
+}
 
 function randomCode(): string {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -137,10 +156,14 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
   if (!player) return { ok: false, error: 'no active player' };
 
   try {
-    const command: Command = botIntent(room.engineState, player);
+    const rawCommand: Command = botIntent(room.engineState, player);
+    const command = normalizeBotCommand(player.id, rawCommand);
     const cmdResult = resolveCommand(room.engineState, command);
-    const roundResult = advanceRound(cmdResult.state);
-    room.engineState = roundResult.state;
+    room.engineState = cmdResult.state;
+    if (commandAdvancesRound(command)) {
+      const roundResult = advanceRound(cmdResult.state);
+      room.engineState = roundResult.state;
+    }
     if (room.engineState.phase === 'finished') {
       room.status = 'finished';
     }
@@ -175,12 +198,15 @@ export function applyCommand(
   }
   try {
     const cmdResult = resolveCommand(room.engineState, command);
-    const roundResult = advanceRound(cmdResult.state);
-    room.engineState = roundResult.state;
+    room.engineState = cmdResult.state;
+    if (commandAdvancesRound(command)) {
+      const roundResult = advanceRound(cmdResult.state);
+      room.engineState = roundResult.state;
+      room.turnStartedAt = Date.now();
+    }
     if (room.engineState.phase === 'finished') {
       room.status = 'finished';
     }
-    room.turnStartedAt = Date.now();
     return { ok: true, room };
   } catch (e: any) {
     return { ok: false, error: e.message };

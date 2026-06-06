@@ -15,6 +15,24 @@ import {
   runBotTurn,
   clearTurnTimer,
 } from './rooms';
+import type { RoomMember } from './rooms';
+
+// ─── Lobby member payload (incl. lightweight profile meta) ───────────────────
+function lobbyMember(m: RoomMember) {
+  return {
+    playerId: m.playerId,
+    name: m.name,
+    outfit: m.outfit,
+    isBot: m.isBot,
+    connected: m.connected,
+    botControlled: m.botControlled,
+    characterId: m.meta?.characterId,
+    level: m.meta?.level,
+    housingId: m.meta?.housingId ?? null,
+    petId: m.meta?.petId ?? null,
+    achievements: m.meta?.achievements,
+  };
+}
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const HEARTBEAT_INTERVAL_MS = 20_000;  // ping clients every 20s
@@ -85,14 +103,7 @@ async function main() {
     return {
       code: room.code,
       status: room.status,
-      members: room.members.map((m) => ({
-        playerId: m.playerId,
-        name: m.name,
-        outfit: m.outfit,
-        isBot: m.isBot,
-        connected: m.connected,
-        botControlled: m.botControlled,
-      })),
+      members: room.members.map(lobbyMember),
     };
   });
 
@@ -102,9 +113,23 @@ async function main() {
   await app.listen({ port: PORT, host: HOST });
   console.log(`[server] HTTP listening on http://${HOST}:${PORT}`);
 
-  // ─── WebSocket server ──────────────────────────────────────────────────────
-  const wss = new WebSocketServer({ port: PORT + 1, host: HOST });
-  console.log(`[server] WebSocket listening on ws://${HOST}:${PORT + 1}`);
+  // ─── WebSocket server (shares the HTTP port via upgrade on /ws) ─────────────
+  // Single-port deploys (Fly.io, Render, etc.) expose only one TLS port, so we
+  // attach the WS server to the existing HTTP server instead of binding a
+  // second port. Clients connect to wss://<host>/ws.
+  const WS_PATH = process.env.WS_PATH ?? '/ws';
+  const wss = new WebSocketServer({ noServer: true });
+  app.server.on('upgrade', (request, socket, head) => {
+    const pathname = new URL(request.url ?? '/', 'http://localhost').pathname;
+    if (pathname !== WS_PATH) {
+      socket.destroy();
+      return;
+    }
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit('connection', ws, request);
+    });
+  });
+  console.log(`[server] WebSocket listening on ws://${HOST}:${PORT}${WS_PATH}`);
 
   // ─── Heartbeat loop ────────────────────────────────────────────────────────
   const heartbeatInterval = setInterval(() => {
@@ -174,14 +199,7 @@ async function main() {
               ws.send(JSON.stringify({ type: 'reconnected', state: room.engineState }));
               broadcast(room, {
                 type: 'room_update',
-                members: room.members.map((m) => ({
-                  playerId: m.playerId,
-                  name: m.name,
-                  outfit: m.outfit,
-                  isBot: m.isBot,
-                  connected: m.connected,
-                  botControlled: m.botControlled,
-                })),
+                members: room.members.map(lobbyMember),
               });
               console.log(`[reconnect] ${pid} rejoined ${code}`);
               return;
@@ -195,6 +213,7 @@ async function main() {
           name: msg.name,
           outfit: msg.outfit ?? 'hustler',
           ws,
+          meta: msg.meta,
         });
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot join room' }));
@@ -204,15 +223,16 @@ async function main() {
         playerId = pid;
         broadcast(room, {
           type: 'room_update',
-          members: room.members.map((m) => ({
-            playerId: m.playerId,
-            name: m.name,
-            outfit: m.outfit,
-            isBot: m.isBot,
-            connected: m.connected,
-            botControlled: m.botControlled,
-          })),
+          members: room.members.map(lobbyMember),
         });
+        return;
+      }
+
+      // ── reaction (lobby + in-match) ──────────────────────────────────────────
+      if (msg.type === 'reaction' && roomCode) {
+        const room = getRoom(roomCode);
+        if (!room) return;
+        broadcast(room, { type: 'reaction', playerId: msg.playerId ?? playerId, label: msg.label });
         return;
       }
 
@@ -234,17 +254,17 @@ async function main() {
         const room = getRoom(roomCode);
         if (!room) return;
 
-        // Validate sender is the active player
-        if (room.engineState) {
-          const active = room.engineState.players[room.engineState.activePlayerIndex];
-          if (active.id !== playerId) {
-            ws.send(JSON.stringify({ type: 'error', error: 'not your turn' }));
-            return;
-          }
+        // Validate sender owns the command they are submitting. Turn/phase rules
+        // are enforced by the engine so off-turn economy/deal actions still work.
+        if (msg.command?.playerId !== playerId) {
+          ws.send(JSON.stringify({ type: 'error', error: 'cannot submit a command for another player' }));
+          return;
         }
 
-        // Cancel turn timer — player responded in time
-        clearTurnTimer(room);
+        const activePlayerId = room.engineState?.players[room.engineState.activePlayerIndex]?.id;
+        if (activePlayerId === msg.command?.playerId) {
+          clearTurnTimer(room);
+        }
 
         const result = applyCommand(roomCode, msg.command);
         if (!result.ok || !result.room) {
