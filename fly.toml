@@ -1,40 +1,41 @@
-# Fly.io config for the game server (HTTP + WebSocket on one port).
-# Deploy from repo root:  flyctl deploy
-# App name is set on first `flyctl launch`; rename here if needed.
-app = "cashflow-game-server"
-primary_region = "fra"   # Frankfurt — pick the region closest to your players
+# fly.toml app configuration file generated for cashflow-game-server on 2026-06-06T23:30:14+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'cashflow-game-server'
+primary_region = 'fra'
 
 [build]
-  dockerfile = "apps/server/Dockerfile"
+  dockerfile = 'apps/server/Dockerfile'
 
 [env]
-  PORT = "8080"
-  HOST = "0.0.0.0"
-  WS_PATH = "/ws"
+  HOST = '0.0.0.0'
+  PORT = '8080'
+  WS_PATH = '/ws'
 
 [http_service]
   internal_port = 8080
   force_https = true
-  # Scale to zero when idle (~$0), auto-start on the first request (~1-3s cold).
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
   min_machines_running = 0
 
   [http_service.concurrency]
-    type = "connections"
+    type = 'connections'
     hard_limit = 200
     soft_limit = 150
 
   [[http_service.checks]]
-    method = "GET"
-    path = "/health"
-    interval = "30s"
-    timeout = "5s"
-    grace_period = "10s"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '10s'
+    method = 'GET'
+    path = '/health'
 
-# Smallest paid size; 256MB is plenty for an in-memory room server.
-# 24/7 ≈ $2/mo, or ≈ $0 with the auto-stop above. Well under $5.
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
+  cpu_kind = 'shared'
   cpus = 1
+  memory_mb = 256
