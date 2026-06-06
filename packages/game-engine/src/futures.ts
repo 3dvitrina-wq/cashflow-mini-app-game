@@ -31,21 +31,22 @@ export function updateMarketPrices(state: MatchState): Record<string, number> {
   return prices;
 }
 
-/** Resolve all open futures positions for a player. */
+/** Resolve all open futures positions for a player at the next settlement.
+ *  Each bet realizes one price tick later: margin + P&L go back to cash and the
+ *  position closes, so the player sees a win/loss on their wallet the very next turn
+ *  (instead of an invisible position frozen until match end). */
 export function resolveFutures(state: MatchState, player: PlayerState): GameEvent[] {
   const events: GameEvent[] = [];
-  const surviving: FuturesPosition[] = [];
 
   for (const pos of player.futuresPositions) {
     const currentPrice = state.marketPrices[pos.tokenSymbol] ?? pos.entryPrice;
 
-    // Check liquidation
+    // Check liquidation — margin was already deducted at open, so this is a total loss.
     const liquidated =
       (pos.direction === 'long' && currentPrice <= pos.liquidationPrice) ||
       (pos.direction === 'short' && currentPrice >= pos.liquidationPrice);
 
     if (liquidated) {
-      player.cash = Math.max(0, player.cash);
       player.stress = Math.min(10, player.stress + 2);
       player.avatarState = 'futures_liq';
       player.recapTags.push('futures_liquidated');
@@ -54,28 +55,27 @@ export function resolveFutures(state: MatchState, player: PlayerState): GameEven
         playerId: player.id,
         effectType: 'futures.resolve',
         amount: -pos.margin,
-        message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x LIQUIDATED`,
+        message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x LIQUIDATED -$${Math.round(pos.margin)}`,
       });
     } else {
-      // Position survives: margin stays locked, track unrealized P&L only.
-      // Cash is NOT touched here — positions settle at game end or on liquidation.
+      // Realize P&L: return locked margin plus profit/loss to cash, then close.
       const priceDelta = pos.direction === 'long'
         ? currentPrice - pos.entryPrice
         : pos.entryPrice - currentPrice;
-      const unrealizedPnl = priceDelta * pos.quantity;
-
-      surviving.push(pos); // entryPrice unchanged — P&L is cumulative from original entry
+      const pnl = priceDelta * pos.quantity;
+      player.cash = Math.max(0, player.cash + pos.margin + pnl);
+      if (pnl >= 0) player.recapTags.push('futures_win');
       events.push({
         type: 'futures',
         playerId: player.id,
         effectType: 'futures.resolve',
-        amount: unrealizedPnl,
-        message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x mtm: ${unrealizedPnl >= 0 ? '+' : ''}${Math.round(unrealizedPnl)}`,
+        amount: pnl,
+        message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x closed: ${pnl >= 0 ? '+' : '-'}$${Math.abs(Math.round(pnl))}`,
       });
     }
   }
 
-  player.futuresPositions = surviving;
+  player.futuresPositions = []; // all positions settle each round — none carry over
   return events;
 }
 

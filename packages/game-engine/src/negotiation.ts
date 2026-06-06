@@ -144,7 +144,7 @@ export interface FairnessResult {
  * Text is a template stub — no LLM required.
  */
 export function checkDealFairness(
-  _state: MatchState,
+  state: MatchState,
   proposer: PlayerState,
   target: PlayerState,
   offer: OfferPayload,
@@ -154,14 +154,18 @@ export function checkDealFairness(
   const cashOutTarget   = offer.cashRequest ?? 0;
   const cashInTarget    = offer.cashOffer ?? 0;
 
-  // Asset equity split
-  const assetValue = 0; // asset valuation resolved at accept-time via state; 0 here = conservative
+  const linkedAsset = offer.assetId
+    ? proposer.assets.find((asset) => asset.id === offer.assetId) ?? target.assets.find((asset) => asset.id === offer.assetId)
+    : null;
+  const assetValue = Math.max(0, Math.round(linkedAsset?.value ?? offer.projectedAssetValue ?? 0));
+  const recurringIncome = Math.max(0, Math.round(offer.projectedMonthlyIncome ?? 0));
 
   const proposerShare = _getShareFor(offer, proposer.id, 'proposer');
   const targetShare   = _getShareFor(offer, target.id,   'target');
 
-  const proposerEquity = cashInProposer - cashOutProposer + assetValue * proposerShare;
-  const targetEquity   = cashInTarget   - cashOutTarget   + assetValue * targetShare;
+  const monthlyValueWeight = Math.max(2, Math.min(6, state.maxRounds - state.round + 1));
+  const proposerEquity = cashInProposer - cashOutProposer + assetValue * proposerShare + recurringIncome * proposerShare * monthlyValueWeight;
+  const targetEquity   = cashInTarget   - cashOutTarget   + assetValue * targetShare + recurringIncome * targetShare * monthlyValueWeight;
 
   const equityImpact: Record<PlayerId, number> = {
     [proposer.id]: proposerEquity,
@@ -196,7 +200,10 @@ export function checkDealFairness(
 }
 
 function _getShareFor(offer: OfferPayload, playerId: PlayerId, role: 'proposer' | 'target'): number {
-  if (offer.shareSplit?.[playerId] !== undefined) return offer.shareSplit[playerId]!;
+  if (offer.shareSplit?.[playerId] !== undefined) {
+    const raw = offer.shareSplit[playerId]!;
+    return raw > 1 ? raw / 100 : raw;
+  }
   switch (offer.preset) {
     case 'split_50_50':       return 0.5;
     case 'owner_operator':    return role === 'proposer' ? 0.7 : 0.3;

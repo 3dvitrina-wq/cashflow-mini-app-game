@@ -8,6 +8,8 @@ import {
   validateCommand,
   deriveAvatarState,
   freedomScore,
+  scoreBreakdown,
+  computeAchievements,
 } from '../engine';
 import { botIntent, parseBotPersona } from '../bot';
 import { getCard, CARDS, getCardsByType, getWeightedCardIds } from '../cards';
@@ -369,6 +371,37 @@ describe('freedomScore', () => {
     const b = createPlayer({ id: 'p2', name: 'B', outfit: 'trader' });
     b.passiveIncome = 5000;
     expect(freedomScore(b)).toBeGreaterThan(freedomScore(a));
+  });
+
+  it('passive income outranks raw cash', () => {
+    // Cash-rich but no passive vs modest cash with strong passive — passive wins.
+    const cashKing = createPlayer({ id: 'c', name: 'Cash', outfit: 'trader' });
+    cashKing.cash = 12000; cashKing.passiveIncome = 0;
+    const rentier = createPlayer({ id: 'r', name: 'Rent', outfit: 'trader' });
+    rentier.cash = 2000; rentier.passiveIncome = 1500;
+    expect(freedomScore(rentier)).toBeGreaterThan(freedomScore(cashKing));
+  });
+
+  it('outstanding bank debt is subtracted and blocks financial freedom', () => {
+    const p = createPlayer({ id: 'p', name: 'P', outfit: 'trader' });
+    p.passiveIncome = 2000; p.expenses = 800; // passive covers expenses
+    const free = scoreBreakdown(p);
+    expect(free.freedomAchieved).toBe(true);
+
+    p.liabilities.push({ id: 'l1', kind: 'loan', principal: 4000, interestRate: 0.05, remainingPayments: 8, creditor: 'bank' });
+    const indebted = scoreBreakdown(p);
+    expect(indebted.bankDebt).toBe(4000);
+    expect(indebted.freedomAchieved).toBe(false);      // can't finish free while owing the bank
+    expect(indebted.total).toBe(free.total - 4000 - 2000); // debt subtracted + lost debt_free bonus
+  });
+
+  it('computeAchievements reflects final state', () => {
+    const p = createPlayer({ id: 'p', name: 'P', outfit: 'trader' });
+    p.passiveIncome = 2000; p.expenses = 800;
+    p.recapTags.push('futures_win');
+    const keys = computeAchievements(p).map((a) => a.key);
+    expect(keys).toContain('financial_freedom');
+    expect(keys).toContain('futures_winner');
   });
 });
 

@@ -30,7 +30,8 @@ export const HostModeSchema = z.enum(['silent', 'template', 'llm_text', 'voice',
 
 export const PhaseSchema = z.enum([
   'lobby', 'market_pulse', 'settlement', 'decision',
-  'intent_window', 'resolution', 'deal_window', 'finished',
+  'intent_window', 'resolution', 'deal_window',
+  'draft_select', 'draft_pick', 'finished',
 ]);
 
 export const CardTypeSchema = z.enum([
@@ -59,7 +60,7 @@ export const EffectTypeSchema = z.enum([
   'assistant.hire', 'stress.delta', 'trust.delta', 'reputation.delta',
   'debt.delta', 'contract.create', 'futures.open', 'futures.resolve',
   'protection.add', 'market.event.apply', 'choice.open', 'deal.window.open',
-  'partnership.create', 'partnership.invoke', 'expense.tag', 'synergy.check',
+  'partnership.create', 'partnership.invoke', 'partnership.invite', 'expense.tag', 'synergy.check',
   'ai_host.cue', 'reaction.emit', 'avatar.state.set', 'pet.state.set',
   'timeline.advance', 'noop',
   'bankruptcy.file', 'bankruptcy.review', 'contract.enforce', 'contract.breach',
@@ -144,6 +145,7 @@ export const AssetSchema = z.object({
   upkeepPerRound: z.number(),
   value: z.number(),
   acquiredRound: z.number(),
+  coOwners: z.array(PlayerIdSchema).optional(),
 });
 
 export const LiabilitySchema = z.object({
@@ -163,6 +165,8 @@ export const ContractTermsSchema = z.object({
   shares: z.record(z.number()).optional(),
   paymentAmount: z.number().optional(),
   paymentInterval: z.number().optional(),
+  payerId: PlayerIdSchema.optional(),
+  payeeId: PlayerIdSchema.optional(),
   collateral: z.array(z.string()).optional(),
   description: z.string(),
 });
@@ -173,6 +177,7 @@ export const ContractSchema = z.object({
   parties: z.array(PlayerIdSchema),
   terms: ContractTermsSchema,
   createdRound: z.number(),
+  missedPayments: z.number().min(0).default(0),
   status: z.enum(['active', 'fulfilled', 'breached', 'expired']),
 });
 
@@ -251,7 +256,7 @@ export const VolatilityConfigSchema = z.object({
 export const BankDepositSchema = z.object({
   id: z.string(),
   amount: z.number().positive(),
-  rate: z.number().min(0.01).max(0.02),
+  rate: z.number().min(0.01).max(0.03),
   openedRound: z.number(),
   lastInterestRound: z.number(),
   lockPeriod: z.number().optional(),
@@ -269,6 +274,8 @@ export const PendingDealSchema = z.object({
     cashOffer: z.number().optional(),
     cashRequest: z.number().optional(),
     shareSplit: z.record(z.number()).optional(),
+    projectedMonthlyIncome: z.number().optional(),
+    projectedAssetValue: z.number().optional(),
     enforcement: EnforcementLevelSchema.optional(),
     description: z.string(),
   }),
@@ -343,6 +350,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('pass'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('draw_card'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('express_interest'), playerId: PlayerIdSchema, targetPlayerId: PlayerIdSchema }),
+  z.object({ type: z.literal('close_interest_window'), playerId: PlayerIdSchema }),
   z.object({
     type: z.literal('submit_offer'),
     playerId: PlayerIdSchema,
@@ -354,6 +362,8 @@ export const CommandSchema = z.discriminatedUnion('type', [
       cashOffer: z.number().optional(),
       cashRequest: z.number().optional(),
       shareSplit: z.record(z.number()).optional(),
+      projectedMonthlyIncome: z.number().optional(),
+      projectedAssetValue: z.number().optional(),
       enforcement: EnforcementLevelSchema.optional(),
       description: z.string(),
     }),
@@ -369,10 +379,56 @@ export const CommandSchema = z.discriminatedUnion('type', [
     amount: z.number().positive(),
   }),
   z.object({ type: z.literal('buy_protection'), playerId: PlayerIdSchema, protectionId: z.string() }),
-  z.object({ type: z.literal('hire_staff'), playerId: PlayerIdSchema, staffId: z.string() }),
+  z.object({
+    type: z.literal('hire_staff'),
+    playerId: PlayerIdSchema,
+    staffId: z.string(),
+    salary: z.number().nonnegative().optional(),
+    bonus: z.object({ slots: z.number().optional(), income: z.number().optional() }).optional(),
+  }),
+  z.object({
+    type: z.literal('buy_asset'),
+    playerId: PlayerIdSchema,
+    name: z.string(),
+    price: z.number().positive(),
+    income: z.number(),
+    kind: z.string().optional(),
+    upkeep: z.number().nonnegative().optional(),
+    slotsUsed: z.number().int().min(0).optional(),
+  }),
+  z.object({
+    type: z.literal('buy_pet'),
+    playerId: PlayerIdSchema,
+    petId: z.string(),
+    price: z.number().positive(),
+    upkeep: z.number().nonnegative(),
+    passiveBonus: z.number().optional(),
+    stressBonus: z.number().optional(),
+  }),
   z.object({ type: z.literal('file_bankruptcy'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('request_help'), playerId: PlayerIdSchema, targetPlayerId: PlayerIdSchema.optional() }),
   z.object({ type: z.literal('rent_room'), playerId: PlayerIdSchema }),
+  z.object({ type: z.literal('sell_asset'), playerId: PlayerIdSchema, assetId: z.string(), salePrice: z.number().positive().optional() }),
+  z.object({
+    type: z.literal('transfer_asset'),
+    playerId: PlayerIdSchema,
+    assetId: z.string(),
+    targetPlayerId: PlayerIdSchema,
+  }),
+  z.object({
+    type: z.literal('share_asset'),
+    playerId: PlayerIdSchema,
+    assetId: z.string(),
+    targetPlayerId: PlayerIdSchema,
+    partnerShare: z.number().positive().max(0.9),
+    enforcement: EnforcementLevelSchema.optional(),
+  }),
+  z.object({ type: z.literal('restructure_debt'), playerId: PlayerIdSchema, liabilityId: z.string() }),
+  z.object({
+    type: z.literal('take_survival_job'),
+    playerId: PlayerIdSchema,
+    jobId: z.union([z.literal('gig'), z.literal('safe'), z.literal('night')]),
+  }),
   // Phase 2: Economy commands
   z.object({ type: z.literal('deposit'), playerId: PlayerIdSchema, amount: z.number().positive(), lockPeriod: z.number().optional() }),
   z.object({ type: z.literal('withdraw'), playerId: PlayerIdSchema, depositId: z.string() }),
@@ -384,11 +440,26 @@ export const CommandSchema = z.discriminatedUnion('type', [
     cashOffer: z.number().optional(),
     cashRequest: z.number().optional(),
     shareSplit: z.record(z.number()).optional(),
+    projectedMonthlyIncome: z.number().optional(),
+    projectedAssetValue: z.number().optional(),
     enforcement: EnforcementLevelSchema.optional(),
     description: z.string(),
   }) }),
   z.object({ type: z.literal('accept_deal'), playerId: PlayerIdSchema, dealId: z.string() }),
   z.object({ type: z.literal('reject_deal'), playerId: PlayerIdSchema, dealId: z.string() }),
+  z.object({ type: z.literal('take_loan'), playerId: PlayerIdSchema, amount: z.number().positive() }),
+  z.object({ type: z.literal('repay_loan'), playerId: PlayerIdSchema, loanId: z.string() }),
+  z.object({
+    type: z.literal('submit_draft'),
+    playerId: PlayerIdSchema,
+    peeks: z.array(z.number().int().min(0)),
+    claims: z.array(z.object({
+      index: z.number().int().min(0),
+      blind: z.boolean(),
+      contestPref: z.enum(['fight', 'split']),
+    })).max(2),
+  }),
+  z.object({ type: z.literal('draft_pick_option'), playerId: PlayerIdSchema, index: z.number().int().min(0), choiceIndex: z.number().int().min(0) }),
 ]);
 
 // ─── Game Event ─────────────────────────────────────────────────────────────
@@ -450,4 +521,17 @@ export const MatchStateSchema = z.object({
   version: z.number().int().min(1),
   // Phase 3: active interest window (optional for backward-compat with serialized states)
   activeInterestWindow: InterestWindowSchema.nullable().optional(),
+  // Draft mode (optional for backward-compat)
+  matchMode: z.enum(['classic', 'draft']).optional(),
+  draftBoard: z.object({
+    cards: z.array(CardIdSchema),
+    claims: z.record(z.array(z.object({
+      index: z.number().int().min(0),
+      blind: z.boolean(),
+      contestPref: z.enum(['fight', 'split']),
+    }))),
+    wonBy: z.record(PlayerIdSchema.nullable()),
+    picked: z.record(z.boolean()),
+    resolved: z.boolean(),
+  }).nullable().optional(),
 });

@@ -10,6 +10,7 @@ import type {
   MatchState,
   PlayerState,
 } from '../../shared/src/index';
+import { getProfession } from '../../shared/src/index';
 
 /** Max deposit cap per player (prevents infinite safe income). */
 const MAX_DEPOSIT_TOTAL = 10000;
@@ -59,7 +60,9 @@ export function createDeposit(
 
   // Determine rate based on lock period
   const effectiveLock = lockPeriod && lockPeriod >= MIN_LOCKED_PERIOD ? lockPeriod : undefined;
-  const rate = effectiveLock ? RATE_LOCKED : RATE_STANDARD;
+  const profession = player.professionId ? getProfession(player.professionId) : undefined;
+  const rateBoost = profession?.heroPower.type === 'deposit_yield_boost' ? profession.heroPower.value : 0;
+  const rate = (effectiveLock ? RATE_LOCKED : RATE_STANDARD) + rateBoost;
 
   const deposit: BankDeposit = {
     id: nextDepositId(state),

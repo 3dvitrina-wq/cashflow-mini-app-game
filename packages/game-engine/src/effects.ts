@@ -25,6 +25,10 @@ import { rngInt } from './rng';
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
 
+// Id prefix for stake assets minted by 'partnership.invite'. resolveAllIntents finds
+// these after a round to normalize over-funded buys and form the Partnership record.
+export const PARTNERSHIP_ASSET_PREFIX = 'coown_';
+
 type EffectResolver = (
   state: MatchState,
   player: PlayerState,
@@ -156,9 +160,12 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
           shares: payload.shares as Record<string, number> | undefined,
           paymentAmount: payload.paymentAmount as number | undefined,
           paymentInterval: payload.paymentInterval as number | undefined,
+          payerId: payload.payerId as string | undefined,
+          payeeId: payload.payeeId as string | undefined,
           collateral: payload.collateral as string[] | undefined,
         },
         createdRound: _s.round,
+        missedPayments: 0,
         status: 'active',
       });
     }
@@ -263,6 +270,37 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
       }
     }
     return [{ type: 'warn', effectType: 'partnership.invoke', message: 'partnership not found' }];
+  },
+
+  // Co-investment: the player buys a STAKE in a shared asset, paying `contribution`
+  // toward the asset's `fullCost` and receiving income proportional to that stake.
+  // The Partnership record (who co-owns) is formed afterward in resolveAllIntents,
+  // once every player's choice on the shared card is known. See PARTNERSHIP_ASSET_PREFIX.
+  'partnership.invite': (_s, p, e) => {
+    const payload = e.payload as Record<string, unknown> | undefined;
+    const contribution = Math.max(0, (payload?.contribution as number) ?? e.amount ?? 0);
+    const fullCost = Math.max(1, (payload?.fullCost as number) ?? contribution);
+    const stake = Math.min(1, contribution / fullCost);
+    const def = (payload?.asset as Partial<Asset> | undefined) ?? {};
+
+    p.cash = Math.max(0, p.cash - contribution);
+    const asset: Asset = {
+      id: `${PARTNERSHIP_ASSET_PREFIX}${_s.round}_${_s.currentCardId ?? 'card'}_${p.id}`,
+      kind: def.kind ?? 'co_investment',
+      name: def.name ?? 'Co-owned asset',
+      tags: def.tags ?? [],
+      synergyKeys: def.synergyKeys ?? [],
+      incomePerRound: Math.round((def.incomePerRound ?? 0) * stake),
+      upkeepPerRound: Math.round((def.upkeepPerRound ?? 0) * stake),
+      value: Math.round((def.value ?? fullCost) * stake),
+      acquiredRound: _s.round,
+      coOwners: [p.id],
+    };
+    p.assets.push(asset);
+    return [
+      { type: 'money', playerId: p.id, effectType: 'partnership.invite', amount: -contribution, message: `co-invest ${asset.name}` },
+      { type: 'effect', playerId: p.id, effectType: 'partnership.invite', amount: asset.incomePerRound, message: `stake ${Math.round(stake * 100)}%` },
+    ];
   },
 
   'expense.tag': (_s, p, e) => {

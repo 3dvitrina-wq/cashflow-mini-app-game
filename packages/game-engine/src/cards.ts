@@ -31,11 +31,10 @@ export const CARDS: CardDefinition[] = [
         { type: 'business.slot.modify', amount: 1 },
         { type: 'asset.add', amount: 3000, payload: { kind: 'storage_pod', name: 'Storage Pod', tags: ['physical'], synergyKeys: ['logistics'], incomePerRound: 400, upkeepPerRound: 150, value: 3000 } },
       ], hint: 'High cost, steady return' },
-      { id: 'partner', label: 'Find partner', effects: [
-        { type: 'cash.delta', amount: -1500 },
-        { type: 'passive.add', amount: 200 },
+      { id: 'partner', label: 'Co-invest $1.5K', effects: [
+        { type: 'partnership.invite', payload: { contribution: 1500, fullCost: 3000, asset: { kind: 'storage_pod', name: 'Storage Pod', tags: ['physical'], synergyKeys: ['logistics'], incomePerRound: 400, upkeepPerRound: 150, value: 3000 } } },
         { type: 'trust.delta', amount: 1 },
-      ], hint: 'Split the risk' },
+      ], hint: 'Split cost & income with co-investors' },
       { id: 'pass', label: 'Pass', effects: [] },
     ],
   },
@@ -82,9 +81,8 @@ export const CARDS: CardDefinition[] = [
         { type: 'income.add', amount: 980 },
         { type: 'asset.add', amount: 2000, payload: { kind: 'service_route', name: 'Delivery Route', tags: ['service'], synergyKeys: ['logistics'], incomePerRound: 980, value: 2000 } },
       ] },
-      { id: 'coinvest', label: 'Co-invest', effects: [
-        { type: 'cash.delta', amount: -1000 },
-        { type: 'income.add', amount: 480 },
+      { id: 'coinvest', label: 'Co-invest $1K', effects: [
+        { type: 'partnership.invite', payload: { contribution: 1000, fullCost: 2000, asset: { kind: 'service_route', name: 'Delivery Route', tags: ['service'], synergyKeys: ['logistics'], incomePerRound: 980, upkeepPerRound: 0, value: 2000 } } },
       ] },
       { id: 'pass', label: 'Pass', effects: [] },
     ],
@@ -1017,7 +1015,6 @@ export const CARDS: CardDefinition[] = [
       { id: 'full', label: 'Full bootcamp ($3K)', effects: [
         { type: 'cash.delta', amount: -3000 },
         { type: 'income.add', amount: 800 },
-        { type: 'skillTags', value: 'bootcamp_grad' } as unknown as { type: 'income.add'; amount: number },
         { type: 'expense.tag', value: 'education' },
         { type: 'reputation.delta', amount: 1 },
       ] },

@@ -55,6 +55,8 @@ export type Phase =
   | 'intent_window'
   | 'resolution'
   | 'deal_window'
+  | 'draft_select'
+  | 'draft_pick'
   | 'finished';
 
 export type CardType =
@@ -120,6 +122,7 @@ export type EffectType =
   | 'deal.window.open'
   | 'partnership.create'
   | 'partnership.invoke'
+  | 'partnership.invite'
   | 'expense.tag'
   | 'synergy.check'
   | 'ai_host.cue'
@@ -230,6 +233,8 @@ export interface Asset {
   upkeepPerRound: number;
   value: number;
   acquiredRound: number;
+  /** Co-ownership: all players holding a stake in this asset (set for partnership buys). */
+  coOwners?: PlayerId[];
 }
 
 export interface Liability {
@@ -249,6 +254,7 @@ export interface Contract {
   parties: PlayerId[];
   terms: ContractTerms;
   createdRound: number;
+  missedPayments: number;
   status: 'active' | 'fulfilled' | 'breached' | 'expired';
 }
 
@@ -258,6 +264,8 @@ export interface ContractTerms {
   shares?: Record<PlayerId, number>;
   paymentAmount?: number;
   paymentInterval?: number;
+  payerId?: PlayerId;
+  payeeId?: PlayerId;
   collateral?: string[];
   description: string;
 }
@@ -343,7 +351,7 @@ export interface TimelineCursor {
 export interface BankDeposit {
   id: string;
   amount: number;
-  /** Annual interest rate (0.01-0.02 for 1-2%). */
+  /** Annual interest rate (roughly 0.01-0.03 with profession perks). */
   rate: number;
   openedRound: number;
   lastInterestRound: number;
@@ -454,21 +462,41 @@ export type Command =
   | { type: 'pass'; playerId: PlayerId }
   | { type: 'draw_card'; playerId: PlayerId }
   | { type: 'express_interest'; playerId: PlayerId; targetPlayerId: PlayerId }
+  | { type: 'close_interest_window'; playerId: PlayerId }
   | { type: 'submit_offer'; playerId: PlayerId; offer: OfferPayload }
   | { type: 'accept_offer'; playerId: PlayerId; offerId: string }
   | { type: 'decline_offer'; playerId: PlayerId; offerId: string }
   | { type: 'open_futures_position'; playerId: PlayerId; tokenSymbol: string; direction: FuturesDirection; leverage: number; amount: number }
   | { type: 'buy_protection'; playerId: PlayerId; protectionId: string }
-  | { type: 'hire_staff'; playerId: PlayerId; staffId: string }
+  | { type: 'hire_staff'; playerId: PlayerId; staffId: string; salary?: number; bonus?: { slots?: number; income?: number } }
+  | { type: 'buy_asset'; playerId: PlayerId; name: string; price: number; income: number; kind?: string; upkeep?: number; slotsUsed?: number }
+  | { type: 'buy_pet'; playerId: PlayerId; petId: string; price: number; upkeep: number; passiveBonus?: number; stressBonus?: number }
   | { type: 'file_bankruptcy'; playerId: PlayerId }
   | { type: 'request_help'; playerId: PlayerId; targetPlayerId?: PlayerId }
   | { type: 'rent_room'; playerId: PlayerId }
+  | { type: 'sell_asset'; playerId: PlayerId; assetId: string; salePrice?: number }
+  | { type: 'transfer_asset'; playerId: PlayerId; assetId: string; targetPlayerId: PlayerId }
+  | {
+    type: 'share_asset';
+    playerId: PlayerId;
+    assetId: string;
+    targetPlayerId: PlayerId;
+    partnerShare: number;
+    enforcement?: EnforcementLevel;
+  }
+  | { type: 'restructure_debt'; playerId: PlayerId; liabilityId: string }
+  | { type: 'take_survival_job'; playerId: PlayerId; jobId: 'gig' | 'safe' | 'night' }
   // Phase 2: Economy commands
   | { type: 'deposit'; playerId: PlayerId; amount: number; lockPeriod?: number }
   | { type: 'withdraw'; playerId: PlayerId; depositId: string }
   | { type: 'propose_deal'; playerId: PlayerId; targetId: PlayerId; offer: OfferPayload }
   | { type: 'accept_deal'; playerId: PlayerId; dealId: string }
-  | { type: 'reject_deal'; playerId: PlayerId; dealId: string };
+  | { type: 'reject_deal'; playerId: PlayerId; dealId: string }
+  | { type: 'take_loan'; playerId: PlayerId; amount: number }
+  | { type: 'repay_loan'; playerId: PlayerId; loanId: string }
+  // Draft mode
+  | { type: 'submit_draft'; playerId: PlayerId; peeks: number[]; claims: DraftClaim[] }
+  | { type: 'draft_pick_option'; playerId: PlayerId; index: number; choiceIndex: number };
 
 export interface OfferPayload {
   id?: string;
@@ -478,6 +506,8 @@ export interface OfferPayload {
   cashOffer?: number;
   cashRequest?: number;
   shareSplit?: Record<PlayerId, number>;
+  projectedMonthlyIncome?: number;
+  projectedAssetValue?: number;
   enforcement?: EnforcementLevel;
   description: string;
 }
@@ -557,6 +587,29 @@ export interface MatchState {
 
   // Phase 3: active interest window (null when none open)
   activeInterestWindow: InterestWindow | null;
+
+  // Draft mode: which round format is being played (default 'classic')
+  matchMode?: MatchMode;
+  // Draft mode: the 6-card central board for the current round (null in classic)
+  draftBoard?: DraftBoard | null;
+}
+
+export type MatchMode = 'classic' | 'draft';
+
+export type ContestPref = 'fight' | 'split';
+
+export interface DraftClaim {
+  index: number;       // which of the 6 board cards
+  blind: boolean;      // claimed without peeking (pays a surcharge)
+  contestPref: ContestPref; // pre-committed: fight or split if contested
+}
+
+export interface DraftBoard {
+  cards: CardId[];                              // 6 cards dealt face-down this round
+  claims: Record<PlayerId, DraftClaim[]>;       // each player's reservations (≤2)
+  wonBy: Record<number, PlayerId | null>;       // resolved owner per card index
+  picked: Record<number, boolean>;              // per won-card index: option chosen & applied
+  resolved: boolean;                            // claims resolved into wonBy
 }
 
 // ─── Command Result ─────────────────────────────────────────────────────────

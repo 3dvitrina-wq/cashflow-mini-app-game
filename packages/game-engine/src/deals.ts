@@ -140,17 +140,35 @@ export function acceptDeal(
   // Asset transfer
   if (deal.offer.assetId) {
     const assetIdx = proposer.assets.findIndex((a) => a.id === deal.offer.assetId);
-    if (assetIdx >= 0) {
-      const [asset] = proposer.assets.splice(assetIdx, 1);
-      if (asset) acceptor.assets.push(asset);
+    if (assetIdx < 0) {
+      deal.status = 'expired';
+      return [{
+        type: 'command_rejected',
+        playerId: acceptor.id,
+        message: 'promised asset is no longer available',
+      }];
     }
+    const [asset] = proposer.assets.splice(assetIdx, 1);
+    if (asset) acceptor.assets.push(asset);
   }
 
   // Create contract from deal (this also handles cash transfers)
-  const { events: contractEvents } = contractFromOffer(
+  const { contract, events: contractEvents } = contractFromOffer(
     state, proposer, acceptor, deal.offer
   );
   events.push(...contractEvents);
+
+  if (contract.terms.shares) {
+    const partnership = {
+      id: contract.id,
+      players: [proposer.id, acceptor.id],
+      scope: [deal.offer.description],
+      shareRules: contract.terms.shares,
+      createdRound: state.round,
+    };
+    proposer.partnerships.push(partnership);
+    acceptor.partnerships.push(partnership);
+  }
 
   // Handle cash request (reverse transfer)
   if (deal.offer.cashRequest && deal.offer.cashRequest > 0) {
@@ -197,6 +215,8 @@ export function acceptDeal(
       dealId: deal.id,
       status: 'accepted',
       trustVerdict,
+      enforcement: contract.enforcement,
+      recurringPayment: contract.terms.paymentAmount ?? 0,
     },
   });
 

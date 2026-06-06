@@ -1,22 +1,49 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Profession catalog — Phase 3.
-// Professions seed initial player economics. Settlement formula is unchanged.
-// avatarKey is restricted to the 6 CANON outfits only.
+// Profession catalog — playability expansion.
+// Professions seed initial player economics and now also carry a real hero power
+// that the engine can apply, so "profession identity" is not decorative.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Outfit } from './index';
 
 export type ProfessionTier = 'entry' | 'mid' | 'senior' | 'elite';
-
-/** Tax band determines a multiplier applied to the engine's tax calculation. */
 export type TaxBand = 'a' | 'b' | 'c' | 'd';
+
+export type ProfessionPowerType =
+  | 'salary_boost'
+  | 'tax_discount'
+  | 'loan_buffer'
+  | 'asset_sale_bonus'
+  | 'restructure_discount'
+  | 'deposit_yield_boost'
+  | 'help_bonus'
+  | 'focus_bonus';
+
+export interface ProfessionPower {
+  id: string;
+  name: string;
+  nameRu: string;
+  type: ProfessionPowerType;
+  value: number;
+  summary: string;
+  summaryRu: string;
+  detail: string;
+  detailRu: string;
+}
 
 /** Multipliers per tax band: a = minimal, d = elite burden. */
 export const TAX_BAND_MULTIPLIER: Record<TaxBand, number> = {
-  a: 0.5,  // entry-level, minimal tax exposure
-  b: 1.0,  // baseline (current default behavior)
-  c: 1.3,  // upper-middle: doctor, senior roles
-  d: 1.8,  // elite: high earners, heavy progressive tax
+  a: 0.5,
+  b: 1.0,
+  c: 1.3,
+  d: 1.8,
+};
+
+export const TAX_BAND_LABELS: Record<TaxBand, { en: string; ru: string }> = {
+  a: { en: 'Low tax', ru: 'Низкий налог' },
+  b: { en: 'Normal tax', ru: 'Обычный налог' },
+  c: { en: 'Heavy tax', ru: 'Повышенный налог' },
+  d: { en: 'Elite tax', ru: 'Премиум-налог' },
 };
 
 /** Initial liability template — id is generated at player creation. */
@@ -31,40 +58,41 @@ export interface LiabilityTemplate {
 export interface ProfessionDefinition {
   id: string;
   name: string;
+  nameRu: string;
   tier: ProfessionTier;
-  /** Must be one of the 6 CANON outfit keys. */
   avatarKey: Outfit;
-  /** Starting active income per round. */
   baseSalary: number;
   taxBand: TaxBand;
-  /** Monthly base expenses (housing + food + transport). */
   baseExpenses: number;
-  /** Starting cash balance. */
   startingCash: number;
-  /** Initial liabilities to seed. Empty for debt-free professions. */
   liabilities: LiabilityTemplate[];
-  /** Travel/lifestyle cost (subset of baseExpenses, for display only). */
   travelCost: number;
+  heroTitle: string;
+  heroTitleRu: string;
+  heroPower: ProfessionPower;
+  startHook: string;
+  startHookRu: string;
 }
 
-// ─── Catalog (14 professions) ────────────────────────────────────────────────
-//
-// Design invariant: every profession must have positive net cashflow after
-// tax (at DEFAULT_MACRO taxRate 0.15) and liability payments.
-//
-// Net cashflow formula used for verification:
-//   net = baseSalary - baseExpenses - tax - sum(principal * interestRate)
-//
-// All strategies remain viable:
-//   entry/mid → safe_cashflow path (steady income, low debt)
-//   mid/senior → active_dealmaker path (higher cashflow for deals)
-//   senior/elite → high_risk_speculator path (high cashflow, must delever fast)
+function power(
+  id: string,
+  name: string,
+  nameRu: string,
+  type: ProfessionPowerType,
+  value: number,
+  summary: string,
+  summaryRu: string,
+  detail: string,
+  detailRu: string,
+): ProfessionPower {
+  return { id, name, nameRu, type, value, summary, summaryRu, detail, detailRu };
+}
 
 export const PROFESSIONS: ProfessionDefinition[] = [
-  // ── Entry tier ──────────────────────────────────────────────────────────────
   {
     id: 'courier',
     name: 'Courier',
+    nameRu: 'Курьер',
     tier: 'entry',
     avatarKey: 'hustler',
     baseSalary: 620,
@@ -73,10 +101,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     startingCash: 900,
     liabilities: [],
     travelCost: 50,
+    heroTitle: 'Street Runner',
+    heroTitleRu: 'Уличный раннер',
+    heroPower: power(
+      'courier-help',
+      'Fast Hands',
+      'Быстрые руки',
+      'help_bonus',
+      0.25,
+      '+25% more cash when asking the table for help.',
+      '+25% к помощи от стола.',
+      'Every help action squeezes extra emergency cash out of the room.',
+      'Любая просьба о помощи приносит больше аварийных денег.',
+    ),
+    startHook: 'Starts light on debt, but one bad month still hurts.',
+    startHookRu: 'Стартует почти без долгов, но плохой месяц всё равно режет больно.',
   },
   {
     id: 'barista',
     name: 'Barista',
+    nameRu: 'Бариста',
     tier: 'entry',
     avatarKey: 'creator',
     baseSalary: 550,
@@ -85,10 +129,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     startingCash: 750,
     liabilities: [],
     travelCost: 30,
+    heroTitle: 'Tip Magnet',
+    heroTitleRu: 'Магнит для чаевых',
+    heroPower: power(
+      'barista-deposit',
+      'Latte Float',
+      'Латте-резерв',
+      'deposit_yield_boost',
+      0.0025,
+      'Deposits earn +0.25% annual yield.',
+      'Депозиты дают +0.25% годовой ставки.',
+      'Even boring money works a little harder thanks to obsessive small-cash discipline.',
+      'Скучные деньги работают чуть лучше благодаря дисциплине мелких сумм.',
+    ),
+    startHook: 'Small cash, clean budget, room to grow carefully.',
+    startHookRu: 'Небольшие деньги, чистый бюджет и пространство для аккуратного роста.',
   },
   {
     id: 'freelance_designer',
     name: 'Freelance Designer',
+    nameRu: 'Фриланс-дизайнер',
     tier: 'entry',
     avatarKey: 'creator',
     baseSalary: 780,
@@ -99,10 +159,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'credit', principal: 600, interestRate: 0.06, remainingPayments: 18, creditor: 'Bank' },
     ],
     travelCost: 80,
+    heroTitle: 'Portfolio Flip',
+    heroTitleRu: 'Портфолио-флип',
+    heroPower: power(
+      'designer-sell',
+      'Portfolio Flip',
+      'Портфолио-флип',
+      'asset_sale_bonus',
+      0.08,
+      'Sell assets for +8% more cash.',
+      'Продаёт активы на +8% дороже.',
+      'Knows how to package mediocre things like they were premium opportunities.',
+      'Умеет упаковать средний актив так, будто это премиум-возможность.',
+    ),
+    startHook: 'Earns okay, but credit already eats attention.',
+    startHookRu: 'Зарабатывает нормально, но кредит уже съедает внимание.',
   },
   {
     id: 'teacher',
     name: 'Teacher',
+    nameRu: 'Учитель',
     tier: 'entry',
     avatarKey: 'office',
     baseSalary: 880,
@@ -113,12 +189,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 1500, interestRate: 0.05, remainingPayments: 24, creditor: 'Student Loan Fund' },
     ],
     travelCost: 40,
+    heroTitle: 'Trusted Adult',
+    heroTitleRu: 'Надёжный взрослый',
+    heroPower: power(
+      'teacher-focus',
+      'Trusted Adult',
+      'Надёжный взрослый',
+      'focus_bonus',
+      1,
+      'Start with +1 focus token for contested deals.',
+      'Стартует с +1 фокус-токеном на спорных сделках.',
+      'Other players assume you will show up, read the contract, and not disappear.',
+      'Другие игроки верят, что ты дочитаешь договор и не исчезнешь.',
+    ),
+    startHook: 'Stable salary, decent trust, but old education debt stays on your neck.',
+    startHookRu: 'Стабильная зарплата и доверие, но старый учебный долг всё ещё висит на шее.',
   },
-
-  // ── Mid tier ────────────────────────────────────────────────────────────────
   {
     id: 'nurse',
     name: 'Nurse',
+    nameRu: 'Медсестра',
     tier: 'mid',
     avatarKey: 'operator',
     baseSalary: 1050,
@@ -129,10 +219,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 2000, interestRate: 0.05, remainingPayments: 30, creditor: 'Medical School Fund' },
     ],
     travelCost: 60,
+    heroTitle: 'Night Shift Backbone',
+    heroTitleRu: 'Ночная смена',
+    heroPower: power(
+      'nurse-help',
+      'Night Shift Backbone',
+      'Ночная смена',
+      'help_bonus',
+      0.35,
+      'Help requests bring +35% extra emergency cash.',
+      'Просьбы о помощи приносят на 35% больше денег.',
+      'People trust you in a crisis, so bailouts land faster.',
+      'В кризис тебе охотнее помогают, поэтому спасательные деньги приходят быстрее.',
+    ),
+    startHook: 'Reliable cashflow, but school debt still bites every month.',
+    startHookRu: 'Надёжный поток, но долг за обучение всё ещё кусает каждый месяц.',
   },
   {
     id: 'journalist',
     name: 'Journalist',
+    nameRu: 'Журналист',
     tier: 'mid',
     avatarKey: 'nomad',
     baseSalary: 980,
@@ -141,10 +247,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     startingCash: 1800,
     liabilities: [],
     travelCost: 200,
+    heroTitle: 'Tax Leak',
+    heroTitleRu: 'Налоговый слив',
+    heroPower: power(
+      'journalist-tax',
+      'Tax Leak',
+      'Налоговый слив',
+      'tax_discount',
+      0.1,
+      'Pay 10% less tax.',
+      'Платит на 10% меньше налогов.',
+      'Knows where the paperwork leaks and how to avoid being milked at full rate.',
+      'Знает, где течёт бюрократия, и платит меньше полного удара.',
+    ),
+    startHook: 'Income is okay, but travel and chaos quietly eat the margin.',
+    startHookRu: 'Доход нормальный, но поездки и хаос тихо съедают маржу.',
   },
   {
     id: 'programmer',
     name: 'Programmer',
+    nameRu: 'Программист',
     tier: 'mid',
     avatarKey: 'operator',
     baseSalary: 1500,
@@ -155,10 +277,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 3000, interestRate: 0.04, remainingPayments: 36, creditor: 'Tech Academy' },
     ],
     travelCost: 100,
+    heroTitle: 'Automation Loop',
+    heroTitleRu: 'Автоматизация',
+    heroPower: power(
+      'programmer-salary',
+      'Automation Loop',
+      'Автоматизация',
+      'salary_boost',
+      0.1,
+      'Salary counts as +10% higher.',
+      'Зарплата считается на +10% выше.',
+      'Scripts, shortcuts, and side automations make the same job pay a little more.',
+      'Скрипты, шорткаты и автоматизация выжимают из работы чуть больше денег.',
+    ),
+    startHook: 'Strong salary runway with a meaningful debt anchor.',
+    startHookRu: 'Сильный стартовый оклад, но с ощутимым якорем долга.',
   },
   {
     id: 'doctor',
     name: 'Doctor',
+    nameRu: 'Врач',
     tier: 'mid',
     avatarKey: 'office',
     baseSalary: 1750,
@@ -169,12 +307,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 4000, interestRate: 0.04, remainingPayments: 48, creditor: 'Medical School Loan' },
     ],
     travelCost: 80,
+    heroTitle: 'Emergency Protocol',
+    heroTitleRu: 'Экстренный протокол',
+    heroPower: power(
+      'doctor-restructure',
+      'Emergency Protocol',
+      'Экстренный протокол',
+      'restructure_discount',
+      0.18,
+      'Debt restructuring costs 18% less and cuts more interest.',
+      'Реструктуризация долга дешевле на 18% и сильнее режет процент.',
+      'You know how to stabilize a bleeding balance sheet before it flatlines.',
+      'Ты умеешь стабилизировать кровоточащий баланс до полной остановки.',
+    ),
+    startHook: 'Big income, big taxes, and no room to ignore old education debt.',
+    startHookRu: 'Большой доход, большие налоги и никакой роскоши игнорировать старый долг.',
   },
-
-  // ── Senior tier ─────────────────────────────────────────────────────────────
   {
     id: 'realtor',
     name: 'Realtor',
+    nameRu: 'Риелтор',
     tier: 'senior',
     avatarKey: 'trader',
     baseSalary: 1350,
@@ -185,10 +337,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 5000, interestRate: 0.04, remainingPayments: 60, creditor: 'Mortgage Bank' },
     ],
     travelCost: 200,
+    heroTitle: 'Exit Commission',
+    heroTitleRu: 'Комиссия на выходе',
+    heroPower: power(
+      'realtor-sell',
+      'Exit Commission',
+      'Комиссия на выходе',
+      'asset_sale_bonus',
+      0.15,
+      'Sell assets for +15% more cash.',
+      'Продаёт активы на +15% дороже.',
+      'If you have to liquidate, you still know how to squeeze a buyer.',
+      'Даже при срочной продаже ты умеешь дожать покупателя.',
+    ),
+    startHook: 'Starts liquid, but mortgage-style liabilities punish slow play.',
+    startHookRu: 'Стартует ликвидно, но долги ипотечного масштаба наказывают медленную игру.',
   },
   {
     id: 'marketer',
     name: 'Marketer',
+    nameRu: 'Маркетолог',
     tier: 'senior',
     avatarKey: 'creator',
     baseSalary: 1450,
@@ -199,10 +367,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 3500, interestRate: 0.04, remainingPayments: 48, creditor: 'Personal Loan' },
     ],
     travelCost: 150,
+    heroTitle: 'Conversion Spell',
+    heroTitleRu: 'Конверсия',
+    heroPower: power(
+      'marketer-salary',
+      'Conversion Spell',
+      'Конверсия',
+      'salary_boost',
+      0.15,
+      'Salary counts as +15% higher.',
+      'Зарплата считается на +15% выше.',
+      'Your network, upsells, and positioning make the same role pay more.',
+      'Связи, апселлы и позиционирование превращают ту же работу в более дорогую.',
+    ),
+    startHook: 'Healthy income, but personal debt means flexing too early still hurts.',
+    startHookRu: 'Хороший доход, но личный долг всё ещё наказывает за ранний понт.',
   },
   {
     id: 'startup_founder',
     name: 'Startup Founder',
+    nameRu: 'Стартапер',
     tier: 'senior',
     avatarKey: 'hustler',
     baseSalary: 1400,
@@ -213,10 +397,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'credit', principal: 4000, interestRate: 0.05, remainingPayments: 60, creditor: 'Venture Credit' },
     ],
     travelCost: 400,
+    heroTitle: 'Runway Wizard',
+    heroTitleRu: 'Маг ранвея',
+    heroPower: power(
+      'founder-loan',
+      'Runway Wizard',
+      'Маг ранвея',
+      'loan_buffer',
+      0.25,
+      'Bank loan cap is +25% higher.',
+      'Лимит банковского кредита на 25% выше.',
+      'You can convincingly call ordinary debt "bridge financing".',
+      'Ты убедительно называешь обычный долг bridge financing.',
+    ),
+    startHook: 'Starts bold but already carries venture-shaped pressure.',
+    startHookRu: 'Стартует дерзко, но уже тащит на себе венчурное давление.',
   },
   {
     id: 'investment_banker',
     name: 'Investment Banker',
+    nameRu: 'Инвестбанкир',
     tier: 'senior',
     avatarKey: 'trader',
     baseSalary: 1950,
@@ -227,12 +427,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 2500, interestRate: 0.04, remainingPayments: 30, creditor: 'Prestige Club Financing' },
     ],
     travelCost: 300,
+    heroTitle: 'Leverage Dial',
+    heroTitleRu: 'Рычаг',
+    heroPower: power(
+      'banker-loan',
+      'Leverage Dial',
+      'Рычаг',
+      'loan_buffer',
+      0.35,
+      'Bank loan cap is +35% higher.',
+      'Лимит банковского кредита на 35% выше.',
+      'Borrowing is still dangerous, but the bank believes your pitch longer.',
+      'Брать в долг всё ещё опасно, но банк дольше верит твоему питчу.',
+    ),
+    startHook: 'Huge salary and huge taxes; luxury habits can still choke the table.',
+    startHookRu: 'Огромная зарплата и огромные налоги; привычка к роскоши всё ещё душит стол.',
   },
-
-  // ── Elite tier ──────────────────────────────────────────────────────────────
   {
     id: 'top_manager',
     name: 'Top Manager',
+    nameRu: 'Топ-менеджер',
     tier: 'elite',
     avatarKey: 'office',
     baseSalary: 2550,
@@ -243,10 +457,26 @@ export const PROFESSIONS: ProfessionDefinition[] = [
       { kind: 'loan', principal: 8000, interestRate: 0.03, remainingPayments: 72, creditor: 'Prestige Mortgage' },
     ],
     travelCost: 500,
+    heroTitle: 'Board Bonus',
+    heroTitleRu: 'Бонус совета',
+    heroPower: power(
+      'manager-salary',
+      'Board Bonus',
+      'Бонус совета',
+      'salary_boost',
+      0.12,
+      'Salary counts as +12% higher.',
+      'Зарплата считается на +12% выше.',
+      'Compensation committees keep finding one more bonus line for you.',
+      'Компенсационный комитет всегда находит тебе ещё одну бонусную строчку.',
+    ),
+    startHook: 'Very rich on paper, very vulnerable to heavy lifestyle burn.',
+    startHookRu: 'На бумаге очень богат, но тяжёлый образ жизни быстро жрёт запас.',
   },
   {
     id: 'fund_manager',
     name: 'Fund Manager',
+    nameRu: 'Управляющий фондом',
     tier: 'elite',
     avatarKey: 'trader',
     baseSalary: 2250,
@@ -255,10 +485,317 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     startingCash: 7000,
     liabilities: [],
     travelCost: 400,
+    heroTitle: 'Treasury Desk',
+    heroTitleRu: 'Трежери-деск',
+    heroPower: power(
+      'fund-deposit',
+      'Treasury Desk',
+      'Трежери-деск',
+      'deposit_yield_boost',
+      0.005,
+      'Deposits earn +0.5% annual yield.',
+      'Депозиты дают +0.5% годовой ставки.',
+      'Safe money compounds better because parking cash is part of the job.',
+      'Безопасные деньги растут лучше, потому что парковать кэш — часть профессии.',
+    ),
+    startHook: 'Loads in with the biggest cushion, but taxes punish sloppy overconfidence.',
+    startHookRu: 'Заходит с самым жирным запасом, но налоги наказывают за небрежную самоуверенность.',
+  },
+
+  // Additional profession roster grounded in the new character cast.
+  {
+    id: 'checkout_cashier',
+    name: 'Checkout Cashier',
+    nameRu: 'Кассирша',
+    tier: 'entry',
+    avatarKey: 'operator',
+    baseSalary: 610,
+    taxBand: 'a',
+    baseExpenses: 430,
+    startingCash: 850,
+    liabilities: [],
+    travelCost: 30,
+    heroTitle: 'Change Whisperer',
+    heroTitleRu: 'Шёпот сдачи',
+    heroPower: power(
+      'cashier-tax',
+      'Change Whisperer',
+      'Шёпот сдачи',
+      'tax_discount',
+      0.08,
+      'Pay 8% less tax.',
+      'Платит на 8% меньше налогов.',
+      'Knows how every receipt actually moves and where small leaks hide.',
+      'Знает цену каждого чека и видит мелкие утечки раньше других.',
+    ),
+    startHook: 'Small salary, tiny buffer, but very clean everyday economics.',
+    startHookRu: 'Маленькая зарплата, крошечный буфер, зато очень чистая бытовая экономика.',
+  },
+  {
+    id: 'deal_maven',
+    name: 'Deal Maven',
+    nameRu: 'Переговорщица',
+    tier: 'mid',
+    avatarKey: 'trader',
+    baseSalary: 1280,
+    taxBand: 'b',
+    baseExpenses: 690,
+    startingCash: 2800,
+    liabilities: [
+      { kind: 'credit', principal: 1800, interestRate: 0.05, remainingPayments: 30, creditor: 'Lifestyle Card' },
+    ],
+    travelCost: 120,
+    heroTitle: 'Second Signature',
+    heroTitleRu: 'Вторая подпись',
+    heroPower: power(
+      'deal-focus',
+      'Second Signature',
+      'Вторая подпись',
+      'focus_bonus',
+      1,
+      'Start with +1 focus token for contested cards.',
+      'Стартует с +1 фокус-токеном для спорных карт.',
+      'In a crowded negotiation, you still get a seat at the table.',
+      'Даже в тесной перегрузке переговоров ты всё равно пролезаешь за стол.',
+    ),
+    startHook: 'Turns social pressure into leverage, but can burn cash on image.',
+    startHookRu: 'Превращает социальное давление в рычаг, но любит жечь деньги на образ.',
+  },
+  {
+    id: 'burnout_clerk',
+    name: 'Burnout Clerk',
+    nameRu: 'Уставший клерк',
+    tier: 'entry',
+    avatarKey: 'office',
+    baseSalary: 760,
+    taxBand: 'b',
+    baseExpenses: 590,
+    startingCash: 1100,
+    liabilities: [
+      { kind: 'credit', principal: 1300, interestRate: 0.05, remainingPayments: 20, creditor: 'Credit Card' },
+    ],
+    travelCost: 45,
+    heroTitle: 'Documentation Armor',
+    heroTitleRu: 'Броня бумажек',
+    heroPower: power(
+      'clerk-restructure',
+      'Documentation Armor',
+      'Броня бумажек',
+      'restructure_discount',
+      0.1,
+      'Debt restructuring costs 10% less.',
+      'Реструктуризация долга дешевле на 10%.',
+      'You know which form to stamp to delay disaster by one more month.',
+      'Ты знаешь, какой бланк проштамповать, чтобы отложить катастрофу ещё на месяц.',
+    ),
+    startHook: 'Low runway, chronic fatigue, but excellent survival paperwork.',
+    startHookRu: 'Низкий runway, хроническая усталость, но отличная выживаемость на бумагах.',
+  },
+  {
+    id: 'campus_student',
+    name: 'Campus Student',
+    nameRu: 'Мажор-студент',
+    tier: 'entry',
+    avatarKey: 'creator',
+    baseSalary: 420,
+    taxBand: 'a',
+    baseExpenses: 320,
+    startingCash: 1600,
+    liabilities: [
+      { kind: 'loan', principal: 1200, interestRate: 0.04, remainingPayments: 18, creditor: 'Parent Advance' },
+    ],
+    travelCost: 70,
+    heroTitle: 'Hype Scholarship',
+    heroTitleRu: 'Стипендия за хайп',
+    heroPower: power(
+      'student-focus',
+      'Hype Scholarship',
+      'Стипендия за хайп',
+      'focus_bonus',
+      1,
+      'Start with +1 focus token.',
+      'Стартует с +1 фокус-токеном.',
+      'Shows up hungry and over-curious, which is surprisingly powerful in drafts and bids.',
+      'Приходит голодным и чересчур любопытным, что неожиданно сильно в драфтах и ставках.',
+    ),
+    startHook: 'Weak salary but more flexible cash than people expect.',
+    startHookRu: 'Слабая зарплата, но больше гибкого кэша, чем от него ждут.',
+  },
+  {
+    id: 'sky_pilot',
+    name: 'Sky Pilot',
+    nameRu: 'Лётчик',
+    tier: 'senior',
+    avatarKey: 'nomad',
+    baseSalary: 1620,
+    taxBand: 'c',
+    baseExpenses: 1040,
+    startingCash: 3200,
+    liabilities: [
+      { kind: 'loan', principal: 2800, interestRate: 0.04, remainingPayments: 36, creditor: 'Flight School' },
+    ],
+    travelCost: 260,
+    heroTitle: 'Emergency Descent',
+    heroTitleRu: 'Аварийное снижение',
+    heroPower: power(
+      'pilot-help',
+      'Emergency Descent',
+      'Аварийное снижение',
+      'help_bonus',
+      0.3,
+      'Help requests bring +30% extra cash.',
+      'Просьбы о помощи приносят на 30% больше денег.',
+      'When turbulence hits, everyone expects you to land the crisis instead of panic.',
+      'Когда начинается турбулентность, все ждут, что ты посадишь кризис, а не запаникуешь.',
+    ),
+    startHook: 'Strong income, heavy travel burn, and training debt that never forgets.',
+    startHookRu: 'Сильный доход, тяжёлые транспортные траты и долг за обучение, который всё помнит.',
+  },
+  {
+    id: 'police_officer',
+    name: 'Police Officer',
+    nameRu: 'Полицейский',
+    tier: 'mid',
+    avatarKey: 'hustler',
+    baseSalary: 1120,
+    taxBand: 'b',
+    baseExpenses: 640,
+    startingCash: 2100,
+    liabilities: [],
+    travelCost: 60,
+    heroTitle: 'Hard Ask',
+    heroTitleRu: 'Жёсткий запрос',
+    heroPower: power(
+      'police-loan',
+      'Hard Ask',
+      'Жёсткий запрос',
+      'loan_buffer',
+      0.15,
+      'Bank loan cap is +15% higher.',
+      'Лимит банковского кредита на 15% выше.',
+      'Authority helps when asking for short-term liquidity, even if it should not.',
+      'Авторитет помогает при коротких займах, даже если так быть не должно.',
+    ),
+    startHook: 'Solid floor, low glamour, and a better chance to borrow under pressure.',
+    startHookRu: 'Крепкий пол, мало гламура и лучший шанс занять в критический момент.',
+  },
+  {
+    id: 'artist',
+    name: 'Artist',
+    nameRu: 'Художник',
+    tier: 'entry',
+    avatarKey: 'creator',
+    baseSalary: 680,
+    taxBand: 'a',
+    baseExpenses: 480,
+    startingCash: 1200,
+    liabilities: [],
+    travelCost: 90,
+    heroTitle: 'Resale Aura',
+    heroTitleRu: 'Аура перепродажи',
+    heroPower: power(
+      'artist-sell',
+      'Resale Aura',
+      'Аура перепродажи',
+      'asset_sale_bonus',
+      0.1,
+      'Sell assets for +10% more cash.',
+      'Продаёт активы на +10% дороже.',
+      'Can wrap even a desperate liquidation in a story that sounds collectible.',
+      'Умеет завернуть даже вынужденную распродажу в историю, которая звучит коллекционно.',
+    ),
+    startHook: 'Soft income, soft budget, but strong liquidation storytelling.',
+    startHookRu: 'Мягкий доход, мягкий бюджет, зато сильная история при распродаже.',
+  },
+  {
+    id: 'classroom_teacher',
+    name: 'Classroom Teacher',
+    nameRu: 'Учительница',
+    tier: 'mid',
+    avatarKey: 'office',
+    baseSalary: 990,
+    taxBand: 'b',
+    baseExpenses: 620,
+    startingCash: 1700,
+    liabilities: [
+      { kind: 'loan', principal: 1900, interestRate: 0.05, remainingPayments: 28, creditor: 'Pedagogy Loan' },
+    ],
+    travelCost: 35,
+    heroTitle: 'Calm Room',
+    heroTitleRu: 'Спокойный класс',
+    heroPower: power(
+      'teacher2-tax',
+      'Calm Room',
+      'Спокойный класс',
+      'tax_discount',
+      0.07,
+      'Pay 7% less tax.',
+      'Платит на 7% меньше налогов.',
+      'Order, receipts, and routine shave a bit off the bureaucratic drag.',
+      'Порядок, чеки и рутина слегка режут бюрократический drag.',
+    ),
+    startHook: 'Moderate salary and debt, but surprisingly efficient monthly discipline.',
+    startHookRu: 'Умеренная зарплата и долг, зато неожиданно эффективная месячная дисциплина.',
+  },
+  {
+    id: 'fixer_consultant',
+    name: 'Fixer Consultant',
+    nameRu: 'Консультантка',
+    tier: 'senior',
+    avatarKey: 'trader',
+    baseSalary: 1540,
+    taxBand: 'c',
+    baseExpenses: 920,
+    startingCash: 3600,
+    liabilities: [
+      { kind: 'credit', principal: 2600, interestRate: 0.04, remainingPayments: 30, creditor: 'Business Card' },
+    ],
+    travelCost: 220,
+    heroTitle: 'Damage Control',
+    heroTitleRu: 'Антикризис',
+    heroPower: power(
+      'consultant-restructure',
+      'Damage Control',
+      'Антикризис',
+      'restructure_discount',
+      0.22,
+      'Debt restructuring costs 22% less and recovers more interest.',
+      'Реструктуризация долга дешевле на 22% и сильнее режет процент.',
+      'When the balance sheet smells like fire, you know exactly whom to call.',
+      'Когда баланс пахнет пожаром, ты точно знаешь, кому звонить.',
+    ),
+    startHook: 'Comfortable income, expensive lifestyle, strong ability to patch collapse.',
+    startHookRu: 'Комфортный доход, дорогой стиль жизни и сильная способность латать обвал.',
+  },
+  {
+    id: 'flight_attendant',
+    name: 'Flight Attendant',
+    nameRu: 'Стюардесса',
+    tier: 'mid',
+    avatarKey: 'nomad',
+    baseSalary: 1180,
+    taxBand: 'b',
+    baseExpenses: 710,
+    startingCash: 2400,
+    liabilities: [],
+    travelCost: 210,
+    heroTitle: 'Upgrade Whisper',
+    heroTitleRu: 'Апгрейд-шёпот',
+    heroPower: power(
+      'attendant-salary',
+      'Upgrade Whisper',
+      'Апгрейд-шёпот',
+      'salary_boost',
+      0.08,
+      'Salary counts as +8% higher.',
+      'Зарплата считается на +8% выше.',
+      'Soft skills and hustle turn routine service into slightly better money.',
+      'Софт-скиллы и hustle превращают обычный сервис в чуть более дорогую работу.',
+    ),
+    startHook: 'Good mobility, uneven routine, and a lot of money leaking into transit.',
+    startHookRu: 'Хорошая мобильность, неровный график и много денег, утекающих в дорогу.',
   },
 ];
-
-// ─── Lookup helpers ──────────────────────────────────────────────────────────
 
 const PROFESSION_MAP = new Map<string, ProfessionDefinition>(
   PROFESSIONS.map((p) => [p.id, p]),

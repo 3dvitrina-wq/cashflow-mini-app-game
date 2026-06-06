@@ -11,9 +11,11 @@ import type {
   Command,
   FuturesDirection,
   MatchState,
+  PendingDeal,
   PlayerState,
 } from '../../shared/src/index';
 import { getCard } from './cards';
+import { canAffordChoice } from './engine';
 
 function cashDelta(effects: { type: string; amount?: number }[]): number {
   return effects
@@ -198,8 +200,9 @@ export function botIntent(state: MatchState, player: PlayerState): Command {
     const passive = passiveDelta(choice.effects);
     const stress = stressDelta(choice.effects);
 
-    // Can we afford it?
-    const affordable = player.cash + cash >= 0;
+    // Match the engine's real upfront-cost gate so bots don't queue invalid
+    // partnership/deposit/futures choices and deadlock simultaneous rounds.
+    const affordable = canAffordChoice(state, player.id, idx);
     if (!affordable) {
       const score = -1e9 + idx;
       if (score > bestScore) { bestScore = score; bestIdx = idx; }
@@ -250,6 +253,86 @@ export function botIntent(state: MatchState, player: PlayerState): Command {
   });
 
   return { type: 'choose_option', playerId: player.id, choiceIndex: bestIdx };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Deal evaluation. A bot is the *target* (acceptor) of a pending deal and must
+// decide accept vs reject by its strategy. Pure & deterministic — no rng.
+// From the acceptor's view: it RECEIVES offer.cashOffer and PAYS offer.cashRequest.
+// ─────────────────────────────────────────────────────────────────────────────
+export function evaluateDeal(state: MatchState, bot: PlayerState, deal: PendingDeal): boolean {
+  const offer = deal.offer;
+  const cashIn = offer.cashOffer ?? 0; // proposer pays this to the bot
+  const cashOut = offer.cashRequest ?? 0; // bot pays this to the proposer
+  const netCash = cashIn - cashOut;
+
+  // Never accept something the bot cannot pay for.
+  if (cashOut > bot.cash) return false;
+
+  const proposer = state.players.find((p) => p.id === deal.proposerId);
+  const trust = proposer?.trust ?? 5;
+
+  // Equity/share upside: a positive share for the bot makes the deal more attractive.
+  const botShare = offer.shareSplit?.[bot.id] ?? 0;
+  const shareBonus = botShare > 0 ? 600 : 0;
+  // Higher proposer trust loosens the acceptance threshold.
+  const trustBonus = (trust - 5) * 150;
+
+  // Per-strategy minimum acceptable net cash (negative = willing to pay for the deal).
+  const strategy = bot.botStrategy;
+  let floor: number;
+  if (strategy === 'safe_cashflow') floor = 0;
+  else if (strategy === 'active_dealmaker') floor = -1200;
+  else if (strategy === 'high_risk_speculator') floor = -600;
+  else {
+    // No goal-strategy: fall back to persona caution.
+    const persona = bot.botPersona ?? 'conservative';
+    floor = persona === 'aggressive' ? -800 : persona === 'balanced' ? -300 : 0;
+  }
+
+  return netCash + shareBonus + trustBonus >= floor;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Outgoing invites. On opportunity/social cards a bot may proactively propose a
+// partnership to a human (non-bot) player. `roll` is a seeded 0..1 value supplied
+// by the engine so the decision stays deterministic.
+// Returns a propose_deal Command, or null if the bot stays quiet this round.
+// ─────────────────────────────────────────────────────────────────────────────
+export function maybeProposeDeal(state: MatchState, bot: PlayerState, roll: number): Command | null {
+  if (bot.cash < 400) return null; // too poor to make an appealing offer
+
+  // Probability to initiate, by strategy.
+  const strategy = bot.botStrategy;
+  const chance =
+    strategy === 'active_dealmaker' ? 0.6 :
+    strategy === 'high_risk_speculator' ? 0.35 :
+    strategy === 'safe_cashflow' ? 0.15 : 0.25;
+  if (roll >= chance) return null;
+
+  // Prefer a living human (non-bot) target; fall back to any other living player.
+  const target =
+    state.players.find((p) => p.alive && !p.isBot && p.id !== bot.id) ??
+    state.players.find((p) => p.alive && p.id !== bot.id);
+  if (!target) return null;
+
+  // Bot offers cash now for a partnership share — a genuinely attractive invite.
+  const cashOffer = Math.max(200, Math.min(Math.round(bot.cash * 0.15), 1500));
+
+  return {
+    type: 'propose_deal',
+    playerId: bot.id,
+    targetId: target.id,
+    offer: {
+      targetPlayerId: target.id,
+      cashOffer,
+      cashRequest: 0,
+      shareSplit: { [bot.id]: 0.5, [target.id]: 0.5 },
+      projectedMonthlyIncome: Math.max(300, Math.round(cashOffer * 0.35)),
+      projectedAssetValue: Math.max(1500, Math.round(cashOffer * 2.5)),
+      description: `${bot.name}: партнёрство 50/50`,
+    },
+  };
 }
 
 /** Get bot persona from a string, with fallback to conservative. */
