@@ -1,12 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import hostImage from '../assets/generated/ai-host.png';
-import reactionArrow from '../assets/generated/reaction-arrow.png';
-import reactionCat from '../assets/generated/reaction-cat.png';
-import reactionFrog from '../assets/generated/reaction-frog.png';
-import reactionLol from '../assets/generated/reaction-lol.png';
-import reactionPanda from '../assets/generated/reaction-panda.png';
-import reactionWtf from '../assets/generated/reaction-wtf.png';
-import taxApocalypseImage from '../assets/generated/tax-apocalypse.png';
+import { REACTIONS, BOT_REACTION_LABELS } from '../assets/reactions';
+import { resolveGameplayCardArtwork } from '../assets/cardArtwork';
 import { resolveCharacterImage } from '../assets/characterRenderer';
 import { useStore } from '../store';
 import { wsClient } from '../lib/wsClient';
@@ -17,34 +11,61 @@ import { OfferBuilderModal } from '../components/negotiation/OfferBuilderModal';
 import { MarketBoardScreen } from './MarketBoardScreen';
 import { LaborMarketScreen } from './LaborMarketScreen';
 import { PetShopScreen } from './PetShopScreen';
+import { BankScreen } from './BankScreen';
+import { DraftBoard } from './DraftBoardScreen';
 import { EventLogScreen } from './EventLogScreen';
 import { CollaborationHubScreen } from './CollaborationHubScreen';
 import { DailyCardScreen } from './DailyCardScreen';
 import { PlayerStatsScreen } from './PlayerStatsScreen';
+import { BusinessSlotsScreen } from './BusinessSlotsScreen';
+import { ProtectionScreen } from './ProtectionScreen';
 import { showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
+import { playSound } from '../lib/sound';
+import { HostInterjection, type HostMoment } from '../components/HostInterjection';
 import { useI18n } from '../i18n';
+
+// The host is a guest, not a narrator: it only has something to say when a market
+// event, a stress check, or a risky deal is imminent. Most rounds → null (silent).
+function pickHostMoment(
+  card: { type: string; hostCue?: string; id?: string } | null,
+  dealOpen: boolean,
+  meCash: number,
+  ru: boolean,
+): HostMoment | null {
+  if (!card) return null;
+  const cue = card.hostCue?.trim();
+  if (dealOpen) return { tone: 'deal', cue: cue || (ru ? 'Назревает сделка - стоит ли влезать?' : 'A deal is brewing — worth the risk?') };
+  if (card.type === 'crisis') return { tone: 'check', cue: cue || (ru ? 'Проверка на прочность. Реши с умом.' : 'A stress test. Choose wisely.') };
+  if (card.type === 'market_pulse') return { tone: 'event', cue: cue || (ru ? 'Рынок штормит - это касается всех.' : 'The market is moving — it hits everyone.') };
+  if ((card.id ?? '').includes('futures')) return { tone: 'deal', cue: cue || (ru ? 'Плечо - это качели. Готов?' : 'Leverage cuts both ways. Ready?') };
+  if (meCash < 500) return { tone: 'warning', cue: ru ? 'Наличные на нуле - аккуратнее с тратами.' : 'Cash is nearly out — watch your spending.' };
+  return null;
+}
 
 import {
   IconAlert,
+  IconBankVault,
   IconBox,
-  IconBriefcase,
   IconChaosMask,
   IconChart,
   IconCheck,
+  IconCogSpark,
   IconCoin,
   IconDebt,
-  IconDoc,
   IconDots,
   IconExclaim,
+  IconGiftBurst,
   IconGlobe,
   IconHand,
   IconHandshake,
+  IconLaborHelmet,
   IconMask,
   IconMegaphone,
   IconMenu,
-  IconMic,
+  IconNewsSheet,
   IconNoWifi,
+  IconPawBadge,
   IconPlusCircle,
   IconShield,
   IconShop,
@@ -52,7 +73,6 @@ import {
   IconStress,
   IconTimer,
   IconTrust,
-  IconUmbrella,
   IconUsers,
 } from '../assets/Icons';
 
@@ -69,14 +89,8 @@ const RING_COLORS: Record<CharacterMood, string> = {
   chaos: '#D7445B',
 };
 
-const REACTIONS = [
-  { label: 'WTF?!', image: reactionWtf, className: 'reaction-burst' },
-  { label: '', image: reactionLol, className: 'reaction-laugh' },
-  { label: 'LOL', image: reactionCat, className: 'reaction-pet' },
-  { label: '', image: reactionPanda, className: 'reaction-sad' },
-  { label: 'Hm...', image: reactionFrog, className: 'reaction-frog' },
-  { label: '', image: reactionArrow, className: 'reaction-arrow' },
-];
+const MIN_HUD_BUSINESS_SLOTS = 3;
+const MAX_HUD_BUSINESS_SLOTS = 5;
 
 function compactMoney(value: number): string {
   if (value >= 1000) {
@@ -92,6 +106,20 @@ function moneyShort(value: number): string {
     return k % 1 === 0 ? `${k.toFixed(0)}K` : `${k.toFixed(1)}K`;
   }
   return String(value);
+}
+
+function cardTypeLabel(type: string, ru: boolean): string {
+  if (!ru) return type.toUpperCase();
+  const labels: Record<string, string> = {
+    opportunity: 'ВОЗМОЖНОСТЬ',
+    crisis: 'КРИЗИС',
+    market_pulse: 'РЫНОК',
+    social: 'СОЦИАЛЬНОЕ',
+    protection: 'ЗАЩИТА',
+    modern_earning: 'ЗАРАБОТОК',
+    economy: 'ЭКОНОМИКА',
+  };
+  return labels[type] ?? type.replace(/_/g, ' ').toUpperCase();
 }
 
 // ─────────────────────────────────────────────────────────
@@ -125,7 +153,25 @@ const PlayerRing: React.FC<{ color: string; filled: number; active: boolean }> =
   );
 };
 
-const PlayerTile: React.FC<{ player: PlayerState; onTap?: (player: PlayerState) => void }> = ({ player, onTap }) => {
+type FloatingReaction = {
+  id: number;
+  label: string;
+};
+
+const PlayerReactionBadge: React.FC<{ reaction?: FloatingReaction }> = ({ reaction }) => {
+  if (!reaction) return null;
+  return (
+    <span key={reaction.id} className="player-reaction-badge">
+      {reaction.label}
+    </span>
+  );
+};
+
+const PlayerTile: React.FC<{
+  player: PlayerState;
+  reaction?: FloatingReaction;
+  onTap?: (player: PlayerState) => void;
+}> = ({ player, reaction, onTap }) => {
   const ringColor = RING_COLORS[player.mood] || '#7D7B6F';
   const ringFill = Math.max(20, 100 - player.stress * 8);
   const displayedCashflow = player.netCashflow ?? player.cashflowPerMonth;
@@ -148,6 +194,7 @@ const PlayerTile: React.FC<{ player: PlayerState; onTap?: (player: PlayerState) 
   return (
     <div className="player-tile" onClick={() => onTap?.(player)} style={{ cursor: 'pointer' }}>
       <div className="player-avatar-stage">
+        <PlayerReactionBadge reaction={reaction} />
         {player.isActive && <span className="player-active-glow" />}
         <PlayerRing color={ringColor} filled={ringFill} active={player.isActive} />
         <div
@@ -277,33 +324,38 @@ export const MainTurnTableScreen: React.FC = () => {
     openSettings,
     openRules,
     nextRound,
-    applyCardChoice,
+    submitIntent,
     previewChoice,
+    affordableChoices,
     requestTableHelp,
     isMultiplayer,
     localPlayerId,
     receiveServerState,
     // Phase 3
     interestWindow,
-    triggerInterestWindow,
     expressInterest,
     passInterest,
-    applyDealEffects,
+    submitDealOffer,
+    incomingDeal,
+    acceptIncomingDeal,
+    rejectIncomingDeal,
   } = useStore();
   const { locale, t, tCard } = useI18n();
   const [timer, setTimer] = useState(47);
-  const [reactionSent, setReactionSent] = useState<string | null>(null);
+  const [playerReactions, setPlayerReactions] = useState<Record<string, FloatingReaction>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerState | null>(null);
-  const [cardExpanded, setCardExpanded] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMarketOpen, setIsMarketOpen] = useState(false);
   const [isLaborOpen, setIsLaborOpen] = useState(false);
   const [isPetsOpen, setIsPetsOpen] = useState(false);
+  const [isBankOpen, setIsBankOpen] = useState(false);
   const [isEventLogOpen, setIsEventLogOpen] = useState(false);
   const [isCollabOpen, setIsCollabOpen] = useState(false);
   const [collabPartnerId, setCollabPartnerId] = useState<string | null>(null);
   const [isDailyOpen, setIsDailyOpen] = useState(false);
   const [isPlayerStatsOpen, setIsPlayerStatsOpen] = useState(false);
+  const [isBusinessSlotsOpen, setIsBusinessSlotsOpen] = useState(false);
+  const [isProtectionOpen, setIsProtectionOpen] = useState(false);
   const [fabExpanded, setFabExpanded] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [isConfirmPreviewOpen, setIsConfirmPreviewOpen] = useState(false);
@@ -313,12 +365,32 @@ export const MainTurnTableScreen: React.FC = () => {
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
+  const reactionTimers = useRef<Record<string, number>>({});
+  const reactionNonce = useRef(1);
+  const botReactionRound = useRef(-1);
+  const devParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+  const devOpenMarket = devParams?.get('market') === '1';
+  const devOpenLabor = devParams?.get('labor') === '1';
+  const devOpenBank = devParams?.get('bank') === '1';
+  const devOpenTools = devParams?.get('tools') === '1';
 
   useEffect(() => {
     setTimer(match.timer);
     const iv = setInterval(() => setTimer((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(iv);
   }, [match.round, match.timer]);
+
+  useEffect(() => () => {
+    Object.values(reactionTimers.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
+    reactionTimers.current = {};
+  }, []);
+
+  useEffect(() => {
+    if (devOpenBank) setIsBankOpen(true);
+    if (devOpenMarket) setIsMarketOpen(true);
+    if (devOpenLabor) setIsLaborOpen(true);
+    if (devOpenTools) setFabExpanded(true);
+  }, [devOpenBank, devOpenLabor, devOpenMarket, devOpenTools]);
 
   // In multiplayer, receive server state updates via wsClient singleton
   useEffect(() => {
@@ -327,9 +399,15 @@ export const MainTurnTableScreen: React.FC = () => {
       const m = msg as Record<string, unknown>;
       if (m.type === 'state_update' || m.type === 'match_started') {
         receiveServerState(m.state as import('../../../../packages/shared/src').MatchState);
+      } else if (m.type === 'error') {
+        showToast(String(m.error ?? (locale === 'ru' ? 'Команда отклонена' : 'Command rejected')), 'warning');
+      } else if (m.type === 'player_disconnected') {
+        showToast(locale === 'ru' ? 'Игрок отключился, слот подхватил бот' : 'A bot took over a disconnected player', 'info');
+      } else if (m.type === 'reconnected') {
+        showToast(locale === 'ru' ? 'Вы вернулись за стол' : 'You rejoined the table', 'success');
       }
     });
-  }, [isMultiplayer, receiveServerState]);
+  }, [isMultiplayer, locale, receiveServerState]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('you') === '1') {
@@ -344,27 +422,135 @@ export const MainTurnTableScreen: React.FC = () => {
   }, []);
 
   const card = match.currentCard ? tCard(match.currentCard) : null;
+  const cardArtwork = card
+    ? resolveGameplayCardArtwork({
+        id: card.id,
+        title: card.title,
+        type: card.type,
+        text: card.text,
+        consequences: card.consequences,
+      })
+    : null;
   const me = (isMultiplayer && localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) || match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
+  const activePlayer = match.players.find((p) => p.isActive) ?? me;
+  const canActNow = !isMultiplayer || activePlayer.id === me?.id;
+  const phaseLabel = interestWindow?.status === 'open'
+    ? (locale === 'ru' ? 'Окно сделки открыто' : 'Deal interest open')
+    : isAdvancingTime
+    ? (locale === 'ru' ? 'Месяц считается' : 'Resolving month')
+    : canActNow
+    ? (locale === 'ru' ? 'Твой выбор сейчас' : 'Your action now')
+    : locale === 'ru'
+    ? `Ходит ${activePlayer.name}`
+    : `${activePlayer.name} acts now`;
 
   useEffect(() => {
-    setSelectedChoiceIdx(0);
+    // Default to the first option the player can actually afford, so Confirm is live.
+    const flags = affordableChoices();
+    const firstAffordable = flags.findIndex((ok) => ok);
+    setSelectedChoiceIdx(firstAffordable >= 0 ? firstAffordable : 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.id, match.round]);
+
+  // Announce futures win/loss the round a position settles (once per round advance).
+  const futuresShownRound = useRef(-1);
+  useEffect(() => {
+    if (futuresShownRound.current === match.round) return;
+    futuresShownRound.current = match.round;
+    for (const r of match.lastFuturesResults ?? []) {
+      const money = `$${Math.abs(r.pnl).toLocaleString()}`;
+      if (r.liquidated) {
+        playSound('loss'); hapticImpact('heavy');
+        showToast(locale === 'ru' ? `📉 Фьючерс ликвидирован: -${money}` : `📉 Futures liquidated: -${money}`, 'error');
+      } else {
+        playSound(r.pnl >= 0 ? 'coin' : 'spend'); hapticImpact('medium');
+        showToast(
+          locale === 'ru'
+            ? `📈 Фьючерс закрыт: ${r.pnl >= 0 ? '+' : '-'}${money}`
+            : `📈 Futures closed: ${r.pnl >= 0 ? '+' : '-'}${money}`,
+          r.pnl >= 0 ? 'success' : 'warning',
+        );
+      }
+    }
+  }, [match.round, match.lastFuturesResults, locale]);
+
+  // ─── Host interjection: meaningful trigger + cooldown (≥3 rounds), auto-retreat.
+  const [hostMoment, setHostMoment] = useState<HostMoment | null>(null);
+  const lastHostRound = useRef(-99);
+  const hostTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.localStorage?.getItem('dyor_host_enabled') === '0') return;
+    if (match.round - lastHostRound.current < 3) return; // cooldown — never spammy
+    const moment = pickHostMoment(card, interestWindow?.status === 'open', me?.cash ?? 0, locale === 'ru');
+    if (!moment) return;
+    lastHostRound.current = match.round;
+    setHostMoment(moment);
+    playSound('whoosh');
+    hapticImpact('soft');
+    if (hostTimer.current) window.clearTimeout(hostTimer.current);
+    hostTimer.current = window.setTimeout(() => setHostMoment(null), 4200);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [card?.id, match.round]);
+  const dismissHost = useCallback(() => {
+    if (hostTimer.current) window.clearTimeout(hostTimer.current);
+    setHostMoment(null);
+  }, []);
 
   const queueAdvance = useCallback(
     (choiceIdx: number) => {
       if (isAdvancingTime) return;
       setIsAdvancingTime(true);
-      applyCardChoice(choiceIdx);
-      setTimeout(() => nextRound(), 620);
+      playSound('select');
+      hapticImpact('medium');
+      // Simultaneous round: submit locks the human in, bots lock in at the same
+      // time, then the window resolves + settlement reveal in one step.
+      setTimeout(() => submitIntent(choiceIdx), 200);
       setTimeout(() => setIsAdvancingTime(false), 1280);
     },
-    [applyCardChoice, isAdvancingTime, nextRound]
+    [submitIntent, isAdvancingTime]
   );
 
+  const showPlayerReaction = useCallback((playerId: string, reaction: string, options: { sound?: boolean } = {}) => {
+    const label = reaction.trim().toUpperCase();
+    if (!label) return;
+    const id = reactionNonce.current;
+    reactionNonce.current += 1;
+    if (reactionTimers.current[playerId]) window.clearTimeout(reactionTimers.current[playerId]);
+    setPlayerReactions((current) => ({
+      ...current,
+      [playerId]: { id, label },
+    }));
+    if (options.sound !== false) playSound('reaction');
+    reactionTimers.current[playerId] = window.setTimeout(() => {
+      setPlayerReactions((current) => {
+        if (current[playerId]?.id !== id) return current;
+        const next = { ...current };
+        delete next[playerId];
+        return next;
+      });
+      delete reactionTimers.current[playerId];
+    }, 1450);
+  }, []);
+
   const handleReaction = (reaction: string) => {
-    setReactionSent(reaction);
-    setTimeout(() => setReactionSent(null), 1200);
+    if (!me?.id) return;
+    showPlayerReaction(me.id, reaction);
   };
+
+  useEffect(() => {
+    if (timer > 7 || timer <= 0) return;
+    if (botReactionRound.current === match.round) return;
+    const bots = match.players.filter((player) => player.isBot && player.id !== me?.id);
+    if (bots.length === 0) return;
+    if (Math.random() > 0.28) {
+      botReactionRound.current = match.round;
+      return;
+    }
+    const bot = bots[(match.round + timer) % bots.length];
+    const label = BOT_REACTION_LABELS[(match.round + bot.id.length + timer) % BOT_REACTION_LABELS.length];
+    botReactionRound.current = match.round;
+    showPlayerReaction(bot.id, label);
+  }, [me?.id, match.players, match.round, showPlayerReaction, timer]);
 
   const handlePlayerTap = (player: PlayerState) => {
     setSelectedPlayer(player);
@@ -374,12 +560,12 @@ export const MainTurnTableScreen: React.FC = () => {
   const handleProposeDeal = (playerId: string) => {
     setIsProfileOpen(false);
     setCollabPartnerId(playerId);
-    setIsCollabOpen(true);
+    setIsOfferBuilderOpen(true);
   };
 
   const handleSendReaction = (playerId: string) => {
     setIsProfileOpen(false);
-    showToast('Реакция отправлена!', 'info');
+    showPlayerReaction(playerId, 'HMM');
   };
 
   const toggleTableTools = () => {
@@ -443,15 +629,28 @@ export const MainTurnTableScreen: React.FC = () => {
 
   const timerColor = timer > 30 ? '#F5F4ED' : timer > 10 ? '#F5A524' : '#E84B2A';
   const isLightCard = card.type === 'crisis';
+  const visibleChoices = card.choices.slice(0, 3);
   const selectedChoice = card.choices[selectedChoiceIdx] ?? card.choices[0];
 
   // Phase: "if confirmed" preview — one dry-run per visible choice.
   const choicePreviews = useMemo(
-    () => card.choices.slice(0, 3).map((_, i) => previewChoice(i)),
+    () => visibleChoices.map((_, i) => previewChoice(i)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [card.id, match.round, previewChoice]
   );
   const selectedPreview = choicePreviews[selectedChoiceIdx] ?? null;
+
+  // Which options the local player can pay for. Unaffordable ones are blocked by the
+  // engine (the command would be rejected and the round would hang), so disable them.
+  const affordable = useMemo(
+    () => {
+      const flags = affordableChoices();
+      return card.choices.map((_, i) => flags[i] ?? true);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [card.id, match.round, me?.cash, affordableChoices]
+  );
+  const selectedAffordable = affordable[selectedChoiceIdx] ?? true;
 
   useEffect(() => {
     setIsConfirmPreviewOpen(false);
@@ -459,16 +658,18 @@ export const MainTurnTableScreen: React.FC = () => {
 
   const tableToolItems = [
     {
-      icon: '🤝',
+      icon: <IconHandshake size={18} />,
       label: locale === 'ru' ? 'Сделка' : 'Deal',
+      tone: 'violet',
       onClick: () => {
-        triggerInterestWindow();
+        setIsOfferBuilderOpen(true);
         setFabExpanded(false);
       },
     },
     {
-      icon: '📣',
+      icon: <IconMegaphone size={18} />,
       label: locale === 'ru' ? 'Помощь' : 'Help',
+      tone: 'cyan',
       onClick: () => {
         requestTableHelp();
         showToast(locale === 'ru' ? 'Стол помог наличными. Доверие снизилось.' : 'The table sent cash. Trust went down.', 'success');
@@ -476,19 +677,21 @@ export const MainTurnTableScreen: React.FC = () => {
       },
     },
     {
-      icon: '🎭',
+      icon: <IconChaosMask size={18} />,
       label: locale === 'ru' ? 'Хаос' : 'Chaos',
+      tone: 'red',
       onClick: () => {
         setScreen('futures');
         setFabExpanded(false);
       },
     },
-    { icon: '🏪', label: locale === 'ru' ? 'Рынок' : 'Market', onClick: () => { setIsMarketOpen(true); setFabExpanded(false); } },
-    { icon: '👷', label: locale === 'ru' ? 'Труд' : 'Labor', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
-    { icon: '🐾', label: locale === 'ru' ? 'Питомцы' : 'Pets', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
-    { icon: '📰', label: locale === 'ru' ? 'События' : 'Events', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
-    { icon: '🎁', label: locale === 'ru' ? 'Бонус' : 'Bonus', onClick: () => { setIsDailyOpen(true); setFabExpanded(false); } },
-    { icon: '⚙️', label: locale === 'ru' ? 'Настройки' : 'Settings', onClick: () => { openSettings('main'); setFabExpanded(false); } },
+    { icon: <IconBankVault size={18} />, label: locale === 'ru' ? 'Банк' : 'Bank', tone: 'gold', onClick: () => { setIsBankOpen(true); setFabExpanded(false); } },
+    { icon: <IconShop size={18} />, label: locale === 'ru' ? 'Рынок' : 'Market', tone: 'green', onClick: () => { setIsMarketOpen(true); setFabExpanded(false); } },
+    { icon: <IconLaborHelmet size={18} />, label: locale === 'ru' ? 'Труд' : 'Labor', tone: 'orange', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
+    { icon: <IconPawBadge size={17} />, label: locale === 'ru' ? 'Питомцы' : 'Pets', tone: 'cyan', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
+    { icon: <IconNewsSheet size={17} />, label: locale === 'ru' ? 'События' : 'Events', tone: 'paper', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
+    { icon: <IconGiftBurst size={17} />, label: locale === 'ru' ? 'Бонус' : 'Bonus', tone: 'gold', onClick: () => { setIsDailyOpen(true); setFabExpanded(false); } },
+    { icon: <IconCogSpark size={17} />, label: locale === 'ru' ? 'Настройки' : 'Settings', tone: 'slate', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
 
   return (
@@ -526,7 +729,22 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
 
         <div className="topbar-pill timeline-pill">
-          <span style={{ fontSize: 11, fontWeight: 800 }}>{match.timelineLabel}</span>
+          <span style={{ fontSize: 11, fontWeight: 800 }}>{match.epochIcon} {match.timelineLabel}</span>
+        </div>
+
+        <div className="topbar-pill" style={{ maxWidth: 132 }}>
+          <span
+            style={{
+              fontSize: 10.5,
+              fontWeight: 900,
+              color: canActNow ? '#5BD7E0' : '#F5C524',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {phaseLabel}
+          </span>
         </div>
 
         <div className="topbar-pill ml-auto">
@@ -543,116 +761,44 @@ export const MainTurnTableScreen: React.FC = () => {
       <section className="relative z-10 shrink-0">
         <div className="player-rail">
           {match.players.filter((p) => p.id !== me.id).slice(0, 5).map((p) => (
-            <PlayerTile key={p.id} player={p} onTap={handlePlayerTap} />
+            <PlayerTile key={p.id} player={p} reaction={playerReactions[p.id]} onTap={handlePlayerTap} />
           ))}
         </div>
       </section>
 
-      {/* ========== CARD STAGE (host + card wrapper) ========== */}
-      <div className="card-stage relative z-10 flex min-h-0 flex-1 flex-col">
-
-        {/* ========== AI HOST BAR ========== */}
-        <section className={`host-bar-wrapper ${cardExpanded ? 'host-bar-hidden' : ''}`}>
-          <div className="host-row">
-            <img src={hostImage} alt="AI host" className="host-portrait" draggable={false} />
-            <div className="host-bubble">
-              <div className="mb-1 flex items-center gap-1.5">
-                <span className="host-tag">
-                  <IconMic size={9} style={{ color: '#fff' }} />
-                  AI {t('ui.host')}
-                </span>
-                <span className="host-wave">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </span>
-                <span className="host-epoch-chip">
-                  {match.epochIcon} {match.epoch}
-                </span>
-              </div>
-              <p
+      <section className="game-playfield">
+        {/* ========== CARD STAGE (host + card wrapper) ========== */}
+        {match.matchMode === 'draft' ? <DraftBoard /> : (
+          <div className="card-stage relative z-10 flex min-h-0 flex-1 flex-col">
+            {/* ========== CARD (frameless) ========== */}
+            <main className="relative flex min-h-0 flex-1 items-stretch px-3 py-1">
+              <article
+                className={`dyor-card dyor-card-poster flex-1 ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'}`}
                 style={{
-                  fontSize: 12,
-                  fontWeight: 700,
-                  color: '#1F140C',
-                  lineHeight: 1.25,
-                  maxHeight: 30,
-                  overflow: 'hidden',
-                }}
+                  '--card-art-image': cardArtwork?.src ? `url(${cardArtwork.src})` : 'none',
+                  '--card-art-bg': cardArtwork?.background ?? 'transparent',
+                  '--card-art-size': cardArtwork?.fit === 'contain' ? '58% auto' : 'cover',
+                } as React.CSSProperties}
               >
-                {card.hostCue || 'Taxes, charts, receipts... Welcome to adulthood!'}
-              </p>
-            </div>
-            <div className="table-tools-wrap">
-              <button
-                className={`table-tools-button ${fabExpanded ? 'table-tools-button-open' : ''}`}
-                aria-label={locale === 'ru' ? 'Рынок действий' : 'Action market'}
-                onClick={toggleTableTools}
-              >
-                <span className="table-tools-badge">3</span>
-                <IconPlusCircle size={27} />
-                <span className="table-tools-mini-icons">
-                  <IconHandshake size={13} />
-                  <IconBriefcase size={13} />
-                  <span>🐾</span>
-                </span>
-              </button>
-            </div>
-          </div>
-        </section>
+                {/* Scrollable content area */}
+                <div className="card-scroll-area card-poster-content">
+                  <div className="card-poster-kicker">
+                    <span className="card-type-badge">
+                      <IconAlert size={11} />
+                      {cardTypeLabel(card.type, locale === 'ru')}
+                    </span>
+                  </div>
 
-        {/* ========== CRISIS CARD ========== */}
-        <main className="relative flex min-h-0 flex-1 items-stretch px-3 py-1">
-          <article
-            className={`dyor-card flex-1 ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'} ${cardExpanded ? 'dyor-card-expanded' : ''}`}
-          >
-            {/* Expand/collapse button */}
-            <button
-              className="card-expand-btn"
-              onClick={() => setCardExpanded(!cardExpanded)}
-              title={cardExpanded ? 'Свернуть' : 'Развернуть'}
-            >
-              <span style={{ transform: cardExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.3s ease', display: 'inline-block' }}>
-                ▲
-              </span>
-            </button>
+                  <div className="card-poster-copy">
+                    <h1 className={`card-poster-title ${isLightCard ? 'card-poster-title-light' : ''}`}>
+                      {card.title}
+                    </h1>
+                    <p className={`card-poster-text ${isLightCard ? 'card-poster-text-light' : ''}`}>
+                      {card.text}
+                    </p>
+                  </div>
 
-            {/* Scrollable content area */}
-            <div className="card-scroll-area">
-              <div className="flex items-center gap-2">
-                <span className="card-type-badge">
-                  <IconAlert size={11} />
-                  {card.type.toUpperCase()}
-                </span>
-              </div>
-
-              <div className="mt-2 grid grid-cols-[1fr_120px] gap-2.5">
-                <div className="min-w-0">
-                  <h1
-                    style={{
-                      fontSize: 21,
-                      fontWeight: 900,
-                      lineHeight: 0.98,
-                      letterSpacing: '-.01em',
-                      color: isLightCard ? '#1F140C' : '#F5F4ED',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {card.title}
-                  </h1>
-                  <p
-                    style={{
-                      marginTop: 4,
-                      fontSize: 11.5,
-                      fontWeight: 600,
-                      lineHeight: 1.25,
-                      color: isLightCard ? '#3F2E20' : '#D8D4C8',
-                    }}
-                  >
-                    {card.text}
-                  </p>
-                  <div className="mt-2 space-y-1">
+                  <div className="card-poster-consequences">
                     {card.consequences.slice(0, 3).map((c, i) => {
                       const cleaned = stripFirstEmoji(c);
                       return (
@@ -664,207 +810,248 @@ export const MainTurnTableScreen: React.FC = () => {
                     })}
                   </div>
                 </div>
-                <img
-                  src={taxApocalypseImage}
-                  alt={`${card.title} illustration`}
-                  style={{
-                    height: 156,
-                    width: '100%',
-                    borderRadius: 14,
-                    border: '1px solid #D8B697',
-                    objectFit: 'cover',
-                    objectPosition: 'center',
-                    boxShadow: 'inset 0 0 0 1px rgba(255,255,255,.25)',
-                  }}
-                  draggable={false}
-                />
-              </div>
-            </div>
-          </article>
-        </main>
-      </div>
-
-      {/* ========== YOU PANEL ========== */}
-      <section className="relative z-10 shrink-0 px-3 pt-2.5">
-        <div
-          className="you-panel"
-          onClick={handleYouClick}
-          onTouchStart={handleYouTouchStart}
-          onTouchMove={handleYouTouchMove}
-          onTouchEnd={handleYouTouchEnd}
-          style={{ cursor: 'pointer' }}
-        >
-          <span className="you-tag">{locale === 'ru' ? 'ВЫ' : 'YOU'}</span>
-
-          <div className="you-grid">
-            <div className="you-avatar-stage">
-              <div className="you-avatar-halo" />
-              <div className="you-avatar-shadow" />
-              <span className="you-swipe-hint" aria-hidden="true">
-                <i />
-                <i />
-                <i />
-              </span>
-              <img
-                src={resolveCharacterImage(me.name, me.outfit, me.mood, me.characterId)}
-                alt={me.name}
-                className="you-avatar-img"
-                draggable={false}
-              />
-            </div>
-
-            <div className="you-hud-side">
-              <div className="you-hud-row">
-                <span className="you-stat-card you-stat-primary">
-                  <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
-                  <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
-                </span>
-                <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'}>
-                  <em>{locale === 'ru' ? 'ПОТОК' : 'FLOW'}</em>
-                  <strong>
-                    <IconChart size={14} />
-                    {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
-                  </strong>
-                </span>
-                <span className="you-stat-card">
-                  <em>{locale === 'ru' ? 'РАСХОДЫ' : 'BURN'}</em>
-                  <strong><IconDebt size={14} /> ${moneyShort(me.monthlyExpenses ?? 0)}</strong>
-                </span>
-              </div>
-
-              <div className="you-risk-row">
-                <span>
-                  <IconStress size={12} />
-                  <em>{locale === 'ru' ? 'Стресс' : 'Stress'}</em>
-                  <strong>{me.stress}/10</strong>
-                </span>
-                <span>
-                  <IconDebt size={12} />
-                  <em>{locale === 'ru' ? 'Долг' : 'Debt'}</em>
-                  <strong>{me.debt}/10</strong>
-                </span>
-                <span>
-                  <IconSprout size={12} />
-                  <em>{locale === 'ru' ? 'Пассив' : 'Passive'}</em>
-                  <strong>+${moneyShort(me.passiveIncome)}</strong>
-                </span>
-              </div>
-
-              <div className="you-hud-inventory">
-                <div>
-                  <span className="mini-panel-label">{locale === 'ru' ? 'СЛОТЫ БИЗНЕСА' : 'BUSINESS SLOTS'}</span>
-                  <div className="mini-panel-icons">
-                    {Array.from({ length: 5 }).map((_, i) =>
-                      i < me.businessSlots ? <IconShop key={i} size={13} /> : <span key={i} className="empty-slot" />
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <span className="mini-panel-label">{t('ui.protections').toUpperCase()}</span>
-                  <div className="mini-panel-icons">
-                    <span className="shield-with-count">
-                      <IconShield size={13} />
-                      <span className="shield-count-badge">1</span>
-                    </span>
-                    <IconUmbrella size={13} />
-                    <IconDoc size={13} />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ========== TURN ACTION DOCK ========== */}
-      <section className="turn-action-dock">
-        {card.choices.length > 0 && (
-          <div className="decision-choice-panel">
-            <div className="survival-row">
-              {card.choices.slice(0, 3).map((choice, i) => {
-                const label = stripFirstEmoji(choice) || choice;
-                return (
-                  <button
-                    key={choice}
-                    className={`survival-choice ${selectedChoiceIdx === i ? 'survival-choice-selected' : ''}`}
-                    onClick={() => setSelectedChoiceIdx(i)}
-                    disabled={isAdvancingTime}
-                  >
-                    <span className="survival-choice-icon">{choiceIcon(choice)}</span>
-                    <span className="survival-choice-label">{label}</span>
-                  </button>
-                );
-              })}
-            </div>
+              </article>
+            </main>
           </div>
         )}
-        {selectedChoice ? (
-          <div className="turn-action-main">
-            {selectedPreview && isConfirmPreviewOpen && (
-              <div className="confirm-preview confirm-preview-popover">
-                <span className="confirm-preview-title">
-                  {locale === 'ru' ? 'ЕСЛИ ПОДТВЕРДИТЬ' : 'IF CONFIRMED'}
-                </span>
-                <div className="confirm-preview-grid">
-                  {PREVIEW_PANEL_KEYS.map((key) => {
-                    const line = selectedPreview.lines.find((l) => l.key === key);
-                    if (!line) return null;
-                    const [labelRu, labelEn] = PREVIEW_LABELS[key];
-                    return (
-                      <div key={key} className="confirm-preview-cell">
-                        <em>{locale === 'ru' ? labelRu : labelEn}</em>
-                        <span>
-                          <i className="cp-from">{fmtMoneyAbs(line.from)}</i>
-                          <i className="cp-arrow">→</i>
-                          <i className="cp-to" style={{ color: previewToColor(key, line.from, line.to) }}>
-                            {fmtMoneyAbs(line.to)}
-                          </i>
-                        </span>
+
+        <div className="game-bottom-stack">
+          {/* ========== YOU PANEL ========== */}
+          <section className="relative z-10 shrink-0 px-3 pt-2.5">
+            <div
+              className="you-panel"
+              onClick={handleYouClick}
+              onTouchStart={handleYouTouchStart}
+              onTouchMove={handleYouTouchMove}
+              onTouchEnd={handleYouTouchEnd}
+              style={{ cursor: 'pointer' }}
+            >
+              <span className="you-tag">{locale === 'ru' ? 'ВЫ' : 'YOU'}</span>
+
+              <div className="you-grid">
+                <div className="you-avatar-stage">
+                  <PlayerReactionBadge reaction={me ? playerReactions[me.id] : undefined} />
+                  <div className="you-avatar-halo" />
+                  <div className="you-avatar-shadow" />
+                  <span className="you-swipe-hint" aria-hidden="true">
+                    <i />
+                    <i />
+                    <i />
+                  </span>
+                  <img
+                    src={resolveCharacterImage(me.name, me.outfit, me.mood, me.characterId)}
+                    alt={me.name}
+                    className="you-avatar-img"
+                    draggable={false}
+                  />
+                </div>
+
+                <div className="you-hud-side">
+                  <div className="you-hud-row">
+                    <span className="you-stat-card you-stat-primary">
+                      <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
+                      <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
+                    </span>
+                    <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'}>
+                      <em>{locale === 'ru' ? 'ПОТОК' : 'FLOW'}</em>
+                      <strong>
+                        <IconChart size={14} />
+                        {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
+                      </strong>
+                    </span>
+                    <span className="you-stat-card">
+                      <em>{locale === 'ru' ? 'РАСХОДЫ' : 'BURN'}</em>
+                      <strong><IconDebt size={14} /> ${moneyShort(me.monthlyExpenses ?? 0)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="you-risk-row">
+                    <span>
+                      <IconStress size={12} />
+                      <em>{locale === 'ru' ? 'Стресс' : 'Stress'}</em>
+                      <strong>{me.stress}/10</strong>
+                    </span>
+                    <span>
+                      <IconDebt size={12} />
+                      <em>{locale === 'ru' ? 'Долг' : 'Debt'}</em>
+                      <strong>{me.debt}/10</strong>
+                    </span>
+                    <span>
+                      <IconSprout size={12} />
+                      <em>{locale === 'ru' ? 'Пассив' : 'Passive'}</em>
+                      <strong>+${moneyShort(me.passiveIncome)}</strong>
+                    </span>
+                  </div>
+
+                  <div className="you-hud-inventory">
+                    <button
+                      className="you-hud-tile"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsBusinessSlotsOpen(true);
+                      }}
+                    >
+                      <span className="mini-panel-label">{locale === 'ru' ? 'СЛОТЫ БИЗНЕСА' : 'BUSINESS SLOTS'}</span>
+                      <div className="mini-panel-icons">
+                        {/* A slot is an empty place; a kiosk (ларёк) appears only once it's filled. */}
+                        {(() => {
+                          const totalSlots = Math.max(me.businessSlots, me.businesses.length);
+                          const visibleSlots = Math.min(
+                            MAX_HUD_BUSINESS_SLOTS,
+                            Math.max(MIN_HUD_BUSINESS_SLOTS, totalSlots),
+                          );
+                          const hiddenSlots = Math.max(0, totalSlots - visibleSlots);
+
+                          return (
+                            <>
+                              {Array.from({ length: visibleSlots }).map((_, i) =>
+                                i < me.businesses.length
+                                  ? <IconShop key={i} size={13} />
+                                  : <span key={i} className="empty-slot" title={locale === 'ru' ? 'Пустой слот' : 'Empty slot'} />
+                              )}
+                              {hiddenSlots > 0 && (
+                                <span className="mini-slot-overflow" title={locale === 'ru' ? `Ещё слотов: ${hiddenSlots}` : `${hiddenSlots} more slots`}>
+                                  +{hiddenSlots}
+                                </span>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
+                    </button>
+                    <button
+                      className="you-hud-tile"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsProtectionOpen(true);
+                      }}
+                    >
+                      <span className="mini-panel-label">{t('ui.protections').toUpperCase()}</span>
+                      <div className="mini-panel-icons">
+                        {me.protections.length > 0 ? (
+                          <span className="shield-with-count">
+                            <IconShield size={13} />
+                            <span className="shield-count-badge">{me.protections.length}</span>
+                          </span>
+                        ) : (
+                          <span className="empty-slot" title={locale === 'ru' ? 'Нет защит' : 'No protections'} />
+                        )}
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* ========== TURN ACTION DOCK ========== */}
+          {match.matchMode !== 'draft' && (
+            <section className="turn-action-dock">
+              <div className="decision-choice-panel">
+                <div className="survival-row">
+                  {visibleChoices.map((choice, i) => {
+                    const label = stripFirstEmoji(choice) || choice;
+                    const canAfford = affordable[i] ?? true;
+                    return (
+                      <button
+                        key={choice}
+                        className={`survival-choice ${selectedChoiceIdx === i ? 'survival-choice-selected' : ''} ${canAfford ? '' : 'survival-choice-locked'}`}
+                        onClick={() => canAfford && setSelectedChoiceIdx(i)}
+                        disabled={isAdvancingTime || !canAfford}
+                        title={canAfford ? undefined : (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash')}
+                      >
+                        <span className="survival-choice-icon">{canAfford ? choiceIcon(choice) : '🔒'}</span>
+                        <span className="survival-choice-label">{label}</span>
+                      </button>
                     );
                   })}
+                  <button
+                    className={`survival-choice survival-choice-market ${fabExpanded ? 'survival-choice-market-open' : ''}`}
+                    type="button"
+                    aria-label={locale === 'ru' ? 'Рынок действий: банк, питомцы, рынок' : 'Action market'}
+                    onClick={toggleTableTools}
+                  >
+                    <span className="survival-choice-icon">
+                      <IconPlusCircle size={20} />
+                    </span>
+                    <span className="turn-plus-badge">3</span>
+                  </button>
                 </div>
               </div>
-            )}
-            <button
-              className="turn-preview-button"
-              type="button"
-              aria-label={locale === 'ru' ? 'Что изменится после подтверждения' : 'Preview confirmation effects'}
-              aria-pressed={isConfirmPreviewOpen}
-              disabled={!selectedPreview || isAdvancingTime}
-              onPointerDown={(event) => {
-                event.preventDefault();
-                setIsConfirmPreviewOpen(true);
-              }}
-              onPointerUp={() => setIsConfirmPreviewOpen(false)}
-              onPointerCancel={() => setIsConfirmPreviewOpen(false)}
-              onPointerLeave={() => setIsConfirmPreviewOpen(false)}
-              onContextMenu={(event) => event.preventDefault()}
-              onFocus={() => setIsConfirmPreviewOpen(true)}
-              onBlur={() => setIsConfirmPreviewOpen(false)}
-            >
-              ?
-            </button>
-            <button
-              className="turn-confirm-button"
-              onClick={() => queueAdvance(selectedChoiceIdx)}
-              disabled={isAdvancingTime}
-            >
-              <span>{locale === 'ru' ? 'Подтвердить' : 'Confirm'}</span>
-            </button>
-          </div>
-        ) : (
-          <button className="turn-confirm-button" onClick={() => nextRound()} disabled={isAdvancingTime}>
-            <span>{locale === 'ru' ? 'Продолжить' : 'Continue'}</span>
-          </button>
-        )}
+              {selectedChoice ? (
+                <div className="turn-action-main">
+                  {selectedPreview && isConfirmPreviewOpen && (
+                    <div className="confirm-preview confirm-preview-popover">
+                      <span className="confirm-preview-title">
+                        {locale === 'ru' ? 'ЕСЛИ ПОДТВЕРДИТЬ' : 'IF CONFIRMED'}
+                      </span>
+                      <div className="confirm-preview-grid">
+                        {PREVIEW_PANEL_KEYS.map((key) => {
+                          const line = selectedPreview.lines.find((l) => l.key === key);
+                          if (!line) return null;
+                          const [labelRu, labelEn] = PREVIEW_LABELS[key];
+                          return (
+                            <div key={key} className="confirm-preview-cell">
+                              <em>{locale === 'ru' ? labelRu : labelEn}</em>
+                              <span>
+                                <i className="cp-from">{fmtMoneyAbs(line.from)}</i>
+                                <i className="cp-arrow">→</i>
+                                <i className="cp-to" style={{ color: previewToColor(key, line.from, line.to) }}>
+                                  {fmtMoneyAbs(line.to)}
+                                </i>
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                  <button
+                    className="turn-preview-button"
+                    type="button"
+                    aria-label={locale === 'ru' ? 'Что изменится после подтверждения' : 'Preview confirmation effects'}
+                    aria-pressed={isConfirmPreviewOpen}
+                    disabled={!selectedPreview || isAdvancingTime}
+                    onPointerDown={(event) => {
+                      event.preventDefault();
+                      setIsConfirmPreviewOpen(true);
+                    }}
+                    onPointerUp={() => setIsConfirmPreviewOpen(false)}
+                    onPointerCancel={() => setIsConfirmPreviewOpen(false)}
+                    onPointerLeave={() => setIsConfirmPreviewOpen(false)}
+                    onContextMenu={(event) => event.preventDefault()}
+                    onFocus={() => setIsConfirmPreviewOpen(true)}
+                    onBlur={() => setIsConfirmPreviewOpen(false)}
+                  >
+                    ?
+                  </button>
+                  <button
+                    className="turn-confirm-button"
+                    onClick={() => selectedAffordable && queueAdvance(selectedChoiceIdx)}
+                    disabled={isAdvancingTime || !canActNow || !selectedAffordable}
+                  >
+                    <span>{!selectedAffordable ? (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash') : canActNow ? (locale === 'ru' ? 'Подтвердить' : 'Confirm') : (locale === 'ru' ? 'Ждём ход' : 'Wait turn')}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="turn-action-main">
+                  <button className="turn-confirm-button" onClick={() => nextRound()} disabled={isAdvancingTime}>
+                    <span>{locale === 'ru' ? 'Продолжить' : 'Continue'}</span>
+                  </button>
+                </div>
+              )}
+            </section>
+          )}
+        </div>
       </section>
 
       {fabExpanded && (
         <div className="table-tools-menu">
           {tableToolItems.map((item) => (
             <button key={item.label} onClick={item.onClick} className="table-tools-menu-item">
-              <span className="table-tools-menu-icon">{item.icon}</span>
+              <span className={`table-tools-menu-icon table-tools-menu-icon-${item.tone}`}>{item.icon}</span>
               <span>{item.label}</span>
             </button>
           ))}
@@ -894,12 +1081,6 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
       )}
 
-      {reactionSent && (
-        <div className="pointer-events-none absolute left-1/2 top-1/2 z-50 -translate-x-1/2 -translate-y-1/2 rounded-2xl bg-black/70 px-6 py-3 text-4xl font-black text-white shadow-soft">
-          {reactionSent}
-        </div>
-      )}
-
       {/* Overlay to close FAB */}
       {fabExpanded && (
         <div
@@ -920,11 +1101,8 @@ export const MainTurnTableScreen: React.FC = () => {
             myPlayerId={me.id}
             onExpressInterest={() => {
               expressInterest();
-              // simulate window close after short delay, then open offer builder
-              setTimeout(() => {
-                passInterest();
-                setIsOfferBuilderOpen(true);
-              }, 800);
+              passInterest();
+              setIsOfferBuilderOpen(true);
             }}
             onPass={() => {
               passInterest();
@@ -933,9 +1111,52 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
       )}
 
+      {/* Incoming partnership invite from a bot */}
+      {incomingDeal && (() => {
+        const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
+        const cashOffer = incomingDeal.offer.cashOffer ?? 0;
+        return (
+          <div className="negot-banner-wrapper">
+            <div className="incoming-deal-banner" style={{
+              background: 'rgba(91, 215, 224, 0.12)',
+              border: '1px solid rgba(91, 215, 224, 0.4)',
+              borderRadius: 16,
+              padding: 14,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 10,
+            }}>
+              <div style={{ fontSize: 14, fontWeight: 900, color: '#5BD7E0' }}>
+                🤝 {proposer?.name ?? 'Игрок'} предлагает партнёрство
+              </div>
+              <div style={{ fontSize: 12, color: '#B8B6A9' }}>
+                {incomingDeal.offer.description}{cashOffer > 0 ? ` · даёт $${cashOffer.toLocaleString()}` : ''}
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  onClick={() => { acceptIncomingDeal(); showToast('Партнёрство принято 🤝', 'success'); }}
+                  style={{ flex: 1, height: 40, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
+                >
+                  Принять
+                </button>
+                <button
+                  onClick={() => { rejectIncomingDeal(); showToast('Инвайт отклонён', 'info'); }}
+                  style={{ flex: 1, height: 40, borderRadius: 12, fontWeight: 800, fontSize: 13, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#B8B6A9' }}
+                >
+                  Отклонить
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Phase 3: Offer Builder Modal */}
       {isOfferBuilderOpen && (() => {
-        const partner = match.players.find((p) => p.id !== me.id) ?? match.players[1];
+        const partner = (collabPartnerId ? match.players.find((p) => p.id === collabPartnerId) : null)
+          ?? match.players.find((p) => interestWindow?.selectedPlayers.includes(p.id) && p.id !== me.id)
+          ?? match.players.find((p) => p.id !== me.id)
+          ?? match.players[1];
         if (!partner) return null;
         return (
           <OfferBuilderModal
@@ -943,12 +1164,27 @@ export const MainTurnTableScreen: React.FC = () => {
             partner={partner}
             cardTitle={card?.title ?? 'Инвестиция'}
             onAccept={(offer) => {
-              applyDealEffects({
-                cashDelta: -(offer.cashOffer ?? 0),
-                cashflowDelta: Math.round(partner.passiveIncome * 0.3),
-                businessName: card?.title ?? 'Партнёрство',
+              const projectedMonthlyIncome = Math.max(
+                0,
+                selectedPreview?.monthlyNet ?? Math.round(Math.max(partner.passiveIncome, 300) * 0.5),
+              );
+              const projectedAssetValue = Math.max(
+                1200,
+                Math.abs(selectedPreview?.now ?? 0) + (offer.cashOffer ?? 0) + projectedMonthlyIncome * 4,
+              );
+              const outcome = submitDealOffer(partner.id, {
+                ...offer,
+                projectedMonthlyIncome,
+                projectedAssetValue,
               });
               setIsOfferBuilderOpen(false);
+              if (outcome === 'accepted') {
+                showToast(`${partner.name} принял сделку 🤝`, 'success');
+              } else if (outcome === 'rejected') {
+                showToast(`${partner.name} отклонил сделку`, 'warning');
+              } else {
+                showToast(locale === 'ru' ? 'Сделка не отправилась' : 'Deal could not be sent', 'error');
+              }
             }}
             onCounter={() => {
               // counter = stay open with swapped preset handled by component state
@@ -973,11 +1209,18 @@ export const MainTurnTableScreen: React.FC = () => {
       {/* Labor Market Bottom Sheet */}
       <LaborMarketScreen isOpen={isLaborOpen} onClose={() => setIsLaborOpen(false)} />
 
+      {/* Bank Bottom Sheet */}
+      <BankScreen isOpen={isBankOpen} onClose={() => setIsBankOpen(false)} />
+
       {/* Pet Shop Bottom Sheet */}
       <PetShopScreen isOpen={isPetsOpen} onClose={() => setIsPetsOpen(false)} />
 
       {/* Event Log Bottom Sheet */}
       <EventLogScreen isOpen={isEventLogOpen} onClose={() => setIsEventLogOpen(false)} />
+
+      <BusinessSlotsScreen isOpen={isBusinessSlotsOpen} onClose={() => setIsBusinessSlotsOpen(false)} />
+
+      <ProtectionScreen isOpen={isProtectionOpen} onClose={() => setIsProtectionOpen(false)} />
 
       {/* Collaboration Hub Bottom Sheet */}
       <CollaborationHubScreen
@@ -1001,6 +1244,9 @@ export const MainTurnTableScreen: React.FC = () => {
           }}
         />
       )}
+
+      {/* AI host — slides in only on meaningful moments, retreats on its own */}
+      <HostInterjection moment={hostMoment} onDismiss={dismissHost} />
     </div>
   );
 };

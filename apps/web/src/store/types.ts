@@ -41,12 +41,15 @@ export type CardType =
 export interface PlayerState {
   id: string;
   name: string;
+  /** Player handle (identity). Shown big in lobby; `name` carries the role/character. */
+  nickname?: string;
   outfit: Outfit;
   characterId?: string;
   mood: CharacterMood;
   cash: number;
   cashflowPerMonth: number;
   passiveIncome: number;
+  professionId?: string;
   monthlyExpenses?: number;
   netCashflow?: number;
   assetValue?: number;
@@ -89,6 +92,9 @@ export interface MatchState {
   calendarMonth: number;
   calendarYear: number;
   lastSettlement: number;
+  // Futures positions that settled this round (realized win/loss), for a reveal toast.
+  lastFuturesResults?: { pnl: number; liquidated: boolean }[];
+  matchMode?: 'classic' | 'draft';
 }
 
 export const OUTFIT_LABELS: Record<Outfit, string> = {

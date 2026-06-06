@@ -20,10 +20,10 @@ const PRESETS: Preset[] = [
 ];
 
 const ENFORCEMENT_OPTS = [
-  { id: 'word'   as const, label: 'На слово',   cost: 0,   desc: 'Без гарантий' },
-  { id: 'iou'    as const, label: 'IOU',         cost: 0,   desc: 'Бумажка' },
-  { id: 'written' as const, label: 'Контракт',  cost: 50,  desc: '+$50' },
-  { id: 'lawyer' as const, label: 'Юрист',      cost: 200, desc: '+$200, авто' },
+  { id: 'word'   as const, label: 'На слово',   cost: 0,   desc: 'Платит только если совесть жива' },
+  { id: 'iou'    as const, label: 'IOU',         cost: 0,   desc: 'Есть расписка, за просрочку бьёт по доверию' },
+  { id: 'written' as const, label: 'Контракт',  cost: 50,  desc: '+$50, автосписание если хватает cash' },
+  { id: 'lawyer' as const, label: 'Юрист',      cost: 200, desc: '+$200, жёсткое взыскание и штраф' },
 ];
 
 // ─── Props ───────────────────────────────────────────────────────────────────

@@ -1,22 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
+import { showToast, ToastContainer } from '../components/Toast';
 
 export const FuturesScreen: React.FC = () => {
-  const { setScreen, match } = useStore();
+  const { setScreen, match, openFutures } = useStore();
+  const localPlayerId = useStore((s) => s.localPlayerId);
+  const marketPrices = useStore((s) => s.engineMatch?.marketPrices);
+  const me = (localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) ?? match.players.find((p) => !p.isBot) ?? match.players[0];
   const [position, setPosition] = useState<'none' | 'long' | 'short'>('none');
   const [leverage, setLeverage] = useState(2);
-  const [pnl, setPnl] = useState<number | null>(null);
+  const [amount, setAmount] = useState(1000);
+  const [opened, setOpened] = useState(false);
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const tokens = [
-    { name: 'NEON', price: 42.5, change: +12, color: '#5BD7E0' },
-    { name: 'DRIFT', price: 18.3, change: -8, color: '#A78BFA' },
-    { name: 'IRON', price: 95.1, change: +1, color: '#B8B6A9' },
-    { name: 'VOLT', price: 7.8, change: -22, color: '#D7445B' },
+  // Real prices from the engine market (baseline 100). Change% derived vs baseline.
+  const TOKEN_META = [
+    { name: 'NEON', color: '#5BD7E0' },
+    { name: 'DRIFT', color: '#A78BFA' },
+    { name: 'IRON', color: '#B8B6A9' },
+    { name: 'VOLT', color: '#D7445B' },
   ];
+  const tokens = TOKEN_META.map((t) => {
+    const price = Math.round((marketPrices?.[t.name] ?? 100) * 10) / 10;
+    const change = Math.round(price - 100);
+    return { ...t, price, change };
+  });
 
-  const [selectedToken, setSelectedToken] = useState(tokens[0]);
+  const [selectedName, setSelectedName] = useState('NEON');
+  const selectedToken = tokens.find((t) => t.name === selectedName) ?? tokens[0];
 
   // Generate fake chart data
   const chartData = useRef<number[]>([]);
@@ -26,7 +38,7 @@ export const FuturesScreen: React.FC = () => {
       data.push(data[i - 1] + (Math.random() - 0.48) * 8);
     }
     chartData.current = data;
-  }, [selectedToken]);
+  }, [selectedName]);
 
   // Draw chart
   useEffect(() => {
@@ -78,16 +90,24 @@ export const FuturesScreen: React.FC = () => {
     grad.addColorStop(1, selectedToken.color + '05');
     ctx.fillStyle = grad;
     ctx.fill();
-  }, [selectedToken]);
+  }, [selectedName]);
 
   const handleTrade = () => {
+    if (position === 'none') return;
+    const bet = Math.min(amount, me?.cash ?? 0);
+    if (bet <= 0) {
+      showToast('Недостаточно средств для маржи', 'error');
+      return;
+    }
     setLoading(true);
-    // Fake "ping" delay for comedy
+    // "Ping" delay for comedy, then dispatch a real engine position.
     setTimeout(() => {
-      const result = Math.random() > 0.5;
-      const amount = Math.floor(Math.random() * 2000 * leverage);
-      setPnl(result ? amount : -amount);
+      // Engine clamps leverage to 3x and deducts the margin from cash immediately;
+      // P&L resolves at the end of the round (next turn).
+      openFutures(selectedToken.name, position, Math.min(3, leverage), bet);
+      setOpened(true);
       setLoading(false);
+      showToast(`Маржа $${bet.toLocaleString()} списана. P&L на след. ходу.`, 'info');
     }, 1500 + Math.random() * 2000);
   };
 
@@ -112,7 +132,7 @@ export const FuturesScreen: React.FC = () => {
         {tokens.map((t) => (
           <button
             key={t.name}
-            onClick={() => setSelectedToken(t)}
+            onClick={() => setSelectedName(t.name)}
             className={`flex-shrink-0 rounded-xl px-3 py-2 border transition-all ${
               selectedToken.name === t.name
                 ? 'border-accent-epoch bg-surface'
@@ -200,6 +220,30 @@ export const FuturesScreen: React.FC = () => {
         </div>
       </div>
 
+      {/* Bet size (margin) */}
+      <div className="px-4 pb-1">
+        <div className="bg-surface rounded-2xl p-3 border border-border-subtle">
+          <div className="flex justify-between text-xs mb-2">
+            <span className="text-text-secondary">МАРЖА</span>
+            <span className="font-bold text-accent-epoch">${amount.toLocaleString()}</span>
+          </div>
+          <div className="flex gap-2">
+            {[500, 1000, 2000].map((v) => (
+              <button
+                key={v}
+                onClick={() => setAmount(v)}
+                className={`flex-1 h-9 rounded-xl text-xs font-bold transition-all ${
+                  amount === v ? 'bg-accent-epoch text-canvas' : 'bg-surface-elev text-text-secondary border border-border-subtle'
+                }`}
+              >
+                ${v}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-text-muted mt-1">Баланс: ${(me?.cash ?? 0).toLocaleString()}</p>
+        </div>
+      </div>
+
       {/* Host roast */}
       <div className="px-4">
         <div className="flex items-center gap-2">
@@ -211,15 +255,11 @@ export const FuturesScreen: React.FC = () => {
       </div>
 
       {/* Result */}
-      {pnl !== null && (
-        <div className={`mx-4 mt-3 rounded-2xl p-4 text-center border ${
-          pnl >= 0 ? 'bg-accent-cash/10 border-accent-cash' : 'bg-accent-debt/10 border-accent-debt'
-        }`}>
-          <p className="text-2xl font-extrabold">
-            {pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}
-          </p>
+      {opened && (
+        <div className="mx-4 mt-3 rounded-2xl p-4 text-center border bg-accent-epoch/10 border-accent-epoch">
+          <p className="text-lg font-extrabold">Позиция открыта 🚀</p>
           <p className="text-xs text-text-secondary mt-1">
-            {pnl >= 0 ? 'You beat the market! (this time)' : 'The market beat you. Again.'}
+            Маржа списана из баланса. Прибыль или убыток зачислятся в конце хода.
           </p>
         </div>
       )}
@@ -242,6 +282,7 @@ export const FuturesScreen: React.FC = () => {
           {loading ? '⏳ Connecting...' : `🚀 ${position.toUpperCase()} ${leverage}x`}
         </button>
       </div>
+      <ToastContainer />
     </div>
   );
 };

@@ -4,9 +4,14 @@ import { BottomSheet } from '../components/BottomSheet';
 import { CharacterAvatar } from '../assets/CharacterAvatar';
 import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
 import { SHOP_ITEMS, type ShopItem } from '../assets/shopCatalog';
-import { loadPlayerData } from '../store/persistence';
+import { loadPlayerData, type PlayerData } from '../store/persistence';
+import { getLevelProgress } from '../lib/progression';
+import { ACHIEVEMENTS } from '../assets/achievementsCatalog';
+import { useStore } from '../store';
+import { showToast } from '../components/Toast';
 import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.png';
 import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.png';
+import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
 import {
   IconAlert,
   IconChart,
@@ -21,6 +26,13 @@ interface PlayerStatsScreenProps {
   onClose: () => void;
   player: PlayerState;
   onEditCharacter?: () => void;
+  /**
+   * Meta-progression for the VIEWED player (home, pet, achievements, level).
+   * Omit to use the local player's own data (the in-match "me" case).
+   */
+  viewerMeta?: PlayerData;
+  /** Tab to open on mount (e.g. 'home' when tapping the interior). Defaults to 'status'. */
+  initialTab?: ProfileTab;
 }
 
 const housingRank = ['housing-starter-room', 'housing-small-house', 'housing-farmstead', 'housing-mansion'];
@@ -33,10 +45,28 @@ const PROFILE_TABS = [
 ] as const;
 
 type ProfileTab = typeof PROFILE_TABS[number]['id'];
+const PET_BY_ID = new Map(PET_ITEMS.map((pet) => [pet.id, pet]));
+const PET_BY_KIND: Record<string, PetCatalogItem> = {
+  dog: PET_BY_ID.get('pet-dog')!,
+  cat: PET_BY_ID.get('pet-cat')!,
+  hamster: PET_BY_ID.get('pet-hamster')!,
+  parrot: PET_BY_ID.get('pet-parrot')!,
+};
 
 function bestOwnedHousing(ownedItems: string[]): ShopItem | null {
   const housing = SHOP_ITEMS.filter((item) => item.tab === 'housing' && (item.starterOwned || ownedItems.includes(item.id)));
   return housing.sort((a, b) => housingRank.indexOf(b.id) - housingRank.indexOf(a.id))[0] ?? null;
+}
+
+function resolveOwnedMatchPets(matchPetIds: string[]): PetCatalogItem[] {
+  return matchPetIds
+    .map((petId) => PET_BY_ID.get(petId) ?? null)
+    .filter((pet): pet is PetCatalogItem => Boolean(pet));
+}
+
+function resolveEnginePet(kind: string | null | undefined): PetCatalogItem | null {
+  if (!kind || kind === 'none') return null;
+  return PET_BY_KIND[kind] ?? null;
 }
 
 function playerMode(player: PlayerState, cashflow: number): { label: string; text: string; tone: string } {
@@ -73,24 +103,63 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   onClose,
   player,
   onEditCharacter,
+  viewerMeta,
+  initialTab,
 }) => {
+  const engineMatch = useStore((s) => s.engineMatch);
+  const localPlayerId = useStore((s) => s.localPlayerId);
+  const matchPetIds = useStore((s) => s.matchPetIds);
+  const sellAsset = useStore((s) => s.sellAsset);
+  const restructureDebt = useStore((s) => s.restructureDebt);
+  const takeSurvivalJob = useStore((s) => s.takeSurvivalJob);
   const [activeTab, setActiveTab] = useState<ProfileTab>('status');
+  const [showPowerDetail, setShowPowerDetail] = useState(false);
   const touchStartX = useRef(0);
   const playerData = useMemo(() => loadPlayerData(), [isOpen]);
+  // When visiting another player we render THEIR meta (home/pet/achievements);
+  // otherwise fall back to the local player's own data (the in-match "me" case).
+  const meta = viewerMeta ?? playerData;
+  const levelProgress = useMemo(() => getLevelProgress(meta.xp), [meta.xp]);
+  const enginePlayer = useMemo(
+    () =>
+      (localPlayerId ? engineMatch?.players.find((p) => p.id === localPlayerId || p.id === player.id) : null)
+      ?? engineMatch?.players.find((p) => p.id === player.id)
+      ?? null,
+    [engineMatch, localPlayerId, player.id],
+  );
+  const profession = useMemo(
+    () => (enginePlayer?.professionId ? getProfession(enginePlayer.professionId) : player.professionId ? getProfession(player.professionId) : undefined),
+    [enginePlayer?.professionId, player.professionId],
+  );
   const totalExpenses = player.monthlyExpenses ?? player.debt * 500 + 1800;
   const totalIncome = player.cashflowPerMonth + player.passiveIncome;
   const cashflow = player.netCashflow ?? totalIncome - totalExpenses;
   const netWorth = player.cash + (player.assetValue ?? player.businesses.length * 15000) - player.debt * 5000;
   const freedomProgress = Math.min(100, Math.max(0, (player.passiveIncome / Math.max(1, totalExpenses)) * 100));
-  const ownedPets = PET_ITEMS.filter((pet) => playerData.ownedItems.includes(pet.id));
-  const ownedPet = ownedPets[0] ?? null;
-  const housing = bestOwnedHousing(playerData.ownedItems);
+  const ownedPets = useMemo(() => {
+    const matchOwnedPets = resolveOwnedMatchPets(matchPetIds);
+    if (matchOwnedPets.length > 0) return matchOwnedPets;
+    const engineOwnedPet = resolveEnginePet(enginePlayer?.pet?.kind);
+    if (engineOwnedPet) return [engineOwnedPet];
+    // No live match pet (e.g. visiting from the lobby) — show the lobby pet.
+    const lobbyPet = meta.lobbyPetId ? PET_BY_ID.get(meta.lobbyPetId) : null;
+    return lobbyPet ? [lobbyPet] : [];
+  }, [enginePlayer?.pet?.kind, matchPetIds, meta.lobbyPetId]);
+  const ownedPet = ownedPets.length > 0 ? ownedPets[ownedPets.length - 1] : null;
+  const housing = bestOwnedHousing(meta.ownedItems);
+  const earnedAchievements = useMemo(
+    () => ACHIEVEMENTS.filter((a) => meta.achievements.includes(a.id)),
+    [meta.achievements],
+  );
   const mode = playerMode(player, cashflow);
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.id === activeTab);
 
   useEffect(() => {
-    if (isOpen) setActiveTab('status');
-  }, [isOpen]);
+    if (isOpen) {
+      setActiveTab(initialTab ?? 'status');
+      setShowPowerDetail(false);
+    }
+  }, [isOpen, initialTab]);
 
   const shiftTab = (direction: 1 | -1) => {
     const nextIndex = Math.min(PROFILE_TABS.length - 1, Math.max(0, activeTabIndex + direction));
@@ -107,14 +176,41 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
     shiftTab(deltaX < 0 ? 1 : -1);
   };
 
+  const handleSellAsset = (assetId: string, assetName: string) => {
+    const ok = sellAsset(assetId);
+    if (!ok) {
+      showToast('Не получилось продать актив', 'error');
+      return;
+    }
+    showToast(`${assetName} продан и освободил слот`, 'success');
+  };
+
+  const handleRestructure = (liabilityId: string, creditor: string) => {
+    const ok = restructureDebt(liabilityId);
+    if (!ok) {
+      showToast('Не хватает наличных на реструктуризацию', 'warning');
+      return;
+    }
+    showToast(`Долг перед ${creditor} смягчён`, 'success');
+  };
+
+  const handleSurvivalJob = (jobId: 'gig' | 'safe' | 'night', label: string) => {
+    const ok = takeSurvivalJob(jobId);
+    if (!ok) {
+      showToast('Подработка уже активирована', 'warning');
+      return;
+    }
+    showToast(`${label} добавлена в твой поток`, 'success');
+  };
+
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose}>
       <div className="you-sheet" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <header className="you-profile-header">
           <button className="you-icon-button you-back-button" onClick={onClose} aria-label="Назад">‹</button>
           <div>
-            <h2>{player.name}</h2>
-            <span>{player.outfit.toUpperCase()}</span>
+            <h2>{player.nickname ?? player.name}</h2>
+            <span>{profession ? `${profession.nameRu} · ${player.outfit.toUpperCase()}` : player.name}</span>
           </div>
           {onEditCharacter && (
             <button className="you-edit-button" onClick={onEditCharacter} aria-label="Редактировать персонажа" title="Редактировать">
@@ -163,6 +259,108 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
         <div className="you-tab-pages" style={{ transform: `translateX(-${activeTabIndex * 100}%)` }}>
           <article className="you-tab-page">
             <StatePanel mode={mode} />
+
+            {/* Level + regalia — the lobby "social proof" panel */}
+            <section className="you-regalia-card">
+              <div className="you-regalia-head">
+                <div className="you-regalia-level">
+                  <span className="you-regalia-level-num">{levelProgress.level}</span>
+                  <span className="you-regalia-level-label">УРОВЕНЬ</span>
+                </div>
+                <div className="you-regalia-xp">
+                  <div className="you-regalia-xp-bar">
+                    <div className="you-regalia-xp-fill" style={{ width: `${Math.round(levelProgress.ratio * 100)}%` }} />
+                  </div>
+                  <span className="you-regalia-xp-text">
+                    {levelProgress.intoLevel} / {levelProgress.levelSpan} XP
+                  </span>
+                  <div className="you-regalia-record">
+                    🏆 {meta.matchesWon} побед · 🎲 {meta.matchesPlayed} партий
+                  </div>
+                </div>
+              </div>
+
+              <div className="you-regalia-title">
+                Достижения · {earnedAchievements.length}/{ACHIEVEMENTS.length}
+              </div>
+              <div className="you-regalia-grid">
+                {ACHIEVEMENTS.map((a) => {
+                  const earned = meta.achievements.includes(a.id);
+                  return (
+                    <div
+                      key={a.id}
+                      className={`you-regalia-badge${earned ? ' you-regalia-badge-on' : ''}`}
+                      title={`${a.nameRu}: ${a.descRu}`}
+                    >
+                      <span className="you-regalia-badge-icon">{a.icon}</span>
+                      <span className="you-regalia-badge-name">{a.nameRu}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+
+            {profession && (
+              <section
+                style={{
+                  padding: 14,
+                  borderRadius: 18,
+                  background: 'rgba(91, 215, 224, 0.08)',
+                  border: '1px solid rgba(91, 215, 224, 0.2)',
+                  marginBottom: 12,
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#5BD7E0', textTransform: 'uppercase', marginBottom: 4 }}>
+                  Профессия
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <div>
+                    <strong style={{ display: 'block', fontSize: 17, color: '#F5F4ED' }}>{profession.nameRu}</strong>
+                    <span style={{ fontSize: 12, color: '#B8B6A9' }}>
+                      {profession.heroTitleRu} · {TAX_BAND_LABELS[profession.taxBand].ru}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => setShowPowerDetail((value) => !value)}
+                    style={{
+                      padding: '9px 12px',
+                      borderRadius: 12,
+                      border: '1px solid rgba(245, 197, 36, 0.32)',
+                      background: 'rgba(245, 197, 36, 0.12)',
+                      color: '#F5C524',
+                      fontSize: 12,
+                      fontWeight: 900,
+                    }}
+                  >
+                    Суперспособность
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 10 }}>
+                  <FeatureSlot label="Оклад" value={`$${profession.baseSalary}`} tone="green" />
+                  <FeatureSlot label="Расходы" value={`$${profession.baseExpenses}`} tone="gold" />
+                  <FeatureSlot label="Старт" value={`$${profession.startingCash}`} tone="purple" />
+                </div>
+                {showPowerDetail && (
+                  <div
+                    style={{
+                      marginTop: 10,
+                      padding: 12,
+                      borderRadius: 14,
+                      background: 'rgba(255,255,255,.04)',
+                      border: '1px solid rgba(255,255,255,.08)',
+                    }}
+                  >
+                    <strong style={{ display: 'block', fontSize: 14, color: '#F5F4ED', marginBottom: 4 }}>
+                      {profession.heroPower.nameRu}
+                    </strong>
+                    <div style={{ fontSize: 12, color: '#5BD7E0', marginBottom: 6 }}>{profession.heroPower.summaryRu}</div>
+                    <p style={{ margin: 0, fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
+                      {profession.heroPower.detailRu}
+                    </p>
+                  </div>
+                )}
+              </section>
+            )}
             <section className="you-feature-grid">
               <FeatureCard
                 label="Дом"
@@ -177,7 +375,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
                 value={ownedPet ? ownedPet.name : 'Нет'}
                 tone={ownedPet ? 'pet' : 'muted'}
                 icon="paw"
-                badge={ownedPet ? '-1 Stress' : undefined}
+                badge={ownedPet?.effect}
               >
                 <PetStage pet={ownedPet} compact />
               </FeatureCard>
@@ -196,6 +394,73 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
               <Metric label="Net Worth" value={formatMoney(netWorth)} tone={netWorth >= 0 ? 'good' : 'bad'} />
             </section>
             <ProgressCard freedomProgress={freedomProgress} passiveIncome={player.passiveIncome} totalExpenses={totalExpenses} />
+            <section
+              style={{
+                marginTop: 12,
+                padding: 14,
+                borderRadius: 18,
+                background: 'rgba(232, 75, 42, 0.06)',
+                border: '1px solid rgba(232, 75, 42, 0.18)',
+              }}
+            >
+              <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#FF8B70', textTransform: 'uppercase', marginBottom: 4 }}>
+                Recovery
+              </div>
+              <div style={{ fontSize: 15, fontWeight: 900, color: '#F5F4ED', marginBottom: 8 }}>
+                Когда денег мало, тут уже не заглушки
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+                {[
+                  { id: 'gig' as const, label: 'Гиг', text: '+$250 сейчас' },
+                  { id: 'safe' as const, label: 'Офис', text: '+$260/мес' },
+                  { id: 'night' as const, label: 'Ночь', text: '+$350 и stress' },
+                ].map((job) => (
+                  <button
+                    key={job.id}
+                    onClick={() => handleSurvivalJob(job.id, job.label)}
+                    style={{
+                      padding: '10px 8px',
+                      borderRadius: 12,
+                      background: 'rgba(255,255,255,.05)',
+                      border: '1px solid rgba(255,255,255,.1)',
+                      color: '#F5F4ED',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <strong style={{ display: 'block', fontSize: 13, marginBottom: 4 }}>{job.label}</strong>
+                    <span style={{ fontSize: 10, color: '#B8B6A9' }}>{job.text}</span>
+                  </button>
+                ))}
+              </div>
+              {(enginePlayer?.liabilities.length ?? 0) > 0 && (
+                <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+                  {enginePlayer?.liabilities.slice(0, 2).map((liability) => (
+                    <button
+                      key={liability.id}
+                      onClick={() => handleRestructure(liability.id, liability.creditor)}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '10px 12px',
+                        borderRadius: 12,
+                        background: 'rgba(255,255,255,.05)',
+                        border: '1px solid rgba(255,255,255,.08)',
+                        color: '#F5F4ED',
+                      }}
+                    >
+                      <span style={{ textAlign: 'left' }}>
+                        <strong style={{ display: 'block', fontSize: 12 }}>{liability.creditor}</strong>
+                        <span style={{ fontSize: 10, color: '#B8B6A9' }}>
+                          ${liability.principal.toLocaleString()} · {Math.round(liability.interestRate * 100)}%
+                        </span>
+                      </span>
+                      <strong style={{ fontSize: 11, color: '#F5C524' }}>Смягчить</strong>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
           </article>
 
           <article className="you-tab-page">
@@ -255,8 +520,34 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
               </div>
             </section>
             <section className="you-list-section">
-              <h3>Активы ({player.businesses.length})</h3>
-              {player.businesses.length > 0 ? (
+              <h3>Активы ({enginePlayer?.assets.length ?? player.businesses.length})</h3>
+              {(enginePlayer?.assets.length ?? 0) > 0 ? (
+                enginePlayer?.assets.map((asset) => (
+                  <div key={asset.id} className="you-list-row" style={{ alignItems: 'center' }}>
+                    <span>🏢</span>
+                    <div style={{ flex: 1 }}>
+                      <strong>{asset.name}</strong>
+                      <div style={{ fontSize: 10, color: '#B8B6A9' }}>
+                        ${asset.value.toLocaleString()} · +${asset.incomePerRound}/мес · upkeep ${asset.upkeepPerRound}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSellAsset(asset.id, asset.name)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 10,
+                        border: '1px solid rgba(245, 197, 36, 0.25)',
+                        background: 'rgba(245, 197, 36, 0.12)',
+                        color: '#F5C524',
+                        fontSize: 11,
+                        fontWeight: 900,
+                      }}
+                    >
+                      Продать
+                    </button>
+                  </div>
+                ))
+              ) : player.businesses.length > 0 ? (
                 player.businesses.map((business) => (
                   <div key={business} className="you-list-row">
                     <span>🏢</span>

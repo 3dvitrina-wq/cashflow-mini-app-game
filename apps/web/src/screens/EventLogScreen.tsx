@@ -15,48 +15,48 @@ interface LogEvent {
   hostComment?: string;
 }
 
-// Mock event log based on match state
-function generateEventLog(match: any): LogEvent[] {
-  const events: LogEvent[] = [];
+function generateEventLog(match: any, engineMatch: any): LogEvent[] {
+  const events = (engineMatch?.eventLog ?? [])
+    .slice(-24)
+    .reverse()
+    .map((event: any): LogEvent => {
+      const type: LogEvent['type'] =
+        event.type === 'deal' || event.type === 'contract' ? 'deal'
+        : event.type === 'money' ? 'purchase'
+        : event.type === 'settlement' || event.type === 'timeline' ? 'market'
+        : event.type === 'warn' ? 'crisis'
+        : 'action';
 
-  // Generate events based on current round
-  for (let r = match.round; r >= 1; r--) {
-    if (r === match.round) {
-      events.push({
-        round: r,
-        type: 'crisis',
-        title: match.currentCard?.title || 'CRISIS',
-        description: match.currentCard?.text || 'Текущая карта',
-        hostComment: match.currentCard?.hostCue,
-      });
-    } else if (r % 3 === 0) {
-      events.push({
-        round: r,
-        type: 'deal',
-        title: 'Сделка заключена',
-        description: 'Антон + Лена: Storage Pod 60/40',
-        hostComment: 'Два кошелька лучше одного... если доверяешь.',
-      });
-    } else if (r % 2 === 0) {
-      events.push({
-        round: r,
-        type: 'purchase',
-        title: 'Покупка актива',
-        description: 'Максим купил Coffee Route за $8,500',
-        hostComment: 'Скучно, но умно.',
-      });
-    } else {
-      events.push({
-        round: r,
-        type: 'market',
-        title: 'Рынок изменился',
-        description: 'CRYPTO WINTER: крипта -40%',
-        hostComment: 'HODL? Держись крепче.',
-      });
-    }
-  }
+      const title =
+        event.type === 'deal' ? 'Сделка'
+        : event.type === 'contract' ? 'Контракт'
+        : event.type === 'money' ? 'Движение денег'
+        : event.type === 'settlement' ? 'Расчёт месяца'
+        : event.type === 'timeline' ? 'Время сдвинулось'
+        : event.type === 'warn' ? 'Риск / предупреждение'
+        : event.type === 'host' ? 'Комментарий ведущего'
+        : 'Событие';
 
-  return events;
+      return {
+        round: event.round ?? engineMatch?.round ?? match.round ?? 0,
+        type,
+        title,
+        description: event.message ?? event.cue ?? 'Без описания',
+        hostComment: event.type === 'host' ? event.cue : undefined,
+      };
+    });
+
+  if (events.length > 0) return events;
+
+  return match.currentCard
+    ? [{
+        round: match.round,
+        type: 'action',
+        title: match.currentCard.title,
+        description: match.currentCard.text,
+        hostComment: match.currentCard.hostCue,
+      }]
+    : [];
 }
 
 const TYPE_STYLES: Record<string, { bg: string; border: string; icon: string; color: string }> = {
@@ -69,7 +69,8 @@ const TYPE_STYLES: Record<string, { bg: string; border: string; icon: string; co
 
 export const EventLogScreen: React.FC<EventLogScreenProps> = ({ isOpen, onClose }) => {
   const match = useStore((s) => s.match);
-  const events = generateEventLog(match);
+  const engineMatch = useStore((s) => s.engineMatch);
+  const events = generateEventLog(match, engineMatch);
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="📰 Лента событий">

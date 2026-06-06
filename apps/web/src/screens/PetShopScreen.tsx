@@ -2,12 +2,23 @@ import React, { useEffect, useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
-import { addItemToInventory, loadPlayerData, spendCurrency } from '../store/persistence';
+import { useStore } from '../store';
 
 interface PetShopScreenProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Hybrid economy: purchase is paid in meta-coins, but each pet mirrors its upkeep
+// (recurring expense) and gameplay bonus into the live match engine.
+const PET_ENGINE_BONUS: Record<string, { passive?: number; stress?: number }> = {
+  'pet-dog': { stress: -2 },
+  'pet-cat': { stress: -1 },
+  'pet-gecko': {},
+  'pet-fish': { stress: -1 },
+  'pet-parrot': { passive: 100 },
+  'pet-hamster': { passive: 50 },
+};
 
 const RARITY_CONFIG = {
   common: { label: 'Обычный', color: '#7D7B6F', bg: 'rgba(125, 123, 111, 0.1)', border: 'rgba(125, 123, 111, 0.3)' },
@@ -21,12 +32,14 @@ const SYNERGIES = [
 ];
 
 export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose }) => {
-  const [ownedIds, setOwnedIds] = useState<string[]>(() => loadPlayerData().ownedItems);
+  const buyPet = useStore((s) => s.buyPet);
+  // Ownership is per-match (resets each session) — pets are an in-game purchase, not a
+  // persistent collection. You must buy them again every new game.
+  const ownedIds = useStore((s) => s.matchPetIds);
   const [showArrival, setShowArrival] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
-      setOwnedIds(loadPlayerData().ownedItems);
       setShowArrival(true);
       const timer = setTimeout(() => setShowArrival(false), 650);
       return () => clearTimeout(timer);
@@ -37,13 +50,13 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
   const availablePets = PET_ITEMS.filter((p) => !ownedIds.includes(p.id));
 
   const handleBuy = (pet: PetCatalogItem) => {
-    if (!spendCurrency(pet.price, 'coins')) {
-      showToast('Недостаточно монет', 'error');
+    // Spend live match cash (deducts visible balance); blocks if not enough.
+    const ok = buyPet(pet.id, pet.price, pet.upkeep, PET_ENGINE_BONUS[pet.id]);
+    if (!ok) {
+      showToast('Недостаточно наличных', 'error');
       return;
     }
-    addItemToInventory(pet.id);
-    setOwnedIds(loadPlayerData().ownedItems);
-    showToast(`${pet.name} куплен! ${pet.effect}`, 'success');
+    showToast(`${pet.name} куплен за $${pet.price}! ${pet.effect} (корм $${pet.upkeep}/мес)`, 'success');
   };
 
   return (

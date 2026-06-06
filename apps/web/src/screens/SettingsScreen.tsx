@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useI18n, initLocale, type Locale } from '../i18n';
+import { isSoundEnabled, setSoundEnabled, playSound } from '../lib/sound';
+
+const HOST_KEY = 'dyor_host_enabled';
 
 interface SettingsScreenProps {
   onClose: () => void;
@@ -9,6 +12,8 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const { locale, setLocale, t } = useI18n();
   const [soundVolume, setSoundVolume] = useState(70);
   const [haptics, setHaptics] = useState(true);
+  const [sound, setSound] = useState(isSoundEnabled());
+  const [hostOn, setHostOn] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem(HOST_KEY) !== '0' : true));
   const [gameSpeed, setGameSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
   const [volatility, setVolatility] = useState<'calm' | 'normal' | 'wild'>('normal');
   const [turnTimer, setTurnTimer] = useState<45 | 90 | 180>(90);
@@ -143,6 +148,41 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
                   transition: 'left 0.2s ease',
                 }}
               />
+            </button>
+          </div>
+        </div>
+
+        {/* Sound */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: 16, padding: 16, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>🔊</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Звук' : 'Sound'}</span>
+            </div>
+            <button
+              onClick={() => { const v = !sound; setSound(v); setSoundEnabled(v); if (v) playSound('select'); }}
+              style={{ width: 56, height: 32, borderRadius: 16, background: sound ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
+            >
+              <div style={{ position: 'absolute', top: 4, left: sound ? 28 : 4, width: 24, height: 24, borderRadius: 12, background: '#F5F4ED', transition: 'left 0.2s ease' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* AI Host */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: 16, padding: 16, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 20 }}>🎙️</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Ведущий' : 'AI Host'}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{locale === 'ru' ? 'Реплики на важных моментах' : 'Speaks on key moments'}</span>
+              </div>
+            </div>
+            <button
+              onClick={() => { const v = !hostOn; setHostOn(v); try { window.localStorage.setItem(HOST_KEY, v ? '1' : '0'); } catch { /* ignore */ } }}
+              style={{ width: 56, height: 32, borderRadius: 16, background: hostOn ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
+            >
+              <div style={{ position: 'absolute', top: 4, left: hostOn ? 28 : 4, width: 24, height: 24, borderRadius: 12, background: '#F5F4ED', transition: 'left 0.2s ease' }} />
             </button>
           </div>
         </div>

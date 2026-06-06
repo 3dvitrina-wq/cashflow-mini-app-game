@@ -20,7 +20,7 @@ export function tCard(card: CardData): CardData {
   const shared = sharedCardT(card.id);
   const sharedHasTranslation = shared.title !== `card.${card.id}.title`;
   if (sharedHasTranslation) {
-    const choices = card.choices.map((choice, index) => shared.choices?.[`choice${index}`] ?? choice);
+    const choices = card.choices.map((choice, index) => translateChoiceRu(shared.choices?.[`choice${index}`] ?? choice));
     return {
       ...card,
       title: shared.title,
@@ -145,12 +145,39 @@ export function tCard(card: CardData): CardData {
   };
   
   const translated = translations[card.id];
-  if (!translated) return card;
+  if (!translated) {
+    return {
+      ...card,
+      choices: card.choices.map(translateChoiceRu),
+      consequences: card.consequences.map(translateConsequenceRu),
+      choiceEffects: card.choiceEffects?.map((effects) => effects.map(translateConsequenceRu)),
+    };
+  }
 
   return {
     ...translated,
     choiceEffects: card.choiceEffects?.map((effects) => effects.map(translateConsequenceRu)),
   };
+}
+
+function translateChoiceRu(text: string): string {
+  return text
+    .replace(/^Launch/i, 'Запустить')
+    .replace(/^Skip$/i, 'Пропустить')
+    .replace(/^Pass$/i, 'Пас')
+    .replace(/^Buy all 3/i, 'Купить все 3')
+    .replace(/^Buy 1/i, 'Купить 1')
+    .replace(/^Buy fleet/i, 'Купить парк')
+    .replace(/^Buy in/i, 'Войти')
+    .replace(/^Buy for/i, 'Купить за')
+    .replace(/^Buy/i, 'Купить')
+    .replace(/^Find partner$/i, 'Найти партнёра')
+    .replace(/^Hire now$/i, 'Нанять сейчас')
+    .replace(/^Later$/i, 'Позже')
+    .replace(/^Test small$/i, 'Малый тест')
+    .replace(/^Go all in$/i, 'Ва-банк')
+    .replace('setup', 'запуск')
+    .replace('production', 'производство');
 }
 
 function translateConsequenceRu(text: string): string {

@@ -19,13 +19,13 @@ interface OnboardingScreenProps {
 }
 
 const ru = {
-  eyebrow: '15 месяцев · 2-6 игроков · фиктивный рынок',
+  eyebrow: '15-25 месяцев · 2-6 игроков · фиктивный рынок',
   title: 'DYOR',
   subtitle: 'Садись за стол: каждый месяц дает карту, сделку или катастрофу. Твоя задача - вырастить cashflow и не сгореть от стресса.',
   start: 'Начать игру',
   close: 'Вернуться',
   rulesTitle: 'Мини-обучение',
-  rulesSubtitle: 'Пролистай три сцены: стол, решение месяца и кризис. Этого хватит, чтобы нажать Start без лекции.',
+  rulesSubtitle: 'Пролистай три сцены: стол, решение месяца и кризис. Потом держи `?` для превью, жми `+` для банка/рынка/труда и тапай игроков для сделки.',
   goalTitle: 'Цель',
   goalText: 'Побеждает игрок с лучшим Freedom Score: наличные, активы, cashflow и низкий стресс.',
   monthTitle: 'Ход месяца',
@@ -38,13 +38,13 @@ const ru = {
   dangerText: 'Кризисы, долги и фьючерсы могут ускорить рост, но стресс и банкротство быстро режут варианты.',
   protectionTitle: 'Защита',
   protectionText: 'Бухгалтер, страховка и резерв не выглядят ярко, зато спасают партию в плохой месяц.',
-  footer: 'Не ищи идеальный ход. Держи запас, смотри на cashflow и превращай чужую панику в свой шанс.',
+  footer: 'Не ищи идеальный ход. Держи запас, смотри на cashflow, жми `+` когда нужна экономика, и превращай чужую панику в свой шанс.',
   slides: [
     {
       badge: '1/3 · вход за стол',
       title: 'Ты не смотришь презентацию. Ты уже за столом.',
       text: 'Каждый игрок пришел со своей ролью, деньгами, стрессом и планом. Через минуту кто-то купит актив, кто-то сорвется в хаос.',
-      chips: ['2-6 игроков', '15 месяцев', 'боты вместо выбывших'],
+      chips: ['2-6 игроков', '15-25 месяцев', 'боты вместо выбывших'],
       tone: 'gold',
     },
     {
@@ -65,13 +65,13 @@ const ru = {
 };
 
 const en = {
-  eyebrow: '15 months · 2-6 players · fictional market',
+  eyebrow: '15-25 months · 2-6 players · fictional market',
   title: 'DYOR',
   subtitle: 'Take a seat: every month brings a card, a deal, or a disaster. Grow cashflow and avoid stress burnout.',
   start: 'Start game',
   close: 'Back',
   rulesTitle: 'Mini Tutorial',
-  rulesSubtitle: 'Three scenes are enough: table, monthly decision, and crisis. No lecture before Start.',
+  rulesSubtitle: 'Three scenes are enough: table, monthly decision, and crisis. Then hold `?` to preview, open `+` for Bank/Market/Labor, and tap players to inspect or deal.',
   goalTitle: 'Goal',
   goalText: 'Win with the best Freedom Score: cash, assets, cashflow, and low stress.',
   monthTitle: 'Monthly Turn',
@@ -84,13 +84,13 @@ const en = {
   dangerText: 'Crises, debt, and futures can speed up growth, but stress and bankruptcy shrink your options.',
   protectionTitle: 'Protection',
   protectionText: 'Accountants, insurance, and reserves look boring until they save the match.',
-  footer: 'Do not hunt for the perfect move. Keep a buffer, watch cashflow, and turn panic into your opening.',
+  footer: 'Do not hunt for the perfect move. Keep a buffer, watch cashflow, use `+` when you need economy actions, and turn panic into your opening.',
   slides: [
     {
       badge: '1/3 · take a seat',
       title: 'This is not a deck. You are already at the table.',
       text: 'Every player has a role, money, stress, and a plan. In one minute someone buys an asset, someone chooses chaos.',
-      chips: ['2-6 players', '15 months', 'bots replace dropouts'],
+      chips: ['2-6 players', '15-25 months', 'bots replace dropouts'],
       tone: 'gold',
     },
     {

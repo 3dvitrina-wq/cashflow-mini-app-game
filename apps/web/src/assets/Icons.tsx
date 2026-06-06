@@ -761,6 +761,88 @@ export const IconBot: React.FC<IconProps> = ({ size = 22, className, style }) =>
     style
   );
 
+export const IconBankVault: React.FC<IconProps> = ({ size = 20, className, style }) =>
+  wrap(
+    <g>
+      <path d="M4 8.5h16v11.5H4z" fill="#1D2733" stroke="#6F4B1B" strokeWidth="1" rx="1.8" />
+      <path d="M7 6h10l2 2.5H5z" fill="#F5C524" stroke="#A77810" strokeWidth="1" strokeLinejoin="round" />
+      <circle cx="12" cy="14.3" r="3.4" fill="#2E3946" stroke="#C8931C" strokeWidth="1" />
+      <path d="M12 11.6v5.4M9.3 14.3h5.4" stroke="#C8931C" strokeWidth="1.2" strokeLinecap="round" />
+      <path d="M18.5 11.5h1.5M18.5 15.5h1.5" stroke="#A77810" strokeWidth="1.1" strokeLinecap="round" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
+export const IconLaborHelmet: React.FC<IconProps> = ({ size = 20, className, style }) =>
+  wrap(
+    <g>
+      <path d="M5.2 11.2c0-3.4 2.8-6.2 6.3-6.2 3.8 0 6.6 2.3 7.1 6.2z" fill="#F5C524" stroke="#A77810" strokeWidth="1" />
+      <rect x="4.2" y="11.2" width="15.6" height="2.6" rx="1.1" fill="#A77810" />
+      <path d="M8.4 15.2c.8 1.3 2.1 2.1 3.6 2.1 1.6 0 2.9-.8 3.8-2.1" fill="none" stroke="#F2C29B" strokeWidth="1.2" strokeLinecap="round" />
+      <circle cx="9.3" cy="14.3" r="1" fill="#1A1207" />
+      <circle cx="14.7" cy="14.3" r="1" fill="#1A1207" />
+      <path d="M12 5.6v3.4" stroke="#A77810" strokeWidth="1" strokeLinecap="round" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
+export const IconPawBadge: React.FC<IconProps> = ({ size = 18, className, style }) =>
+  wrap(
+    <g fill="#5BD7E0" stroke="#1F4F76" strokeWidth="0.8">
+      <ellipse cx="12" cy="15" rx="3.2" ry="2.8" />
+      <circle cx="7.7" cy="11" r="1.5" />
+      <circle cx="10.4" cy="8.8" r="1.4" />
+      <circle cx="13.8" cy="8.8" r="1.4" />
+      <circle cx="16.5" cy="11" r="1.5" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
+export const IconNewsSheet: React.FC<IconProps> = ({ size = 18, className, style }) =>
+  wrap(
+    <g>
+      <path d="M5 5h12.5c1 0 1.5.5 1.5 1.5v10.5c0 1.1-.8 2-2 2H7c-1.1 0-2-.9-2-2z" fill="#F5E9D0" stroke="#A77810" strokeWidth="1" strokeLinejoin="round" />
+      <rect x="7.5" y="7.8" width="4.2" height="4.2" rx="0.6" fill="#E84B2A" />
+      <path d="M13.4 8h3.2M13.4 10.2h3.2M7.5 14h9M7.5 16.2h9" stroke="#A77810" strokeWidth="1.1" strokeLinecap="round" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
+export const IconGiftBurst: React.FC<IconProps> = ({ size = 18, className, style }) =>
+  wrap(
+    <g>
+      <path d="M4 10h16v10H4z" fill="#F5C524" stroke="#A77810" strokeWidth="1" rx="1.6" />
+      <path d="M3 9.2h18v3.2H3z" fill="#E84B2A" stroke="#A52A1A" strokeWidth="1" rx="1.2" />
+      <path d="M12 9.2v10.8" stroke="#A52A1A" strokeWidth="1.2" />
+      <path d="M9.5 8c-1.9 0-3-.7-3-2 0-1 .8-1.8 1.8-1.8 1.8 0 2.8 1.9 3.7 3.8z" fill="#F5C524" stroke="#A77810" strokeWidth="0.9" />
+      <path d="M14.5 8c1.9 0 3-.7 3-2 0-1-.8-1.8-1.8-1.8-1.8 0-2.8 1.9-3.7 3.8z" fill="#F5C524" stroke="#A77810" strokeWidth="0.9" />
+      <path d="M19.8 5.5l1.2-1.2M20.2 9h1.7M4.2 5.5L3 4.3M3.8 9H2.1" stroke="#F5C524" strokeWidth="1.1" strokeLinecap="round" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
+export const IconCogSpark: React.FC<IconProps> = ({ size = 18, className, style }) =>
+  wrap(
+    <g>
+      <path d="M12 5.2l1.4-1.9 2 .8.2 2.3 2 .9-.2 2.2 1.8 1.2-.9 2.1-2.3.1-.9 2-2.2-.2-1.2 1.8-2.1-.9-.1-2.3-2-.9.2-2.2-1.8-1.2.9-2.1 2.3-.1.9-2 2.2.2z" fill="#5D5C53" stroke="#F5F4ED" strokeWidth="0.7" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="2.6" fill="#5BD7E0" stroke="#1F4F76" strokeWidth="0.9" />
+      <path d="M18.2 5.2l1-2.2 1.1 1.2 2.3-.5-1.3 2 .9 1.1-2.4.2z" fill="#F5C524" stroke="#A77810" strokeWidth="0.7" strokeLinejoin="round" />
+    </g>,
+    size,
+    className,
+    style
+  );
+
 export const IconPlusCircle: React.FC<IconProps> = ({ size = 22, className, style }) =>
   wrap(
     <g>

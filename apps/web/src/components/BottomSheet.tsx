@@ -111,7 +111,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
         )}
 
         {/* Content */}
-        <div style={{ padding: '20px' }}>{children}</div>
+        <div className="bottom-sheet-content">{children}</div>
       </div>
     </>
   );

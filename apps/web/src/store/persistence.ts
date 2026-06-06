@@ -5,6 +5,8 @@ const STORAGE_KEY = 'dyor_player_data';
 export interface PlayerData {
   outfit: Outfit;
   characterId?: string;
+  /** Player handle shown big in the lobby (identity, distinct from the role). */
+  nickname: string;
   accessory: string;
   ownedItems: string[];
   stars: number;
@@ -12,10 +14,26 @@ export interface PlayerData {
   onboardingComplete: boolean;
   dailyStreak: number;
   lastDailyDate: string | null;
+  // ── Meta-progression (lobby social layer) ──
+  /** Lifetime experience points. Drives level + XP-gated character unlocks. */
+  xp: number;
+  /** Characters unlocked via XP/level (coin-bought ones live in ownedItems). */
+  unlockedCharacters: string[];
+  /** Pet displayed in the lobby (cosmetic). Distinct from in-match matchPetIds. */
+  lobbyPetId: string | null;
+  /** Earned achievement ids. */
+  achievements: string[];
+  matchesPlayed: number;
+  matchesWon: number;
+  /** Highest passive income reached in any finished match. */
+  bestPassiveIncome: number;
+  /** Lifetime cash earned across matches (rough, for milestone achievements). */
+  totalEarned: number;
 }
 
 const DEFAULT_DATA: PlayerData = {
   outfit: 'hustler',
+  nickname: 'Вы',
   accessory: 'none',
   ownedItems: ['host-joker'],
   stars: 1250,
@@ -23,6 +41,14 @@ const DEFAULT_DATA: PlayerData = {
   onboardingComplete: false,
   dailyStreak: 0,
   lastDailyDate: null,
+  xp: 0,
+  unlockedCharacters: [],
+  lobbyPetId: null,
+  achievements: [],
+  matchesPlayed: 0,
+  matchesWon: 0,
+  bestPassiveIncome: 0,
+  totalEarned: 0,
 };
 
 export function loadPlayerData(): PlayerData {

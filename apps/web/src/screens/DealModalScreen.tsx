@@ -5,15 +5,8 @@ import avatarMax from '../assets/generated/avatar-max.png';
 import avatarMira from '../assets/generated/avatar-mira.png';
 import avatarSasha from '../assets/generated/avatar-sasha.png';
 import avatarYou from '../assets/generated/avatar-you.png';
+import { resolveDealArtwork } from '../assets/cardArtwork';
 import {
-  HeroAgency,
-  HeroCoffee,
-  HeroCrypto,
-  HeroLaundro,
-  HeroLicense,
-  HeroPod,
-  HeroStorefront,
-  HeroWarehouse,
   IconAcceptShake,
   IconBriefcase,
   IconBuilding,
@@ -70,29 +63,6 @@ function moneyShort(n: number): string {
   return `${n < 0 ? '-' : ''}$${a}`;
 }
 
-function heroFor(proposal: DealProposal): React.ReactNode {
-  switch (proposal.illustration) {
-    case 'warehouse':
-      return <HeroWarehouse size={80} />;
-    case 'coffee':
-      return <HeroCoffee size={80} />;
-    case 'storefront':
-      return <HeroStorefront size={80} />;
-    case 'pod':
-      return <HeroPod size={80} />;
-    case 'license':
-      return <HeroLicense size={80} />;
-    case 'agency':
-      return <HeroAgency size={80} />;
-    case 'crypto':
-      return <HeroCrypto size={80} />;
-    case 'laundro':
-      return <HeroLaundro size={80} />;
-    default:
-      return <HeroWarehouse size={80} />;
-  }
-}
-
 function assetKindLabel(p: DealProposal): string {
   const kind = p.assetKind.charAt(0).toUpperCase() + p.assetKind.slice(1);
   const inc =
@@ -135,7 +105,7 @@ const MiniPlayerTile: React.FC<{ p: PlayerState; isMe?: boolean }> = ({ p, isMe 
 // ─────────────────────────────────────────────────────────
 
 export const DealModalScreen: React.FC = () => {
-  const { match, setScreen, applyDealEffects, addReputation } = useStore();
+  const { match, setScreen, submitDealOffer } = useStore();
 
   const me = match.players.find((p) => !p.isBot) || match.players[0];
   const otherPlayers = match.players.filter((p) => p.id !== me.id);
@@ -170,6 +140,7 @@ export const DealModalScreen: React.FC = () => {
     verdict === 'safe' ? 'safe' : verdict === 'careful' ? 'careful' : verdict === 'risky' ? 'risky' : 'avoid';
 
   const enforcement = ENFORCEMENT_OPTIONS.find((e) => e.id === enforcementId)!;
+  const heroArtwork = resolveDealArtwork(proposal.illustration);
 
   const handlePreset = (id: string) => {
     setPresetId(id);
@@ -181,16 +152,18 @@ export const DealModalScreen: React.FC = () => {
   };
 
   const handleAccept = () => {
-    applyDealEffects({
-      cashDelta: -(contribution + enforcement.cost),
-      cashflowDelta: monthlyShare,
-      businessName: proposal.title,
+    submitDealOffer(proposal.proposer.id, {
+      targetPlayerId: proposal.proposer.id,
+      cashOffer: contribution + enforcement.cost,
+      projectedMonthlyIncome: monthlyShare,
+      projectedAssetValue: proposal.assetValue,
+      enforcement: enforcementId,
+      description: proposal.title,
     });
     setScreen('main');
   };
 
   const handleDecline = () => {
-    addReputation(proposal.proposer.id, proposal.declineRep);
     setScreen('main');
   };
 
@@ -252,7 +225,25 @@ export const DealModalScreen: React.FC = () => {
 
         {/* Hero */}
         <div className="deal-hero">
-          <div className="deal-hero-illustration">{heroFor(proposal)}</div>
+          <div
+            className="deal-hero-illustration"
+            style={{
+              background: `radial-gradient(circle at 50% 12%, ${proposal.illustrationGradient[0]}55, transparent 56%), linear-gradient(180deg, rgba(19,21,29,.95), rgba(12,14,20,.98))`,
+            }}
+          >
+            <img
+              src={heroArtwork.src}
+              alt={proposal.title}
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: heroArtwork.fit ?? 'contain',
+                objectPosition: heroArtwork.position ?? 'center',
+                filter: 'drop-shadow(0 12px 20px rgba(0,0,0,.28))',
+              }}
+              draggable={false}
+            />
+          </div>
           <div className="deal-hero-meta">
             <div className="title-row">
               <div className="title-left">

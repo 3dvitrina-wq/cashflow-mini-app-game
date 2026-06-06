@@ -18,6 +18,7 @@ const App: React.FC = () => {
   const preview = params?.get('preview');
   const forceRules = params?.get('rules') === '1';
   const autostart = params?.get('autostart') === '1';
+  const forceLobby = params?.get('lobby') === '1';
   const forceShop = params?.get('shop') === '1';
   const forceEditor = params?.get('editor') === '1';
   // Dev visual harness: ?preview=avatars (does not affect normal navigation)
@@ -33,6 +34,11 @@ const App: React.FC = () => {
   // Dev QA harness: ?shop=1 opens the real shop screen directly.
   if (forceShop) {
     return <ShopScreen />;
+  }
+
+  // Dev QA harness: ?lobby=1 opens lobby without completing onboarding or starting a match.
+  if (forceLobby) {
+    return <LobbyScreen />;
   }
 
   // Dev QA harness: ?editor=1 opens character editor directly.
