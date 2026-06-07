@@ -750,9 +750,9 @@ export const LobbyScreen: React.FC = () => {
                 <p>Лобби, где твой статус видно всем</p>
               </div>
 
-              <div className="lobby-hook-profile-frame">
+              <div className="lobby-hook-regalia">
                 <button
-                  className="lobby-hook-profile"
+                  className="lobby-hook-regalia-chip lobby-hook-regalia-avatar"
                   onClick={() => players[0] && openVisit(players[0])}
                   aria-label="Открыть профиль"
                 >
@@ -762,14 +762,7 @@ export const LobbyScreen: React.FC = () => {
                     <small>{nickname || 'Вы'} · готов</small>
                   </span>
                 </button>
-                <div className="lobby-hook-wallet">
-                  <span className="lobby-currency-pill"><IconCoin size={15} /> {playerData.coins.toLocaleString('ru-RU')}</span>
-                  <span className="lobby-currency-pill lobby-currency-gems">◆ {playerData.stars}</span>
-                </div>
-              </div>
-
-              <div className="lobby-hook-regalia">
-                {LOBBY_REGALIA.map((badge) => (
+                {LOBBY_REGALIA.slice(1).map((badge) => (
                   <span key={badge.id} className="lobby-hook-regalia-chip">
                     <b>{badge.icon}</b>
                     <span>{badge.title}<small>{badge.subtitle}</small></span>
