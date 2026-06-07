@@ -207,6 +207,9 @@ export function startRoom(code: string, opts: StartOptions = {}): Room | null {
   room.engineState = createMatch(room.seed, players, {
     maxRounds: opts.maxRounds,
     mode: opts.mode,
+    // Online matches never auto-fabricate partnerships: a player must never receive a
+    // deal "nobody sent". Real deals go through the explicit negotiation flow.
+    autoDeals: false,
   });
   room.status = 'playing';
   room.turnStartedAt = Date.now();

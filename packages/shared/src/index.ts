@@ -592,6 +592,9 @@ export interface MatchState {
 
   // Draft mode: which round format is being played (default 'classic')
   matchMode?: MatchMode;
+  // When false, the engine never auto-generates deal proposals (online human matches).
+  // Undefined/true keeps offline-vs-bots auto-deal behavior.
+  autoDeals?: boolean;
   // Draft mode: the 6-card central board for the current round (null in classic)
   draftBoard?: DraftBoard | null;
 }

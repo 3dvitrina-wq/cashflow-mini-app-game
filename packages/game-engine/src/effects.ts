@@ -357,6 +357,12 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
   },
 
   'deal.resolve': (state, p, e) => {
+    // Online human matches disable engine-driven auto-deals: a card choice must never
+    // fabricate a partnership the other human "never sent". Real deals go through the
+    // explicit negotiation flow instead.
+    if (state.autoDeals === false) {
+      return [{ type: 'effect', playerId: p.id, effectType: 'deal.resolve', message: 'auto-deal disabled' }];
+    }
     // Find a random alive opponent to propose deal to
     const opponents = state.players.filter((pl) => pl.alive && pl.id !== p.id);
     if (opponents.length === 0) {

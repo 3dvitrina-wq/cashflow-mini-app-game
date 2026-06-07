@@ -1046,8 +1046,21 @@ export const useStore = create<AppState>((set, get) => ({
 
   nextRound: () =>
     set((st) => {
-      // Server advances the round after each command in multiplayer.
-      if (st.isMultiplayer) return st;
+      // In multiplayer the server is authoritative. Zero-choice cards (auto-resolve
+      // "stress +1" flavor cards) still need the ACTIVE player to advance the turn —
+      // there's no choose_option to send, so send a `pass`. Without this the match
+      // freezes on a choiceless card (the "Continue" button looked dead). A pass from a
+      // non-active player is turn-rejected by the engine, so this is safe to guard.
+      if (st.isMultiplayer) {
+        const me = st.engineMatch?.players.find((p) => p.id === st.localPlayerId);
+        const active = st.engineMatch
+          ? st.engineMatch.players[st.engineMatch.activePlayerIndex]
+          : undefined;
+        if (me && active && me.id === active.id) {
+          wsClient.send({ type: 'command', command: { type: 'pass', playerId: me.id } });
+        }
+        return st;
+      }
 
       if (!st.engineMatch) {
         const nextR = st.match.round + 1;

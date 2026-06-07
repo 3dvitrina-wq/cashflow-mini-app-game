@@ -523,6 +523,8 @@ export const MatchStateSchema = z.object({
   activeInterestWindow: InterestWindowSchema.nullable().optional(),
   // Draft mode (optional for backward-compat)
   matchMode: z.enum(['classic', 'draft']).optional(),
+  // Online matches disable engine auto-deals (optional for backward-compat)
+  autoDeals: z.boolean().optional(),
   draftBoard: z.object({
     cards: z.array(CardIdSchema),
     claims: z.record(z.array(z.object({

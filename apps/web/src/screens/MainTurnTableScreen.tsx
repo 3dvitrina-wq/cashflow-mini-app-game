@@ -783,7 +783,35 @@ export const MainTurnTableScreen: React.FC = () => {
 
       <section className="game-playfield">
         {/* ========== CARD STAGE (host + card wrapper) ========== */}
-        {match.matchMode === 'draft' ? <DraftBoard /> : (
+        {match.matchMode === 'draft' ? <DraftBoard /> : !canActNow ? (
+          // Turn-based online: the card belongs to the active player. Everyone else sees
+          // only who is acting and waits — the same card must never look interactive for a
+          // non-active player (that caused the "only one can press" confusion).
+          <div className="card-stage relative z-10 flex min-h-0 flex-1 flex-col">
+            <main className="relative flex min-h-0 flex-1 items-center justify-center px-3 py-1">
+              <div className="turn-wait-panel">
+                <div className="turn-wait-avatar-stage">
+                  <div className="turn-wait-halo" />
+                  <img
+                    src={resolveCharacterImage(activePlayer.name, activePlayer.outfit, activePlayer.mood, activePlayer.characterId)}
+                    alt={activePlayer.name}
+                    className="turn-wait-avatar"
+                    draggable={false}
+                  />
+                </div>
+                <span className="turn-wait-kicker">
+                  {locale === 'ru' ? 'ОЖИДАЕМ ЗАВЕРШЕНИЯ ХОДА' : 'WAITING FOR THE TURN'}
+                </span>
+                <h2 className="turn-wait-name">
+                  {locale === 'ru' ? `Ходит ${activePlayer.name}` : `${activePlayer.name} is acting`}
+                </h2>
+                <span className="turn-wait-timer">
+                  <IconTimer size={14} /> {timer}s
+                </span>
+              </div>
+            </main>
+          </div>
+        ) : (
           <div className="card-stage relative z-10 flex min-h-0 flex-1 flex-col">
             {/* ========== CARD (frameless) ========== */}
             <main className="relative flex min-h-0 flex-1 items-stretch px-3 py-1">
@@ -962,7 +990,8 @@ export const MainTurnTableScreen: React.FC = () => {
           </section>
 
           {/* ========== TURN ACTION DOCK ========== */}
-          {match.matchMode !== 'draft' && (
+          {/* Hidden while waiting for another player's turn — the card isn't yours to act on. */}
+          {match.matchMode !== 'draft' && canActNow && (
             <section className="turn-action-dock">
               <div className="decision-choice-panel">
                 <div className="survival-row">

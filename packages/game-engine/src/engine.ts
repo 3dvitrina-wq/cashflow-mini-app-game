@@ -206,6 +206,13 @@ export interface CreateMatchOptions {
   timer?: TimerSettings;
   locationId?: string;
   mode?: MatchState['matchMode'];
+  /**
+   * When false, the engine never auto-generates deal proposals (card `deal.resolve`
+   * effects and bot partnership invites become no-ops). Online human matches set this
+   * so no player ever receives a partnership "nobody sent" — real deals must go through
+   * the explicit negotiation flow. Defaults to true to preserve offline-vs-bots behavior.
+   */
+  autoDeals?: boolean;
 }
 
 export function createMatch(
@@ -276,6 +283,7 @@ export function createMatch(
     activeInterestWindow: null,
     matchMode: opts.mode ?? 'classic',
     draftBoard: null,
+    autoDeals: opts.autoDeals ?? true,
   };
 
   // Initialize pending intents
@@ -1348,7 +1356,7 @@ export function advanceRound(prev: MatchState): CommandResult {
 
   // ─── Bots send partnership invites on opportunity/social cards ─────────
   const drawnCard = getCard(state.currentCardId);
-  if (drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
+  if (state.autoDeals !== false && drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
     for (const p of state.players) {
       if (!p.alive || !p.isBot) continue;
       const roll = rngFloat(state.seed, state.rngCounter + 7777 + state.players.indexOf(p));
