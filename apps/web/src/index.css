@@ -9523,105 +9523,185 @@ input[type="range"]::-moz-range-thumb {
 
 /* ── Offer Builder Modal ─────────────────────────────────── */
 
+/* ── Negotiation modal — full-screen overlay ── */
 .negot-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.72);
+  background: #0E1015;
   z-index: 70;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .negot-modal {
   width: 100%;
   max-width: 430px;
-  background: #1A1C22;
-  border-radius: 22px 22px 0 0;
-  border-top: 1px solid rgba(123,91,215,.35);
-  padding: 16px 16px 32px;
-  max-height: 90dvh;
-  overflow-y: auto;
-  animation: negot-slide-up 0.3s ease-out;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+  flex: 1;
+  animation: negot-slide-up 0.28s ease-out;
 }
 
+/* Header */
 .negot-modal-header {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 14px;
+  gap: 8px;
+  padding: 14px 0 18px;
 }
 
-.negot-modal-close {
-  font-size: 16px;
-  color: #7D7B6F;
-  min-width: 32px;
-  min-height: 32px;
-  border-radius: 8px;
-  background: rgba(255,255,255,.06);
+.negot-modal-back {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  color: #F5F4ED;
+  font-size: 24px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.negot-modal-heading {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
 }
 
 .negot-modal-title {
-  font-size: 14px;
-  font-weight: 800;
+  font-size: 18px;
+  font-weight: 950;
   color: #F5F4ED;
-  flex: 1;
+  letter-spacing: .04em;
+}
+
+.negot-modal-subtitle {
+  font-size: 10px;
+  font-weight: 700;
+  color: #9C8050;
+  letter-spacing: .1em;
 }
 
 /* Players row */
 .negot-players-row {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: 8px;
-  background: #252830;
-  border-radius: 14px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
+  margin-bottom: 20px;
 }
 
 .negot-player-chip {
   flex: 1;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px 10px 10px;
+  border-radius: 16px;
+  overflow: hidden;
+  min-height: 80px;
 }
 
-.negot-player-me { align-items: flex-start; }
-.negot-player-partner { align-items: flex-end; }
+.negot-player-me {
+  background: rgba(61,189,160,.08);
+  border: 1px solid rgba(61,189,160,.22);
+}
 
-.negot-player-name {
-  font-size: 12px;
-  font-weight: 800;
+.negot-player-partner {
+  background: rgba(123,91,215,.08);
+  border: 1px solid rgba(123,91,215,.22);
+  flex-direction: row-reverse;
+}
+
+.negot-player-portrait {
+  width: 52px;
+  height: 66px;
+  object-fit: contain;
+  object-position: bottom center;
+  flex-shrink: 0;
+}
+
+.negot-player-avatar-placeholder {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  font-weight: 900;
   color: #F5F4ED;
-  text-transform: uppercase;
+  flex-shrink: 0;
 }
+
+.negot-player-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.negot-info-right {
+  text-align: right;
+}
+
+.negot-player-role {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .05em;
+  line-height: 1;
+}
+
+.negot-role-me { color: #3DBDA0; }
+.negot-role-partner { color: #A78BFA; }
 
 .negot-player-cash {
-  font-size: 11px;
-  font-weight: 700;
-  color: #28C76F;
+  font-size: 20px;
+  font-weight: 950;
+  color: #F5F4ED;
+  letter-spacing: -.01em;
+  white-space: nowrap;
 }
 
-.negot-swap-icon {
-  font-size: 18px;
+.negot-swap-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #1A1D25;
+  border: 1px solid rgba(255,255,255,.12);
   color: #7D7B6F;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 /* Section label */
 .negot-section-label {
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: .07em;
-  color: #7D7B6F;
+  letter-spacing: .08em;
+  color: #6B6960;
   text-transform: uppercase;
-  margin-bottom: 7px;
+  margin-bottom: 8px;
+  margin-top: 16px;
 }
 
-/* Preset buttons */
+/* Preset cards */
 .negot-preset-row {
   display: flex;
-  gap: 6px;
-  margin-bottom: 10px;
+  gap: 8px;
+  margin-bottom: 0;
 }
 
 .negot-preset-btn {
@@ -9629,77 +9709,147 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  min-height: 56px;
-  padding: 8px 6px;
-  border-radius: 12px;
-  background: rgba(255,255,255,.05);
-  border: 1.5px solid transparent;
+  gap: 4px;
+  min-height: 100px;
+  padding: 12px 6px 14px;
+  border-radius: 16px;
+  background: rgba(255,255,255,.04);
+  border: 1.5px solid rgba(255,255,255,.08);
   transition: border-color 0.15s, background 0.15s;
+  position: relative;
 }
-
-.negot-preset-btn:hover { background: rgba(255,255,255,.09); }
 
 .negot-preset-active {
-  border-color: #7B5BD7;
-  background: rgba(123,91,215,.15);
+  border-color: #3DBDA0;
+  background: rgba(61,189,160,.08);
 }
 
-.negot-preset-label {
+.negot-preset-check {
+  position: absolute;
+  top: 7px;
+  right: 9px;
   font-size: 11px;
+  color: #3DBDA0;
   font-weight: 900;
+}
+
+.negot-preset-name {
+  font-size: 10px;
+  font-weight: 800;
+  color: #9C9A90;
+  text-align: center;
+  letter-spacing: .02em;
+}
+
+.negot-preset-ratio {
+  font-size: 20px;
+  font-weight: 950;
   color: #F5F4ED;
   text-align: center;
+  line-height: 1.05;
 }
 
-.negot-preset-sub {
+.negot-preset-active .negot-preset-ratio {
+  color: #3DBDA0;
+}
+
+.negot-preset-asset {
   font-size: 9px;
-  font-weight: 500;
-  color: #7D7B6F;
+  font-weight: 700;
+  color: #6B6960;
   text-align: center;
   line-height: 1.2;
 }
 
-/* Share bar */
+/* Share bar — tall pill with % text inside */
 .negot-share-bar {
   display: flex;
-  height: 8px;
-  border-radius: 6px;
+  height: 48px;
+  border-radius: 12px;
   overflow: hidden;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
+  gap: 2px;
 }
 
 .negot-share-fill-me {
-  background: #7B5BD7;
+  background: #3DBDA0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: width 0.3s ease;
+  min-width: 36px;
 }
 
 .negot-share-fill-partner {
-  background: #5BD7E0;
+  flex: 1;
+  background: #7B5BD7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: width 0.3s ease;
+  min-width: 36px;
+}
+
+.negot-share-pct {
+  font-size: 18px;
+  font-weight: 950;
+  color: #fff;
+  letter-spacing: -.01em;
 }
 
 .negot-share-labels {
   display: flex;
   justify-content: space-between;
-  font-size: 9px;
-  font-weight: 600;
-  color: #7D7B6F;
-  margin-bottom: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6B6960;
+  margin-bottom: 0;
 }
 
-/* Slider */
+/* Side payment */
+.negot-sidepay-amount {
+  font-size: 32px;
+  font-weight: 950;
+  color: #F5F4ED;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: -.01em;
+}
+
+.negot-sidepay-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.negot-sidepay-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.12);
+  color: #F5F4ED;
+  font-size: 22px;
+  font-weight: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
 .negot-slider {
-  width: 100%;
+  flex: 1;
   accent-color: #F5C524;
   cursor: pointer;
+  height: 4px;
 }
 
-/* Enforcement row */
+/* Enforcement cards */
 .negot-enforce-row {
   display: flex;
   gap: 6px;
-  margin-bottom: 10px;
+  margin-bottom: 16px;
 }
 
 .negot-enforce-btn {
@@ -9707,30 +9857,30 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  min-height: 52px;
-  padding: 7px 4px;
-  border-radius: 10px;
+  gap: 5px;
+  min-height: 68px;
+  padding: 12px 4px 10px;
+  border-radius: 14px;
   background: rgba(255,255,255,.04);
-  border: 1.5px solid transparent;
+  border: 1.5px solid rgba(255,255,255,.08);
   transition: border-color 0.15s, background 0.15s;
 }
 
 .negot-enforce-active {
   border-color: #5BD7E0;
-  background: rgba(91,215,224,.12);
+  background: rgba(91,215,224,.09);
+}
+
+.negot-enforce-icon {
+  font-size: 20px;
+  line-height: 1;
 }
 
 .negot-enforce-label {
   font-size: 10px;
   font-weight: 800;
   color: #F5F4ED;
-}
-
-.negot-enforce-desc {
-  font-size: 9px;
-  font-weight: 500;
-  color: #7D7B6F;
+  text-align: center;
 }
 
 /* Fairness warning */
@@ -9738,8 +9888,8 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  background: rgba(245,165,36,.10);
-  border: 1px solid rgba(245,165,36,.30);
+  background: rgba(245,165,36,.09);
+  border: 1px solid rgba(245,165,36,.28);
   border-radius: 10px;
   padding: 9px 11px;
   margin-bottom: 12px;
@@ -9782,45 +9932,46 @@ input[type="range"]::-moz-range-thumb {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .negot-action-accept {
-  min-height: 52px;
-  border-radius: 14px;
-  background: #28C76F;
-  color: #0A1A12;
-  font-size: 14px;
+  min-height: 56px;
+  border-radius: 16px;
+  background: #1E7A4A;
+  border: 1px solid #28A060;
+  color: #F5F4ED;
+  font-size: 15px;
   font-weight: 900;
-  letter-spacing: .03em;
+  letter-spacing: .04em;
   text-transform: uppercase;
   transition: background 0.15s;
 }
 
-.negot-action-accept:hover { background: #34D399; }
+.negot-action-accept:hover { background: #228A54; }
 
 .negot-action-cost {
   font-size: 11px;
   font-weight: 600;
-  opacity: 0.75;
+  opacity: 0.7;
 }
 
 .negot-action-counter {
-  min-height: 44px;
-  border-radius: 12px;
-  background: rgba(91,160,215,.15);
-  border: 1px solid rgba(91,160,215,.30);
-  color: #5BA0D7;
+  min-height: 48px;
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.14);
+  color: #F5F4ED;
   font-size: 13px;
   font-weight: 800;
   text-transform: uppercase;
 }
 
 .negot-action-pass {
-  min-height: 44px;
+  min-height: 40px;
   border-radius: 12px;
-  background: rgba(255,255,255,.05);
-  color: #7D7B6F;
+  background: transparent;
+  color: #6B6960;
   font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;

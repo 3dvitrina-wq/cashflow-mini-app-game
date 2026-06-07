@@ -3,27 +3,29 @@ import type { OfferPayload } from '../../../../../packages/shared/src';
 import type { FairnessResult } from '../../../../../packages/game-engine/src';
 import { useStore } from '../../store';
 import type { PlayerState } from '../../store/types';
+import { resolveCharacterPortrait } from '../../assets/generatedCharacterCatalog';
 
 // ─── Preset definitions ──────────────────────────────────────────────────────
 
 interface Preset {
   id: OfferPayload['preset'];
-  label: string;
-  sub: string;
+  name: string;
+  ratio: string;
   myShare: number;
+  asset: string;
 }
 
 const PRESETS: Preset[] = [
-  { id: 'split_50_50',     label: '50 / 50',        sub: 'Равное партнёрство',  myShare: 50 },
-  { id: 'owner_operator',  label: 'Владелец-оператор', sub: '70% мне / 30% партнёру', myShare: 70 },
-  { id: 'silent_partner',  label: 'Тихий партнёр',   sub: '20% мне / 80% партнёру', myShare: 20 },
+  { id: 'split_50_50',    name: 'Поровну',      ratio: '50 / 50', myShare: 50, asset: 'Актив общий' },
+  { id: 'owner_operator', name: 'Я рулю',        ratio: '70 / 30', myShare: 70, asset: 'Актив мой' },
+  { id: 'silent_partner', name: 'Тихий партнёр', ratio: '20 / 80', myShare: 20, asset: 'Актив партнёра' },
 ];
 
 const ENFORCEMENT_OPTS = [
-  { id: 'word'   as const, label: 'На слово',   cost: 0,   desc: 'Платит только если совесть жива' },
-  { id: 'iou'    as const, label: 'IOU',         cost: 0,   desc: 'Есть расписка, за просрочку бьёт по доверию' },
-  { id: 'written' as const, label: 'Контракт',  cost: 50,  desc: '+$50, автосписание если хватает cash' },
-  { id: 'lawyer' as const, label: 'Юрист',      cost: 200, desc: '+$200, жёсткое взыскание и штраф' },
+  { id: 'word'    as const, label: 'На слово', icon: '💬', cost: 0 },
+  { id: 'iou'    as const, label: 'IOU',       icon: '📋', cost: 0 },
+  { id: 'written' as const, label: 'Контракт', icon: '📝', cost: 50 },
+  { id: 'lawyer' as const, label: 'Юрист',     icon: '⚖️', cost: 200 },
 ];
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -40,9 +42,7 @@ interface Props {
 // ─── Fairness badge ──────────────────────────────────────────────────────────
 
 const FairnessWarning: React.FC<{ result: FairnessResult; meId: string; partnerId: string }> = ({
-  result,
-  meId,
-  partnerId,
+  result, meId, partnerId,
 }) => {
   if (!result.isFlagged || !result.warning) return null;
   const mySwing = result.equityImpact[meId] ?? 0;
@@ -70,12 +70,7 @@ export const FocusTokenEvent: React.FC<{ playerName: string }> = ({ playerName }
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export const OfferBuilderModal: React.FC<Props> = ({
-  me,
-  partner,
-  cardTitle,
-  onAccept,
-  onCounter,
-  onPass,
+  me, partner, cardTitle, onAccept, onCounter, onPass,
 }) => {
   const { computeFairness } = useStore();
   const [presetId, setPresetId] = useState<OfferPayload['preset']>('split_50_50');
@@ -84,102 +79,134 @@ export const OfferBuilderModal: React.FC<Props> = ({
 
   const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0]!;
 
-  const offer: OfferPayload = useMemo(
-    () => ({
-      preset: presetId,
-      targetPlayerId: partner.id,
-      cashOffer: sidePayment,
-      enforcement,
-      description: `${preset.label} — ${cardTitle}`,
-    }),
-    [presetId, sidePayment, enforcement, preset.label, cardTitle, partner.id],
-  );
+  const offer: OfferPayload = useMemo(() => ({
+    preset: presetId,
+    targetPlayerId: partner.id,
+    cashOffer: sidePayment,
+    enforcement,
+    description: `${preset.name} — ${cardTitle}`,
+  }), [presetId, sidePayment, enforcement, preset.name, cardTitle, partner.id]);
 
   const fairness = useMemo(() => computeFairness(offer), [offer]);
-
   const enforcementCost = ENFORCEMENT_OPTS.find((e) => e.id === enforcement)?.cost ?? 0;
-  const myShareLabel = `Твоя доля: ${preset.myShare}%`;
-  const partnerShareLabel = `Доля партнёра: ${100 - preset.myShare}%`;
+  const sliderMax = Math.max(50, Math.min(500, Math.floor(me.cash * 0.2)));
+
+  const mePortrait = resolveCharacterPortrait(me.characterId) ?? resolveCharacterPortrait(me.name);
+  const partnerPortrait = resolveCharacterPortrait(partner.characterId) ?? resolveCharacterPortrait(partner.name);
 
   return (
     <div className="negot-modal-overlay">
       <div className="negot-modal">
-        {/* Header */}
+
+        {/* ── Header ── */}
         <div className="negot-modal-header">
-          <button className="negot-modal-close" onClick={onPass} aria-label="Закрыть">✕</button>
-          <span className="negot-modal-title">Переговоры: {cardTitle}</span>
+          <button className="negot-modal-back" onClick={onPass} aria-label="Назад">‹</button>
+          <div className="negot-modal-heading">
+            <span className="negot-modal-title">ПЕРЕГОВОРЫ</span>
+            <span className="negot-modal-subtitle">{cardTitle.toUpperCase()}</span>
+          </div>
+          <div style={{ width: 36 }} />
         </div>
 
-        {/* Players row */}
+        {/* ── Players ── */}
         <div className="negot-players-row">
           <div className="negot-player-chip negot-player-me">
-            <span className="negot-player-name">{me.name}</span>
-            <span className="negot-player-cash">${me.cash.toLocaleString()}</span>
+            {mePortrait
+              ? <img src={mePortrait} alt="" className="negot-player-portrait" draggable={false} />
+              : <div className="negot-player-avatar-placeholder">{me.name[0]}</div>
+            }
+            <div className="negot-player-info">
+              <span className="negot-player-role negot-role-me">{me.name.toUpperCase()}</span>
+              <span className="negot-player-cash">${me.cash.toLocaleString('ru-RU')}</span>
+            </div>
           </div>
-          <span className="negot-swap-icon">⇄</span>
+
+          <div className="negot-swap-btn">⇄</div>
+
           <div className="negot-player-chip negot-player-partner">
-            <span className="negot-player-name">{partner.name}</span>
-            <span className="negot-player-cash">${partner.cash.toLocaleString()}</span>
+            <div className="negot-player-info negot-info-right">
+              <span className="negot-player-role negot-role-partner">{partner.name.toUpperCase()}</span>
+              <span className="negot-player-cash">${partner.cash.toLocaleString('ru-RU')}</span>
+            </div>
+            {partnerPortrait
+              ? <img src={partnerPortrait} alt="" className="negot-player-portrait" draggable={false} />
+              : <div className="negot-player-avatar-placeholder">{partner.name[0]}</div>
+            }
           </div>
         </div>
 
-        {/* Preset buttons */}
-        <div className="negot-section-label">ПРЕСЕТ РАЗДЕЛЕНИЯ</div>
+        {/* ── 1. Format ── */}
+        <div className="negot-section-label">1. ФОРМАТ СДЕЛКИ</div>
         <div className="negot-preset-row">
-          {PRESETS.map((p) => (
-            <button
-              key={p.id}
-              className={`negot-preset-btn ${presetId === p.id ? 'negot-preset-active' : ''}`}
-              onClick={() => setPresetId(p.id)}
-            >
-              <span className="negot-preset-label">{p.label}</span>
-              <span className="negot-preset-sub">{p.sub}</span>
-            </button>
-          ))}
+          {PRESETS.map((p) => {
+            const active = presetId === p.id;
+            return (
+              <button
+                key={p.id}
+                className={`negot-preset-btn${active ? ' negot-preset-active' : ''}`}
+                onClick={() => setPresetId(p.id)}
+              >
+                {active && <span className="negot-preset-check">✓</span>}
+                <span className="negot-preset-name">{p.name}</span>
+                <span className="negot-preset-ratio">{p.ratio}</span>
+                <span className="negot-preset-asset">{p.asset}</span>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Share display */}
+        {/* ── 2. Profit split ── */}
+        <div className="negot-section-label">2. КТО ПОЛУЧАЕТ ПРИБЫЛЬ?</div>
         <div className="negot-share-bar">
-          <div
-            className="negot-share-fill-me"
-            style={{ width: `${preset.myShare}%` }}
-          />
-          <div
-            className="negot-share-fill-partner"
-            style={{ width: `${100 - preset.myShare}%` }}
-          />
+          <div className="negot-share-fill-me" style={{ width: `${preset.myShare}%` }}>
+            <span className="negot-share-pct">{preset.myShare}%</span>
+          </div>
+          <div className="negot-share-fill-partner" style={{ width: `${100 - preset.myShare}%` }}>
+            <span className="negot-share-pct">{100 - preset.myShare}%</span>
+          </div>
         </div>
         <div className="negot-share-labels">
-          <span>{myShareLabel}</span>
-          <span>{partnerShareLabel}</span>
+          <span>Твоя доля {preset.myShare}%</span>
+          <span>Доля партнёра {100 - preset.myShare}%</span>
         </div>
 
-        {/* Side payment slider */}
-        <div className="negot-section-label" style={{ marginTop: 12 }}>
-          ДОПЛАТА ПАРТНЁРУ: <span style={{ color: '#F5C524' }}>${sidePayment}</span>
+        {/* ── 3. Side payment ── */}
+        <div className="negot-section-label">3. ДОПЛАТА ПАРТНЁРУ</div>
+        <div className="negot-sidepay-amount">${sidePayment.toLocaleString('ru-RU')}</div>
+        <div className="negot-sidepay-row">
+          <button
+            className="negot-sidepay-btn"
+            onClick={() => setSidePayment((v) => Math.max(0, v - 50))}
+            aria-label="Уменьшить"
+          >−</button>
+          <input
+            type="range"
+            min={0}
+            max={sliderMax}
+            step={50}
+            value={sidePayment}
+            onChange={(e) => setSidePayment(Number(e.target.value))}
+            className="negot-slider"
+            aria-label="Доплата партнёру"
+          />
+          <button
+            className="negot-sidepay-btn"
+            onClick={() => setSidePayment((v) => Math.min(sliderMax, v + 50))}
+            aria-label="Увеличить"
+          >+</button>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={Math.min(500, Math.floor(me.cash * 0.2))}
-          step={50}
-          value={sidePayment}
-          onChange={(e) => setSidePayment(Number(e.target.value))}
-          className="negot-slider"
-          aria-label="Доплата партнёру"
-        />
 
-        {/* Enforcement row */}
-        <div className="negot-section-label" style={{ marginTop: 12 }}>УРОВЕНЬ ЗАЩИТЫ</div>
+        {/* ── 4. Protection ── */}
+        <div className="negot-section-label">4. ЗАЩИТА</div>
         <div className="negot-enforce-row">
           {ENFORCEMENT_OPTS.map((e) => (
             <button
               key={e.id}
-              className={`negot-enforce-btn ${enforcement === e.id ? 'negot-enforce-active' : ''}`}
+              className={`negot-enforce-btn${enforcement === e.id ? ' negot-enforce-active' : ''}`}
               onClick={() => setEnforcement(e.id)}
             >
+              <span className="negot-enforce-icon">{e.icon}</span>
               <span className="negot-enforce-label">{e.label}</span>
-              <span className="negot-enforce-desc">{e.desc}</span>
             </button>
           ))}
         </div>
@@ -187,24 +214,16 @@ export const OfferBuilderModal: React.FC<Props> = ({
         {/* Fairness warning */}
         {fairness && <FairnessWarning result={fairness} meId={me.id} partnerId={partner.id} />}
 
-        {/* Actions */}
+        {/* ── Actions ── */}
         <div className="negot-modal-actions">
-          <button
-            className="negot-action-accept"
-            onClick={() => onAccept(offer)}
-          >
+          <button className="negot-action-accept" onClick={() => onAccept(offer)}>
             ✓ ПРИНЯТЬ УСЛОВИЯ
-            {enforcementCost > 0 && (
-              <span className="negot-action-cost"> (−${enforcementCost})</span>
-            )}
+            {enforcementCost > 0 && <span className="negot-action-cost"> (−${enforcementCost})</span>}
           </button>
-          <button className="negot-action-counter" onClick={() => onCounter(offer)}>
-            ↺ ВСТРЕЧНОЕ
-          </button>
-          <button className="negot-action-pass" onClick={onPass}>
-            ПРОПУСТИТЬ
-          </button>
+          <button className="negot-action-counter" onClick={() => onCounter(offer)}>↺ ВСТРЕЧНОЕ</button>
+          <button className="negot-action-pass" onClick={onPass}>ПРОПУСТИТЬ</button>
         </div>
+
       </div>
     </div>
   );
