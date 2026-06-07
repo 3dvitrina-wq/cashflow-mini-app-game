@@ -2,12 +2,12 @@ import React from 'react';
 import { BottomSheet } from './BottomSheet';
 import type { PlayerState } from '../store/types';
 import { useI18n } from '../i18n';
-import avatarAnton from '../assets/generated/avatar-anton.png';
-import avatarLena from '../assets/generated/avatar-lena.png';
-import avatarMax from '../assets/generated/avatar-max.png';
-import avatarMira from '../assets/generated/avatar-mira.png';
-import avatarSasha from '../assets/generated/avatar-sasha.png';
-import avatarYou from '../assets/generated/avatar-you.png';
+import avatarAnton from '../assets/generated/avatar-anton.webp';
+import avatarLena from '../assets/generated/avatar-lena.webp';
+import avatarMax from '../assets/generated/avatar-max.webp';
+import avatarMira from '../assets/generated/avatar-mira.webp';
+import avatarSasha from '../assets/generated/avatar-sasha.webp';
+import avatarYou from '../assets/generated/avatar-you.webp';
 
 interface PlayerProfileProps {
   isOpen: boolean;

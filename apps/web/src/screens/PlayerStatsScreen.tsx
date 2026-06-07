@@ -9,8 +9,8 @@ import { getLevelProgress } from '../lib/progression';
 import { ACHIEVEMENTS } from '../assets/achievementsCatalog';
 import { useStore } from '../store';
 import { showToast } from '../components/Toast';
-import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.png';
-import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.png';
+import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.webp';
+import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.webp';
 import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
 import {
   IconAlert,

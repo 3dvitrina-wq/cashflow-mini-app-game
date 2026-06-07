@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
-import bankLoanKiosk from '../assets/generated/bank/bank-loan-kiosk.png';
+import bankLoanKiosk from '../assets/generated/bank/bank-loan-kiosk.webp';
 import { getProfession } from '../../../../packages/shared/src';
 
 interface BankScreenProps {

@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
-import welderPortrait from '../assets/generated/labor-v2/worker-welder-v2.png';
-import coderPortrait from '../assets/generated/labor-v2/worker-coder-v2.png';
-import chefPortrait from '../assets/generated/labor-v2/worker-chef-v2.png';
-import lawyerPortrait from '../assets/generated/labor-v2/worker-lawyer-v2.png';
-import accountantPortrait from '../assets/generated/labor-v2/worker-accountant-v2.png';
-import marketerPortrait from '../assets/generated/labor-v2/worker-marketer-v2.png';
+import welderPortrait from '../assets/generated/labor-v2/worker-welder-v2.webp';
+import coderPortrait from '../assets/generated/labor-v2/worker-coder-v2.webp';
+import chefPortrait from '../assets/generated/labor-v2/worker-chef-v2.webp';
+import lawyerPortrait from '../assets/generated/labor-v2/worker-lawyer-v2.webp';
+import accountantPortrait from '../assets/generated/labor-v2/worker-accountant-v2.webp';
+import marketerPortrait from '../assets/generated/labor-v2/worker-marketer-v2.webp';
 import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
 
 interface LaborMarketScreenProps {

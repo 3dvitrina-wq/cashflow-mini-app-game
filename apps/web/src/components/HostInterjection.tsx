@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import hostImage from '../assets/generated/ai-host.png';
+import hostImage from '../assets/generated/ai-host.webp';
 
 export type HostTone = 'event' | 'check' | 'deal' | 'warning';
 

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import avatarAnton from '../assets/generated/avatar-anton.png';
-import avatarLena from '../assets/generated/avatar-lena.png';
-import avatarMax from '../assets/generated/avatar-max.png';
-import avatarMira from '../assets/generated/avatar-mira.png';
-import avatarSasha from '../assets/generated/avatar-sasha.png';
-import avatarYou from '../assets/generated/avatar-you.png';
+import avatarAnton from '../assets/generated/avatar-anton.webp';
+import avatarLena from '../assets/generated/avatar-lena.webp';
+import avatarMax from '../assets/generated/avatar-max.webp';
+import avatarMira from '../assets/generated/avatar-mira.webp';
+import avatarSasha from '../assets/generated/avatar-sasha.webp';
+import avatarYou from '../assets/generated/avatar-you.webp';
 import { resolveDealArtwork } from '../assets/cardArtwork';
 import {
   IconAcceptShake,

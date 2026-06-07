@@ -1,21 +1,21 @@
-import assetAiStartup from './generated/market-v2/asset-ai-startup-v2.png';
-import assetCoffee from './generated/market-v2/asset-coffee-v2.png';
-import assetCryptoMining from './generated/market-v2/asset-crypto-mining-v2.png';
-import assetLaundromat from './generated/market-v2/asset-laundromat-v2.png';
-import assetLogistics from './generated/market-v2/asset-logistics-v2.png';
-import assetNft from './generated/market-v2/asset-nft-v2.png';
-import assetOffice from './generated/market-v2/asset-office-v2.png';
-import assetStorage from './generated/market-v2/asset-storage-v2.png';
-import bankLoanKiosk from './generated/bank/bank-loan-kiosk.png';
-import workerCoder from './generated/labor-v2/worker-coder-v2.png';
-import workerLawyer from './generated/labor-v2/worker-lawyer-v2.png';
-import workerMarketer from './generated/labor-v2/worker-marketer-v2.png';
-import introCrisis from './generated/onboarding/intro-crisis-v2.png';
-import introDecision from './generated/onboarding/intro-decision-v2.png';
-import introTable from './generated/onboarding/intro-table-v2.png';
-import splashNomadSurvival from './generated/shop-v2/splashes/splash_nomad_survival.png';
-import splashPassiveDream from './generated/shop-v2/splashes/splash_passive_dream.png';
-import splashTaxChaos from './generated/shop-v2/splashes/splash_tax_chaos.png';
+import assetAiStartup from './generated/market-v2/asset-ai-startup-v2.webp';
+import assetCoffee from './generated/market-v2/asset-coffee-v2.webp';
+import assetCryptoMining from './generated/market-v2/asset-crypto-mining-v2.webp';
+import assetLaundromat from './generated/market-v2/asset-laundromat-v2.webp';
+import assetLogistics from './generated/market-v2/asset-logistics-v2.webp';
+import assetNft from './generated/market-v2/asset-nft-v2.webp';
+import assetOffice from './generated/market-v2/asset-office-v2.webp';
+import assetStorage from './generated/market-v2/asset-storage-v2.webp';
+import bankLoanKiosk from './generated/bank/bank-loan-kiosk.webp';
+import workerCoder from './generated/labor-v2/worker-coder-v2.webp';
+import workerLawyer from './generated/labor-v2/worker-lawyer-v2.webp';
+import workerMarketer from './generated/labor-v2/worker-marketer-v2.webp';
+import introCrisis from './generated/onboarding/intro-crisis-v2.webp';
+import introDecision from './generated/onboarding/intro-decision-v2.webp';
+import introTable from './generated/onboarding/intro-table-v2.webp';
+import splashNomadSurvival from './generated/shop-v2/splashes/splash_nomad_survival.webp';
+import splashPassiveDream from './generated/shop-v2/splashes/splash_passive_dream.webp';
+import splashTaxChaos from './generated/shop-v2/splashes/splash_tax_chaos.webp';
 
 type DealArtworkKey =
   | 'warehouse'
@@ -47,7 +47,7 @@ const DEFAULT_CARD_BACKGROUND =
 
 const GENERATED_CARD_ART = Object.fromEntries(
   Object.entries(
-    import.meta.glob('./generated/card-art-v2/*.png', {
+    import.meta.glob('./generated/card-art-v2/*.webp', {
       eager: true,
       import: 'default',
     }),

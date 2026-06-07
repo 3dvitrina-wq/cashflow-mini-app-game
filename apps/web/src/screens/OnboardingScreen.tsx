@@ -1,7 +1,7 @@
 import React from 'react';
-import introCrisisImg from '../assets/generated/onboarding/intro-crisis-v2.png';
-import introDecisionImg from '../assets/generated/onboarding/intro-decision-v2.png';
-import introTableImg from '../assets/generated/onboarding/intro-table-v2.png';
+import introCrisisImg from '../assets/generated/onboarding/intro-crisis-v2.webp';
+import introDecisionImg from '../assets/generated/onboarding/intro-decision-v2.webp';
+import introTableImg from '../assets/generated/onboarding/intro-table-v2.webp';
 import {
   IconAlert,
   IconChart,

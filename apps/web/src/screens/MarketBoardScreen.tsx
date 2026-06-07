@@ -2,14 +2,14 @@ import React, { useMemo, useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
-import assetOffice from '../assets/generated/market-v2/asset-office-v2.png';
-import assetCoffee from '../assets/generated/market-v2/asset-coffee-v2.png';
-import assetLogistics from '../assets/generated/market-v2/asset-logistics-v2.png';
-import assetStorage from '../assets/generated/market-v2/asset-storage-v2.png';
-import assetAiStartup from '../assets/generated/market-v2/asset-ai-startup-v2.png';
-import assetNft from '../assets/generated/market-v2/asset-nft-v2.png';
-import assetLaundromat from '../assets/generated/market-v2/asset-laundromat-v2.png';
-import assetCryptoMining from '../assets/generated/market-v2/asset-crypto-mining-v2.png';
+import assetOffice from '../assets/generated/market-v2/asset-office-v2.webp';
+import assetCoffee from '../assets/generated/market-v2/asset-coffee-v2.webp';
+import assetLogistics from '../assets/generated/market-v2/asset-logistics-v2.webp';
+import assetStorage from '../assets/generated/market-v2/asset-storage-v2.webp';
+import assetAiStartup from '../assets/generated/market-v2/asset-ai-startup-v2.webp';
+import assetNft from '../assets/generated/market-v2/asset-nft-v2.webp';
+import assetLaundromat from '../assets/generated/market-v2/asset-laundromat-v2.webp';
+import assetCryptoMining from '../assets/generated/market-v2/asset-crypto-mining-v2.webp';
 
 interface MarketBoardScreenProps {
   isOpen: boolean;

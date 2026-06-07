@@ -6,7 +6,7 @@ import { addItemToInventory, loadPlayerData, spendCurrency } from '../store/pers
 import { SHOP_ITEMS, SHOP_TABS, type ShopItem, type ShopTab } from '../assets/shopCatalog';
 import starsIcon from '../assets/generated/ui/stars-icon.svg';
 import { resolveAvatarImage } from '../assets/characterRenderer';
-import dogCostume from '../assets/generated/pets-v2/dog/states/dog_costume.png';
+import dogCostume from '../assets/generated/pets-v2/dog/states/dog_costume.webp';
 
 function owned(item: ShopItem, ownedItems: string[]): boolean {
   return Boolean(item.starterOwned || ownedItems.includes(item.id));

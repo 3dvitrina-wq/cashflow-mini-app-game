@@ -1,65 +1,65 @@
 import React from 'react';
 import type { Outfit, CharacterMood } from '../store/types';
 import { resolveGeneratedCharacter } from './generatedCharacterCatalog';
-import avatarAnton from './generated/avatar-anton.png';
-import avatarLena from './generated/avatar-lena.png';
-import avatarMax from './generated/avatar-max.png';
-import avatarMira from './generated/avatar-mira.png';
-import avatarSasha from './generated/avatar-sasha.png';
-import avatarYou from './generated/avatar-you.png';
+import avatarAnton from './generated/avatar-anton.webp';
+import avatarLena from './generated/avatar-lena.webp';
+import avatarMax from './generated/avatar-max.webp';
+import avatarMira from './generated/avatar-mira.webp';
+import avatarSasha from './generated/avatar-sasha.webp';
+import avatarYou from './generated/avatar-you.webp';
 
 // Drawn emotion set for the "trader" character (8 states + cut rig parts live
 // under generated/characters/trader/). One flat drawing per state is ENOUGH:
 // state-switching is just picking the right PNG; motion (breathe / shake) is
 // CSS on top; full limb/blink rigging later reuses the parts/ folder.
-import traderStable from './generated/characters/trader/emotions/trader_stable.png';
-import traderOverworked from './generated/characters/trader/emotions/trader_overworked.png';
-import traderOverleveraged from './generated/characters/trader/emotions/trader_overleveraged.png';
-import traderTaxPanic from './generated/characters/trader/emotions/trader_tax_panic.png';
-import traderFuturesLiq from './generated/characters/trader/emotions/trader_futures_liq.png';
-import traderPassiveCalm from './generated/characters/trader/emotions/trader_passive_calm.png';
-import traderCardboard from './generated/characters/trader/emotions/trader_cardboard.png';
-import traderNomad from './generated/characters/trader/emotions/trader_nomad.png';
-import hustlerStable from './generated/characters/hustler/emotions/hustler_stable.png';
-import hustlerOverworked from './generated/characters/hustler/emotions/hustler_overworked.png';
-import hustlerOverleveraged from './generated/characters/hustler/emotions/hustler_overleveraged.png';
-import hustlerTaxPanic from './generated/characters/hustler/emotions/hustler_tax_panic.png';
-import hustlerStreetHustle from './generated/characters/hustler/emotions/hustler_street_hustle.png';
-import hustlerPassiveCalm from './generated/characters/hustler/emotions/hustler_passive_calm.png';
-import hustlerCardboard from './generated/characters/hustler/emotions/hustler_cardboard.png';
-import hustlerNomad from './generated/characters/hustler/emotions/hustler_nomad.png';
-import operatorStable from './generated/characters/operator/emotions/operator_stable.png';
-import operatorOverworked from './generated/characters/operator/emotions/operator_overworked.png';
-import operatorOverleveraged from './generated/characters/operator/emotions/operator_overleveraged.png';
-import operatorTaxPanic from './generated/characters/operator/emotions/operator_tax_panic.png';
-import operatorFuturesLiq from './generated/characters/operator/emotions/operator_server_fire.png';
-import operatorPassiveCalm from './generated/characters/operator/emotions/operator_passive_calm.png';
-import operatorCardboard from './generated/characters/operator/emotions/operator_cardboard.png';
-import operatorNomad from './generated/characters/operator/emotions/operator_nomad.png';
-import nomadStable from './generated/characters/nomad/emotions/nomad_stable.png';
-import nomadOverworked from './generated/characters/nomad/emotions/nomad_overworked.png';
-import nomadOverleveraged from './generated/characters/nomad/emotions/nomad_overleveraged.png';
-import nomadTaxPanic from './generated/characters/nomad/emotions/nomad_tax_panic.png';
-import nomadFuturesLiq from './generated/characters/nomad/emotions/nomad_futures_liq.png';
-import nomadPassiveCalm from './generated/characters/nomad/emotions/nomad_passive_calm.png';
-import nomadCardboard from './generated/characters/nomad/emotions/nomad_cardboard.png';
-import nomadNomad from './generated/characters/nomad/emotions/nomad_nomad.png';
-import creatorStable from './generated/characters/creator/emotions/creator_stable.png';
-import creatorOverworked from './generated/characters/creator/emotions/creator_overworked.png';
-import creatorOverleveraged from './generated/characters/creator/emotions/creator_overleveraged.png';
-import creatorTaxPanic from './generated/characters/creator/emotions/creator_tax_panic.png';
-import creatorFuturesLiq from './generated/characters/creator/emotions/creator_futures_liq.png';
-import creatorPassiveCalm from './generated/characters/creator/emotions/creator_passive_calm.png';
-import creatorCardboard from './generated/characters/creator/emotions/creator_cardboard.png';
-import creatorNomad from './generated/characters/creator/emotions/creator_nomad.png';
-import officeStable from './generated/characters/office/emotions/office_stable.png';
-import officeOverworked from './generated/characters/office/emotions/office_overworked.png';
-import officeOverleveraged from './generated/characters/office/emotions/office_overleveraged.png';
-import officeTaxPanic from './generated/characters/office/emotions/office_tax_panic.png';
-import officeFuturesLiq from './generated/characters/office/emotions/office_futures_liq.png';
-import officePassiveCalm from './generated/characters/office/emotions/office_passive_calm.png';
-import officeCardboard from './generated/characters/office/emotions/office_cardboard.png';
-import officeNomad from './generated/characters/office/emotions/office_nomad.png';
+import traderStable from './generated/characters/trader/emotions/trader_stable.webp';
+import traderOverworked from './generated/characters/trader/emotions/trader_overworked.webp';
+import traderOverleveraged from './generated/characters/trader/emotions/trader_overleveraged.webp';
+import traderTaxPanic from './generated/characters/trader/emotions/trader_tax_panic.webp';
+import traderFuturesLiq from './generated/characters/trader/emotions/trader_futures_liq.webp';
+import traderPassiveCalm from './generated/characters/trader/emotions/trader_passive_calm.webp';
+import traderCardboard from './generated/characters/trader/emotions/trader_cardboard.webp';
+import traderNomad from './generated/characters/trader/emotions/trader_nomad.webp';
+import hustlerStable from './generated/characters/hustler/emotions/hustler_stable.webp';
+import hustlerOverworked from './generated/characters/hustler/emotions/hustler_overworked.webp';
+import hustlerOverleveraged from './generated/characters/hustler/emotions/hustler_overleveraged.webp';
+import hustlerTaxPanic from './generated/characters/hustler/emotions/hustler_tax_panic.webp';
+import hustlerStreetHustle from './generated/characters/hustler/emotions/hustler_street_hustle.webp';
+import hustlerPassiveCalm from './generated/characters/hustler/emotions/hustler_passive_calm.webp';
+import hustlerCardboard from './generated/characters/hustler/emotions/hustler_cardboard.webp';
+import hustlerNomad from './generated/characters/hustler/emotions/hustler_nomad.webp';
+import operatorStable from './generated/characters/operator/emotions/operator_stable.webp';
+import operatorOverworked from './generated/characters/operator/emotions/operator_overworked.webp';
+import operatorOverleveraged from './generated/characters/operator/emotions/operator_overleveraged.webp';
+import operatorTaxPanic from './generated/characters/operator/emotions/operator_tax_panic.webp';
+import operatorFuturesLiq from './generated/characters/operator/emotions/operator_server_fire.webp';
+import operatorPassiveCalm from './generated/characters/operator/emotions/operator_passive_calm.webp';
+import operatorCardboard from './generated/characters/operator/emotions/operator_cardboard.webp';
+import operatorNomad from './generated/characters/operator/emotions/operator_nomad.webp';
+import nomadStable from './generated/characters/nomad/emotions/nomad_stable.webp';
+import nomadOverworked from './generated/characters/nomad/emotions/nomad_overworked.webp';
+import nomadOverleveraged from './generated/characters/nomad/emotions/nomad_overleveraged.webp';
+import nomadTaxPanic from './generated/characters/nomad/emotions/nomad_tax_panic.webp';
+import nomadFuturesLiq from './generated/characters/nomad/emotions/nomad_futures_liq.webp';
+import nomadPassiveCalm from './generated/characters/nomad/emotions/nomad_passive_calm.webp';
+import nomadCardboard from './generated/characters/nomad/emotions/nomad_cardboard.webp';
+import nomadNomad from './generated/characters/nomad/emotions/nomad_nomad.webp';
+import creatorStable from './generated/characters/creator/emotions/creator_stable.webp';
+import creatorOverworked from './generated/characters/creator/emotions/creator_overworked.webp';
+import creatorOverleveraged from './generated/characters/creator/emotions/creator_overleveraged.webp';
+import creatorTaxPanic from './generated/characters/creator/emotions/creator_tax_panic.webp';
+import creatorFuturesLiq from './generated/characters/creator/emotions/creator_futures_liq.webp';
+import creatorPassiveCalm from './generated/characters/creator/emotions/creator_passive_calm.webp';
+import creatorCardboard from './generated/characters/creator/emotions/creator_cardboard.webp';
+import creatorNomad from './generated/characters/creator/emotions/creator_nomad.webp';
+import officeStable from './generated/characters/office/emotions/office_stable.webp';
+import officeOverworked from './generated/characters/office/emotions/office_overworked.webp';
+import officeOverleveraged from './generated/characters/office/emotions/office_overleveraged.webp';
+import officeTaxPanic from './generated/characters/office/emotions/office_tax_panic.webp';
+import officeFuturesLiq from './generated/characters/office/emotions/office_futures_liq.webp';
+import officePassiveCalm from './generated/characters/office/emotions/office_passive_calm.webp';
+import officeCardboard from './generated/characters/office/emotions/office_cardboard.webp';
+import officeNomad from './generated/characters/office/emotions/office_nomad.webp';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SINGLE SOURCE OF TRUTH FOR HOW A CHARACTER IS DRAWN.
@@ -183,7 +183,7 @@ const EMOTION_SETS: Partial<Record<Outfit, EmotionSet>> = {
 // art. Filename prefix must equal the folder id (regex backreference enforces it,
 // which also handles ids with underscores like `burnout_clerk`).
 const CHARACTER_EMOTION_GLOB = import.meta.glob(
-  './generated/characters/*/emotions/*.png',
+  './generated/characters/*/emotions/*.webp',
   { eager: true, query: '?url', import: 'default' },
 ) as Record<string, string>;
 

@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import day1 from '../assets/generated/daily/day-1.png';
-import day2 from '../assets/generated/daily/day-2.png';
-import day3 from '../assets/generated/daily/day-3.png';
-import day4 from '../assets/generated/daily/day-4.png';
-import day5 from '../assets/generated/daily/day-5.png';
-import day6 from '../assets/generated/daily/day-6.png';
-import day7 from '../assets/generated/daily/day-7.png';
+import day1 from '../assets/generated/daily/day-1.webp';
+import day2 from '../assets/generated/daily/day-2.webp';
+import day3 from '../assets/generated/daily/day-3.webp';
+import day4 from '../assets/generated/daily/day-4.webp';
+import day5 from '../assets/generated/daily/day-5.webp';
+import day6 from '../assets/generated/daily/day-6.webp';
+import day7 from '../assets/generated/daily/day-7.webp';
 import { showToast } from '../components/Toast';
 import { checkDailyStreak } from '../store/persistence';
 
