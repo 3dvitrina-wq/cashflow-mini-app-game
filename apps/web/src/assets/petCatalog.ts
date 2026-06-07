@@ -10,6 +10,12 @@ import geckoGlasses from './generated/pets-v2/gecko/states/gecko_glasses.png';
 import fishCostume from './generated/pets-v2/fish/states/fish_costume.png';
 import parrotPanic from './generated/pets-v2/parrot/states/parrot_panic.png';
 import hamsterCostume from './generated/pets-v2/hamster/states/hamster_costume.png';
+import rabbitGroomed from './generated/pets-v2/rabbit/states/rabbit_groomed.png';
+import rabbitCostume from './generated/pets-v2/rabbit/states/rabbit_costume.png';
+import rabbitPanic from './generated/pets-v2/rabbit/states/rabbit_panic.png';
+import turtleGroomed from './generated/pets-v2/turtle/states/turtle_groomed.png';
+import turtleCostume from './generated/pets-v2/turtle/states/turtle_costume.png';
+import turtleGlasses from './generated/pets-v2/turtle/states/turtle_glasses.png';
 
 export interface PetCatalogItem {
   id: string;
@@ -95,6 +101,30 @@ export const PET_ITEMS: PetCatalogItem[] = [
     upkeep: 40,
     personality: 'Трудолюбивый',
     isNew: false,
+    rarity: 'common',
+  },
+  {
+    id: 'pet-rabbit',
+    name: 'Кролик',
+    image: rabbitGroomed,
+    variants: [rabbitGroomed, rabbitCostume, rabbitPanic],
+    price: 450,
+    effect: 'Удача +1',
+    upkeep: 60,
+    personality: 'Пушистый',
+    isNew: true,
+    rarity: 'rare',
+  },
+  {
+    id: 'pet-turtle',
+    name: 'Черепаха',
+    image: turtleGroomed,
+    variants: [turtleGroomed, turtleCostume, turtleGlasses],
+    price: 350,
+    effect: 'Долгосрочный доход',
+    upkeep: 30,
+    personality: 'Мудрая',
+    isNew: true,
     rarity: 'common',
   },
 ];
