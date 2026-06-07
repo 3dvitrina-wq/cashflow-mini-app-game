@@ -135,22 +135,56 @@ const HOST_BADGES = [
   { id: 'interior', icon: '🏠', title: 'Интерьер', subtitle: 'премиум-зала' },
 ] as const;
 
-/** Renders a pet video — black background removed via GPU mix-blend-mode:screen, zero CPU cost. */
+/** Renders a pet video with its black background keyed to true transparency.
+ *  iOS WebKit (Telegram) ignores mix-blend-mode on <video>, so we draw each
+ *  frame to a canvas and zero the alpha of near-black pixels — works on iOS
+ *  and Android alike. The source is a same-origin asset, so getImageData is
+ *  not tainted. */
 function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas) return;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return;
+    let raf = 0;
+    const render = () => {
+      raf = requestAnimationFrame(render);
+      if (video.readyState < 2 || !video.videoWidth) return;
+      if (!canvas.width) {
+        // Cap the processing buffer for performance; CSS scales it up.
+        const cw = Math.min(video.videoWidth, 240);
+        canvas.width = cw;
+        canvas.height = Math.round((cw * video.videoHeight) / video.videoWidth);
+      }
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.drawImage(video, 0, 0, w, h);
+      const frame = ctx.getImageData(0, 0, w, h);
+      const d = frame.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const max = Math.max(d[i], d[i + 1], d[i + 2]);
+        if (max < 38) d[i + 3] = 0;
+        else if (max < 88) d[i + 3] = ((max - 38) * 255) / 50;
+      }
+      ctx.putImageData(frame, 0, 0);
+    };
+    video.play().catch(() => {});
+    raf = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(raf);
+  }, [src]);
+
   return (
-    <video
-      src={src}
-      loop
-      muted
-      playsInline
-      autoPlay
-      style={{
-        width: `${scale * 100}%`,
-        height: `${scale * 100}%`,
-        objectFit: 'contain',
-        mixBlendMode: 'screen',
-      }}
-    />
+    <>
+      <video ref={videoRef} src={src} loop muted playsInline autoPlay preload="auto" style={{ display: 'none' }} />
+      <canvas
+        ref={canvasRef}
+        style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, objectFit: 'contain' }}
+      />
+    </>
   );
 }
 

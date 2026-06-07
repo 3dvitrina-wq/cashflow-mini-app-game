@@ -8356,13 +8356,6 @@ button {
   content: "";
 }
 
-.lobby-hook-pet-stage--video {
-  /* `filter` makes this an isolated blend group, which breaks the video's
-     mix-blend-mode:screen chroma-key (black box stays). Drop it for video pets
-     so the black background blends out against the lobby art behind. */
-  filter: none;
-}
-
 .lobby-hook-pet-stage--video::before {
   display: none;
 }
