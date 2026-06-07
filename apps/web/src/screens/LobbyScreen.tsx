@@ -182,7 +182,10 @@ function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
       <video ref={videoRef} src={src} loop muted playsInline autoPlay preload="auto" style={{ display: 'none' }} />
       <canvas
         ref={canvasRef}
-        style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, objectFit: 'contain' }}
+        // Preserve the pet's aspect ratio: object-fit is unreliable on <canvas>,
+        // so constrain by max-size and let the intrinsic buffer dimensions drive
+        // the rest (true "contain" without distortion).
+        style={{ maxWidth: `${scale * 100}%`, maxHeight: `${scale * 100}%`, width: 'auto', height: 'auto' }}
       />
     </>
   );
