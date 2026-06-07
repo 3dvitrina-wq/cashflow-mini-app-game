@@ -133,6 +133,22 @@ const HOST_BADGES = [
   { id: 'interior', icon: '🏠', title: 'Интерьер', subtitle: 'премиум-зала' },
 ] as const;
 
+function LobbyAmbientFx({ variant }: { variant: 'full' | 'showcase' }) {
+  return (
+    <div className={`lobby-scene-fx ${variant === 'showcase' ? 'lobby-scene-fx-showcase' : 'lobby-scene-fx-full'}`} aria-hidden="true">
+      <div className="lobby-scene-lamp-glow" />
+      <div className="lobby-scene-lamp-flare" />
+      <div className="lobby-scene-neon-sign">DYOR</div>
+      <div className="lobby-scene-neon-halo" />
+      <div className="lobby-scene-coffee">
+        <span className="lobby-scene-steam lobby-scene-steam-1" />
+        <span className="lobby-scene-steam lobby-scene-steam-2" />
+        <span className="lobby-scene-steam lobby-scene-steam-3" />
+      </div>
+    </div>
+  );
+}
+
 const AVATAR_BY_NAME: Record<string, string> = {
   anton: avatarAnton,
   lena: avatarLena,
@@ -572,6 +588,7 @@ export const LobbyScreen: React.FC = () => {
     <div className="lobby-shell">
       {/* ── Background art (single PNG) ── */}
       <img src={lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
+      <LobbyAmbientFx variant="full" />
       <div className="lobby-bg-veil" />
 
       {/* ── Content surface ── */}
@@ -701,7 +718,18 @@ export const LobbyScreen: React.FC = () => {
                   onClick={() => setIsPetSheetOpen(true)}
                   aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
                 >
-                  <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
+                  {activeLobbyPet.videoSrc ? (
+                    <video
+                      src={activeLobbyPet.videoSrc}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{ mixBlendMode: 'screen', width: '100%', height: '100%', objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
+                  )}
                 </button>
               )}
             </section>
@@ -797,6 +825,7 @@ export const LobbyScreen: React.FC = () => {
 
             <section className="lobby-room-showcase" aria-label="Интерьер комнаты">
               <img src={lobbyInterior} alt="" draggable={false} />
+              <LobbyAmbientFx variant="showcase" />
               <div className="lobby-room-showcase-glass">
                 <span><b>128</b> реакций</span>
                 <span><b>312</b> просмотров</span>
