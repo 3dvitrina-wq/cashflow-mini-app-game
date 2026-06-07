@@ -28,9 +28,9 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!tg) return;
     if (GAME_SCREENS.has(screen)) {
-      tg.enableClosingConfirmation();
+      tg.enableClosingConfirmation?.();
     } else {
-      tg.disableClosingConfirmation();
+      tg.disableClosingConfirmation?.();
     }
   }, [screen]);
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
