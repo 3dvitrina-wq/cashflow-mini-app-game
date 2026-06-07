@@ -51,7 +51,7 @@ export const HostInterjection: React.FC<{ moment: HostMoment | null; onDismiss: 
       style={{
         position: 'absolute',
         right: 8,
-        bottom: 96,
+        top: 200,
         zIndex: 40,
         display: 'flex',
         alignItems: 'flex-end',

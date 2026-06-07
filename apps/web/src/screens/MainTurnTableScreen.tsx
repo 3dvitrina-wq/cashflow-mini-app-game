@@ -365,6 +365,17 @@ export const MainTurnTableScreen: React.FC = () => {
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
+  // Deal banner shown with delay when card is active, hidden while interestWindow is open
+  const [dealBannerReady, setDealBannerReady] = useState(false);
+  const dealBannerTimer = useRef<number>(0);
+  useEffect(() => {
+    if (!incomingDeal) { setDealBannerReady(false); return; }
+    if (!card) { setDealBannerReady(true); return; }
+    window.clearTimeout(dealBannerTimer.current);
+    dealBannerTimer.current = window.setTimeout(() => setDealBannerReady(true), 900);
+    return () => window.clearTimeout(dealBannerTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [!!incomingDeal, card?.id]);
   const reactionTimers = useRef<Record<string, number>>({});
   const reactionNonce = useRef(1);
   const botReactionRound = useRef(-1);
@@ -1111,8 +1122,8 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
       )}
 
-      {/* Incoming partnership invite from a bot */}
-      {incomingDeal && (() => {
+      {/* Incoming partnership invite — delayed 900ms when card active, hidden while interestWindow open */}
+      {incomingDeal && dealBannerReady && interestWindow?.status !== 'open' && (() => {
         const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
         const cashOffer = incomingDeal.offer.cashOffer ?? 0;
         return (
