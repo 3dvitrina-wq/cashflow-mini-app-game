@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import avatarAnton from '../assets/generated/avatar-anton.png';
-import avatarLena from '../assets/generated/avatar-lena.png';
-import avatarMax from '../assets/generated/avatar-max.png';
-import avatarMira from '../assets/generated/avatar-mira.png';
-import avatarSasha from '../assets/generated/avatar-sasha.png';
-import avatarYou from '../assets/generated/avatar-you.png';
-import lobbyInterior from '../assets/generated/lobby/dyor-lobby-interior-clean.png';
-import dyorClubLogo from '../assets/generated/lobby/dyor-club-logo-transparent.png';
+import avatarAnton from '../assets/generated/avatar-anton.webp';
+import avatarLena from '../assets/generated/avatar-lena.webp';
+import avatarMax from '../assets/generated/avatar-max.webp';
+import avatarMira from '../assets/generated/avatar-mira.webp';
+import avatarSasha from '../assets/generated/avatar-sasha.webp';
+import avatarYou from '../assets/generated/avatar-you.webp';
+import lobbyInterior from '../assets/generated/lobby/dyor-lobby-interior-clean.webp';
+import dyorClubLogo from '../assets/generated/lobby/dyor-club-logo-transparent.webp';
 import {
   GENERATED_CHARACTERS,
   resolveCharacterPortrait,
@@ -367,6 +367,46 @@ export const LobbyScreen: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const didAutostart = useRef(false);
 
+  // Kinetic parallax drag on background
+  const bgRef = useRef<HTMLImageElement>(null);
+  const drag = useRef({ active: false, sx: 0, sy: 0, bx: 0, by: 0, raf: 0 });
+  const springBack = useRef(() => {
+    const d = drag.current;
+    d.bx *= 0.84;
+    d.by *= 0.84;
+    if (bgRef.current) {
+      bgRef.current.style.transform = `translate(${d.bx.toFixed(2)}px,${d.by.toFixed(2)}px) scale(1.06)`;
+    }
+    if (Math.abs(d.bx) > 0.3 || Math.abs(d.by) > 0.3) {
+      d.raf = requestAnimationFrame(springBack.current);
+    } else {
+      d.bx = 0; d.by = 0;
+      if (bgRef.current) bgRef.current.style.transform = 'scale(1.06)';
+    }
+  });
+  const handleBgTouchStart = useCallback((e: React.TouchEvent) => {
+    const d = drag.current;
+    cancelAnimationFrame(d.raf);
+    d.active = true;
+    d.sx = e.touches[0].clientX - d.bx / 0.16;
+    d.sy = e.touches[0].clientY - d.by / 0.16;
+  }, []);
+  const handleBgTouchMove = useCallback((e: React.TouchEvent) => {
+    const d = drag.current;
+    if (!d.active) return;
+    const dx = (e.touches[0].clientX - d.sx) * 0.16;
+    const dy = (e.touches[0].clientY - d.sy) * 0.16;
+    d.bx = Math.max(-24, Math.min(24, dx));
+    d.by = Math.max(-18, Math.min(18, dy));
+    if (bgRef.current) {
+      bgRef.current.style.transform = `translate(${d.bx.toFixed(2)}px,${d.by.toFixed(2)}px) scale(1.06)`;
+    }
+  }, []);
+  const handleBgTouchEnd = useCallback(() => {
+    drag.current.active = false;
+    drag.current.raf = requestAnimationFrame(springBack.current);
+  }, []);
+
   const selectedCharacter = useMemo(
     () => resolveGeneratedCharacter(selectedCharacterId) ?? resolveGeneratedCharacter('burnout_clerk'),
     [selectedCharacterId],
@@ -606,9 +646,9 @@ export const LobbyScreen: React.FC = () => {
   }
 
   return (
-    <div className="lobby-shell">
+    <div className="lobby-shell" onTouchStart={handleBgTouchStart} onTouchMove={handleBgTouchMove} onTouchEnd={handleBgTouchEnd}>
       {/* ── Background art (single PNG) ── */}
-      <img src={selectedCharacter?.lobbyBg ?? lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
+      <img ref={bgRef} src={selectedCharacter?.lobbyBg ?? lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
       <LobbyAmbientFx variant="full" />
       <div className="lobby-bg-veil" />
 

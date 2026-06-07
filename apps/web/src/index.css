@@ -7448,6 +7448,8 @@ button {
   height: 100%;
   object-fit: cover;
   object-position: center 80px;
+  transform: scale(1.06);
+  will-change: transform;
 }
 
 .lobby-scene-fx {
@@ -8216,7 +8218,7 @@ button {
   align-items: stretch;
   justify-content: flex-start;
   margin-bottom: 0;
-  padding: 20px 0 0;
+  padding: 30px 0 0;
 }
 
 .lobby-hook-copy {
@@ -8330,7 +8332,7 @@ button {
   position: absolute;
   z-index: 4;
   left: 50%;
-  bottom: calc(32% + 15px);
+  bottom: calc(32% + 30px);
   display: grid;
   width: 188px;
   height: 188px;
