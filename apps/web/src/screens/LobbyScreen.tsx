@@ -564,8 +564,12 @@ export const LobbyScreen: React.FC = () => {
   const handleCreateRoom = useCallback(async () => {
     setWsError(null);
     setIsConnecting(true);
+    // Abort after 8s: on mobile/VPN networks fly.dev can be unreachable and a
+    // plain fetch hangs forever, leaving the button stuck on "..." with no error.
+    const ctrl = new AbortController();
+    const timer = window.setTimeout(() => ctrl.abort(), 8000);
     try {
-      const res = await fetch(HTTP_URL + '/rooms', { method: 'POST' });
+      const res = await fetch(HTTP_URL + '/rooms', { method: 'POST', signal: ctrl.signal });
       if (!res.ok) throw new Error(`Сервер вернул ${res.status}`);
       const data = await res.json() as { code: string };
       const code = data.code;
@@ -579,9 +583,14 @@ export const LobbyScreen: React.FC = () => {
         if (pendingJoinRef.current) { wsClient.send(pendingJoinRef.current); pendingJoinRef.current = null; }
       });
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Нет ответа';
+      const aborted = e instanceof DOMException && e.name === 'AbortError';
+      const msg = aborted
+        ? 'сервер не отвечает (проверь VPN/сеть)'
+        : e instanceof Error ? e.message : 'нет ответа';
       showToast(`Не удалось создать комнату: ${msg}`, 'warning');
       setIsConnecting(false);
+    } finally {
+      window.clearTimeout(timer);
     }
   }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
 
