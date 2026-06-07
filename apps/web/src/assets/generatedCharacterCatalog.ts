@@ -30,6 +30,13 @@ import skyPilotProfile from './generated/characters/sky_pilot/portraits/sky_pilo
 import skyPilotStable from './generated/characters/sky_pilot/emotions/sky_pilot_stable.png';
 import investorProfile from './generated/characters/investor/turnaround/investor_front.png';
 import investorStable from './generated/characters/investor/emotions/investor_stable.png';
+import lobbyBurnoutClerk from './generated/lobby/characters/lobby_burnout_clerk.png';
+import lobbyCheckoutCashier from './generated/lobby/characters/lobby_checkout_cashier.png';
+import lobbyDealMaven from './generated/lobby/characters/lobby_deal_maven.png';
+import lobbyGrandmaCollector from './generated/lobby/characters/lobby_grandma_collector.png';
+import lobbyKoreanStudent from './generated/lobby/characters/lobby_korean_student.png';
+import lobbyMadFashion from './generated/lobby/characters/lobby_mad_fashion.png';
+import lobbyRapQueen from './generated/lobby/characters/lobby_rap_queen.png';
 
 export type CharacterId =
   | 'artist'
@@ -56,6 +63,7 @@ export interface GeneratedCharacter {
   stable: string;
   engineOutfit: Outfit;
   starterOwned?: boolean;
+  lobbyBg?: string;
 }
 
 export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
@@ -67,6 +75,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     stable: checkoutCashierStable,
     engineOutfit: 'operator',
     starterOwned: true,
+    lobbyBg: lobbyCheckoutCashier,
   },
   {
     id: 'deal_maven',
@@ -76,6 +85,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     stable: dealMavenStable,
     engineOutfit: 'trader',
     starterOwned: true,
+    lobbyBg: lobbyDealMaven,
   },
   {
     id: 'burnout_clerk',
@@ -85,6 +95,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     stable: burnoutClerkStable,
     engineOutfit: 'office',
     starterOwned: true,
+    lobbyBg: lobbyBurnoutClerk,
   },
   {
     id: 'campus_student',
@@ -152,6 +163,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     profile: grandmaCollectorProfile,
     stable: grandmaCollectorStable,
     engineOutfit: 'hustler',
+    lobbyBg: lobbyGrandmaCollector,
   },
   {
     id: 'korean_student',
@@ -160,6 +172,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     profile: koreanStudentProfile,
     stable: koreanStudentStable,
     engineOutfit: 'creator',
+    lobbyBg: lobbyKoreanStudent,
   },
   {
     id: 'mad_fashion',
@@ -168,6 +181,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     profile: madFashionProfile,
     stable: madFashionStable,
     engineOutfit: 'trader',
+    lobbyBg: lobbyMadFashion,
   },
   {
     id: 'rap_queen',
@@ -176,6 +190,7 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     profile: rapQueenProfile,
     stable: rapQueenStable,
     engineOutfit: 'creator',
+    lobbyBg: lobbyRapQueen,
   },
   {
     id: 'investor',

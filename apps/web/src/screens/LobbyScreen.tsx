@@ -364,14 +364,14 @@ export const LobbyScreen: React.FC = () => {
   const openRules = useStore((s) => s.openRules);
 
   const playerData = useMemo(() => loadPlayerData(), []);
-  const initialCharacterId = playerData.characterId ?? 'checkout_cashier';
+  const initialCharacterId = playerData.characterId ?? 'burnout_clerk';
   const initialRoll = useMemo(() => rollProfession(), []);
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string>(initialCharacterId);
   const [rolledProfession, setRolledProfession] = useState<ProfessionDefinition>(initialRoll);
   const [isCharSelectOpen, setIsCharSelectOpen] = useState(false);
   const [isPetSheetOpen, setIsPetSheetOpen] = useState(false);
-  const [lobbyPetId, setLobbyPetId] = useState<string | null>(playerData.lobbyPetId);
+  const [lobbyPetId, setLobbyPetId] = useState<string | null>(playerData.lobbyPetId ?? 'pet-gecko');
   const [nickname, setNickname] = useState<string>(playerData.nickname || 'Вы');
   const [visitPlayer, setVisitPlayer] = useState<PlayerState | null>(null);
   const [visitMeta, setVisitMeta] = useState<ReturnType<typeof loadPlayerData> | undefined>(undefined);
@@ -400,7 +400,7 @@ export const LobbyScreen: React.FC = () => {
   const didAutostart = useRef(false);
 
   const selectedCharacter = useMemo(
-    () => resolveGeneratedCharacter(selectedCharacterId) ?? resolveGeneratedCharacter('checkout_cashier'),
+    () => resolveGeneratedCharacter(selectedCharacterId) ?? resolveGeneratedCharacter('burnout_clerk'),
     [selectedCharacterId],
   );
   const myLevel = levelFromXp(playerData.xp);
@@ -640,7 +640,7 @@ export const LobbyScreen: React.FC = () => {
   return (
     <div className="lobby-shell">
       {/* ── Background art (single PNG) ── */}
-      <img src={lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
+      <img src={selectedCharacter?.lobbyBg ?? lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
       <LobbyAmbientFx variant="full" />
       <div className="lobby-bg-veil" />
 
