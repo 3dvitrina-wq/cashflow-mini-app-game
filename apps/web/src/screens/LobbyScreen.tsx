@@ -154,14 +154,15 @@ function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
     const render = () => {
       raf = requestAnimationFrame(render);
       if (video.readyState < 2 || !video.videoWidth) return;
-      if (!canvas.width) {
-        // Cap the processing buffer for performance; CSS scales it up.
-        const cw = Math.min(video.videoWidth, 240);
-        canvas.width = cw;
-        canvas.height = Math.round((cw * video.videoHeight) / video.videoWidth);
+      // Cap the processing buffer for performance; CSS scales it up.
+      // NB: a fresh <canvas> defaults to 300x150 (truthy), so we must compare to
+      // the target size — checking `!canvas.width` would never update it.
+      const w = Math.min(video.videoWidth, 240);
+      const h = Math.round((w * video.videoHeight) / video.videoWidth);
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
       }
-      const w = canvas.width;
-      const h = canvas.height;
       ctx.drawImage(video, 0, 0, w, h);
       const frame = ctx.getImageData(0, 0, w, h);
       const d = frame.data;
