@@ -42,6 +42,7 @@ import { levelFromXp, buildSampleMeta, xpToReachLevel } from '../lib/progression
 import { ACHIEVEMENTS } from '../assets/achievementsCatalog';
 import { REACTIONS } from '../assets/reactions';
 import { hapticImpact } from '../hooks/useHaptics';
+import { showToast } from '../components/Toast';
 import { getAllProfessions, type ProfessionDefinition } from '../../../../packages/shared/src';
 
 const OUTFITS: Outfit[] = ['hustler', 'trader', 'operator', 'nomad', 'creator', 'office'];
@@ -134,56 +135,22 @@ const HOST_BADGES = [
   { id: 'interior', icon: '🏠', title: 'Интерьер', subtitle: 'премиум-зала' },
 ] as const;
 
-/** Renders a video with black background removed via per-frame canvas keying. */
+/** Renders a pet video — black background removed via GPU mix-blend-mode:screen, zero CPU cost. */
 function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const rafRef = useRef<number>(0);
-  const lastVideoTimeRef = useRef<number>(-1);
-
-  useEffect(() => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-
-    const onMeta = () => {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-    };
-    video.addEventListener('loadedmetadata', onMeta);
-    if (video.readyState >= 1) onMeta();
-
-    const draw = () => {
-      if (video.readyState >= 2 && video.videoWidth > 0 && video.currentTime !== lastVideoTimeRef.current) {
-        lastVideoTimeRef.current = video.currentTime;
-        ctx.drawImage(video, 0, 0);
-        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const d = frame.data;
-        for (let i = 0; i < d.length; i += 4) {
-          const lum = (d[i]! + d[i + 1]! + d[i + 2]!) / 3;
-          if (lum < 25) d[i + 3] = 0;
-          else if (lum < 55) d[i + 3] = Math.round(((lum - 25) / 30) * 255);
-        }
-        ctx.putImageData(frame, 0, 0);
-      }
-      rafRef.current = requestAnimationFrame(draw);
-    };
-
-    video.play().catch(() => {});
-    rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      video.removeEventListener('loadedmetadata', onMeta);
-    };
-  }, [src]);
-
   return (
-    <>
-      <video ref={videoRef} src={src} loop muted playsInline style={{ display: 'none' }} />
-      <canvas ref={canvasRef} style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, objectFit: 'contain' }} />
-    </>
+    <video
+      src={src}
+      loop
+      muted
+      playsInline
+      autoPlay
+      style={{
+        width: `${scale * 100}%`,
+        height: `${scale * 100}%`,
+        objectFit: 'contain',
+        mixBlendMode: 'screen',
+      }}
+    />
   );
 }
 
@@ -568,7 +535,7 @@ export const LobbyScreen: React.FC = () => {
       });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Нет ответа';
-      setWsError(`${msg} [${HTTP_URL}]`);
+      showToast(`Не удалось создать комнату: ${msg}`, 'warning');
       setIsConnecting(false);
     }
   }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
