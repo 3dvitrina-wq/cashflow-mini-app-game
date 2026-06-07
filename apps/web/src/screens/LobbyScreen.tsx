@@ -159,8 +159,6 @@ function LobbyAmbientFx({ variant }: { variant: 'full' | 'showcase' }) {
     <div className={`lobby-scene-fx ${variant === 'showcase' ? 'lobby-scene-fx-showcase' : 'lobby-scene-fx-full'}`} aria-hidden="true">
       <div className="lobby-scene-lamp-glow" />
       <div className="lobby-scene-lamp-flare" />
-      <div className="lobby-scene-neon-sign">DYOR</div>
-      <div className="lobby-scene-neon-halo" />
       <div className="lobby-scene-coffee">
         <span className="lobby-scene-steam lobby-scene-steam-1" />
         <span className="lobby-scene-steam lobby-scene-steam-2" />
@@ -367,21 +365,30 @@ export const LobbyScreen: React.FC = () => {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const didAutostart = useRef(false);
 
-  // Kinetic parallax drag on background
+  // Kinetic parallax drag on background — the pet rides along, glued to the scene.
+  // Pet is optional: kinetics works whether or not a pet is present (petRef may be null).
   const bgRef = useRef<HTMLImageElement>(null);
+  const petRef = useRef<HTMLButtonElement>(null);
   const drag = useRef({ active: false, sx: 0, sy: 0, bx: 0, by: 0, raf: 0 });
+  const applyParallax = useRef((bx: number, by: number) => {
+    if (bgRef.current) {
+      bgRef.current.style.transform = `translate(${bx.toFixed(2)}px,${by.toFixed(2)}px) scale(1.06)`;
+    }
+    if (petRef.current) {
+      // Preserve the pet's base offset (translateX(calc(-50% + 30px))) and ride the drag.
+      petRef.current.style.transform = `translate(calc(-50% + ${(30 + bx).toFixed(2)}px), ${by.toFixed(2)}px)`;
+    }
+  });
   const springBack = useRef(() => {
     const d = drag.current;
     d.bx *= 0.84;
     d.by *= 0.84;
-    if (bgRef.current) {
-      bgRef.current.style.transform = `translate(${d.bx.toFixed(2)}px,${d.by.toFixed(2)}px) scale(1.06)`;
-    }
+    applyParallax.current(d.bx, d.by);
     if (Math.abs(d.bx) > 0.3 || Math.abs(d.by) > 0.3) {
       d.raf = requestAnimationFrame(springBack.current);
     } else {
       d.bx = 0; d.by = 0;
-      if (bgRef.current) bgRef.current.style.transform = 'scale(1.06)';
+      applyParallax.current(0, 0);
     }
   });
   const handleBgTouchStart = useCallback((e: React.TouchEvent) => {
@@ -398,9 +405,7 @@ export const LobbyScreen: React.FC = () => {
     const dy = (e.touches[0].clientY - d.sy) * 0.16;
     d.bx = Math.max(-24, Math.min(24, dx));
     d.by = Math.max(-18, Math.min(18, dy));
-    if (bgRef.current) {
-      bgRef.current.style.transform = `translate(${d.bx.toFixed(2)}px,${d.by.toFixed(2)}px) scale(1.06)`;
-    }
+    applyParallax.current(d.bx, d.by);
   }, []);
   const handleBgTouchEnd = useCallback(() => {
     drag.current.active = false;
@@ -1063,6 +1068,7 @@ export const LobbyScreen: React.FC = () => {
       {/* Pet — fixed on background layer, does not scroll with lobby-content */}
       {activeLobbyPet && multiMode === 'none' && !isRoomOpen && (
         <button
+          ref={petRef}
           className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
           onClick={() => setIsPetSheetOpen(true)}
           aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}

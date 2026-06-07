@@ -8111,7 +8111,7 @@ button {
   min-height: 0;
   justify-content: flex-start;
   gap: 14px;
-  padding: 2px 2px 24px;
+  padding: 2px 2px 14px;
 }
 
 .lobby-hook-topbar {
