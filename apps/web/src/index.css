@@ -8316,7 +8316,7 @@ button {
   display: grid;
   width: 188px;
   height: 188px;
-  transform: translateX(calc(-50% + 20px));
+  transform: translateX(calc(-50% + 30px));
   place-items: end center;
   border: 0;
   background: transparent;

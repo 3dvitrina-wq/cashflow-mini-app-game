@@ -69,7 +69,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     isNew: true,
     rarity: 'rare',
     videoSrc: '/pets/gecko-anim.mp4',
-    videoScale: 0.5,
+    videoScale: 0.6,
   },
   {
     id: 'pet-fish',
