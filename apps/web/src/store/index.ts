@@ -575,7 +575,11 @@ export const useStore = create<AppState>((set, get) => ({
       offer,
     };
 
-    if (st.isMultiplayer) return 'failed';
+    if (st.isMultiplayer) {
+      wsClient.send({ type: 'command', command: proposeCmd });
+      // Optimistic — server broadcasts outcome via state_update; target sees incomingDeal
+      return 'accepted';
+    }
 
     const proposed = resolveCommand(st.engineMatch, proposeCmd);
     const deals = proposed.state.players.find((p) => p.id === me.id)?.pendingDeals ?? [];
@@ -1026,6 +1030,10 @@ export const useStore = create<AppState>((set, get) => ({
         ?? st.engineMatch.players.find((p) => !p.isBot)
         ?? st.engineMatch.players[0];
       if (!human) return st;
+      if (st.isMultiplayer) {
+        wsClient.send({ type: 'command', command: { type: 'draft_pick_option', playerId: human.id, index, choiceIndex: choiceIdx } });
+        return st;
+      }
       let state = resolveCommand(st.engineMatch, { type: 'draft_pick_option', playerId: human.id, index, choiceIndex: choiceIdx }).state;
       state = autoPickBotCards(state);
       if (allDraftPicked(state)) {

@@ -31,6 +31,7 @@ import { useStore } from '../store';
 import { Outfit, PlayerState } from '../store/types';
 import { loadPlayerData, savePlayerData } from '../store/persistence';
 import { wsClient } from '../lib/wsClient';
+import { SERVER_HTTP_URL, SERVER_WS_URL } from '../lib/serverConfig';
 import { SettingsScreen } from './SettingsScreen';
 import { PlayerStatsScreen } from './PlayerStatsScreen';
 import { CharacterSelectSheet } from '../components/lobby/CharacterSelectSheet';
@@ -508,8 +509,8 @@ export const LobbyScreen: React.FC = () => {
     setReactionsOpen(false);
   }, [multiMode, myPlayerId, showLobbyReaction]);
 
-  const HTTP_URL = import.meta.env['VITE_HTTP_URL'] ?? 'http://localhost:3001';
-  const WS_URL_MP = import.meta.env['VITE_WS_URL'] ?? 'ws://localhost:3001/ws';
+  const HTTP_URL = SERVER_HTTP_URL;
+  const WS_URL_MP = SERVER_WS_URL;
 
   useEffect(() => {
     const shouldAutostart = new URLSearchParams(window.location.search).get('autostart') === '1';
@@ -677,6 +678,18 @@ export const LobbyScreen: React.FC = () => {
               </div>
             </div>
             {wsError && <div className="lobby-ws-error" style={{color:'#f87171',padding:'8px 0',fontSize:'13px'}}>{wsError}</div>}
+            <button
+              className="lobby-room-copy-btn"
+              onClick={() => {
+                navigator.clipboard.writeText(roomCode).catch(() => {});
+                hapticImpact('light');
+              }}
+              aria-label="Скопировать код комнаты"
+              style={{ marginBottom: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 16px', color: '#F5C524', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
+            >
+              <IconLink size={14} />
+              Скопировать код: {roomCode}
+            </button>
             <div className="lobby-player-list">
               {serverMembers.map((m) => (
                 <div
@@ -731,7 +744,12 @@ export const LobbyScreen: React.FC = () => {
           </div>
         ) : !isRoomOpen ? (
           <div className="lobby-entry lobby-entry-hook">
-            <section className="lobby-hook-topbar" aria-label="Профиль и валюта">
+            <section className="lobby-hook-hero" aria-label="DYOR lobby">
+              <div className="lobby-hook-copy">
+                <img className="lobby-hook-logo-img" src={dyorClubLogo} alt="DYOR Club" draggable={false} />
+                <p>Лобби, где твой статус видно всем</p>
+              </div>
+
               <div className="lobby-hook-profile-frame">
                 <button
                   className="lobby-hook-profile"
@@ -748,13 +766,6 @@ export const LobbyScreen: React.FC = () => {
                   <span className="lobby-currency-pill"><IconCoin size={15} /> {playerData.coins.toLocaleString('ru-RU')}</span>
                   <span className="lobby-currency-pill lobby-currency-gems">◆ {playerData.stars}</span>
                 </div>
-              </div>
-            </section>
-
-            <section className="lobby-hook-hero" aria-label="DYOR lobby">
-              <div className="lobby-hook-copy">
-                <img className="lobby-hook-logo-img" src={dyorClubLogo} alt="DYOR Club" draggable={false} />
-                <p>Лобби, где твой статус видно всем</p>
               </div>
 
               <div className="lobby-hook-regalia">
