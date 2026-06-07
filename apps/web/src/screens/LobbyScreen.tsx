@@ -717,6 +717,7 @@ export const LobbyScreen: React.FC = () => {
                   className="lobby-hook-pet-stage"
                   onClick={() => setIsPetSheetOpen(true)}
                   aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
+                  style={activeLobbyPet.videoSrc ? { filter: 'none', mixBlendMode: 'screen' } : undefined}
                 >
                   {activeLobbyPet.videoSrc ? (
                     <video
@@ -725,7 +726,7 @@ export const LobbyScreen: React.FC = () => {
                       loop
                       muted
                       playsInline
-                      style={{ mixBlendMode: 'screen', width: '100%', height: '100%', objectFit: 'contain' }}
+                      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                     />
                   ) : (
                     <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
