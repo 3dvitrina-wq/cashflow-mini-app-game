@@ -271,6 +271,9 @@ async function main() {
         const result = applyCommand(roomCode, msg.command);
         if (!result.ok || !result.room) {
           ws.send(JSON.stringify({ type: 'error', error: result.error }));
+          // The active player's turn timer was cleared above. Re-arm it so a turn that
+          // errored out still times out to a bot instead of freezing the match forever.
+          drainBotTurns(roomCode);
           return;
         }
         broadcast(result.room, { type: 'state_update', state: result.room.engineState });

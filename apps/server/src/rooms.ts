@@ -48,6 +48,11 @@ function commandAdvancesRound(command: Command): boolean {
   return command.type === 'choose_option' || command.type === 'pass' || command.type === 'draw_card';
 }
 
+/** The engine rejects invalid commands by pushing a `command_rejected` event instead of throwing. */
+function wasRejected(events: { type: string }[]): boolean {
+  return events.some((e) => e.type === 'command_rejected');
+}
+
 function normalizeBotCommand(playerId: string, command: Command): Command {
   if (command.type === 'open_futures_position' || command.type === 'take_loan' || command.type === 'repay_loan') {
     return { type: 'pass', playerId };
@@ -158,10 +163,17 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
 
   try {
     const rawCommand: Command = botIntent(room.engineState, player);
-    const command = normalizeBotCommand(player.id, rawCommand);
-    const cmdResult = resolveCommand(room.engineState, command);
+    let command = normalizeBotCommand(player.id, rawCommand);
+    let cmdResult = resolveCommand(room.engineState, command);
+    // If the bot's chosen action is invalid (e.g. unaffordable), fall back to a pass
+    // so the turn still resolves — otherwise the bot-drain loop would spin on the
+    // same un-advancing turn until it hits the safety cap, freezing the match.
+    if (wasRejected(cmdResult.events) && commandAdvancesRound(command)) {
+      command = { type: 'pass', playerId: player.id };
+      cmdResult = resolveCommand(room.engineState, command);
+    }
     room.engineState = cmdResult.state;
-    if (commandAdvancesRound(command)) {
+    if (commandAdvancesRound(command) && !wasRejected(cmdResult.events)) {
       const roundResult = advanceRound(cmdResult.state);
       room.engineState = roundResult.state;
     }
@@ -204,7 +216,7 @@ export function startRoom(code: string, opts: StartOptions = {}): Room | null {
 export function applyCommand(
   code: string,
   command: Command,
-): { ok: boolean; error?: string; room?: Room } {
+): { ok: boolean; error?: string; rejected?: boolean; room?: Room } {
   const room = rooms.get(code);
   if (!room || room.status !== 'playing' || !room.engineState) {
     return { ok: false, error: 'room not in playing state' };
@@ -212,7 +224,12 @@ export function applyCommand(
   try {
     const cmdResult = resolveCommand(room.engineState, command);
     room.engineState = cmdResult.state;
-    if (commandAdvancesRound(command)) {
+    // Only advance the turn when the command was actually accepted. The engine
+    // rejects invalid commands (wrong turn, unaffordable choice) without throwing,
+    // and advancing on a rejection would skip the active player's turn or let a
+    // non-active player's stray command rotate the turn (turn desync / freeze).
+    const rejected = wasRejected(cmdResult.events);
+    if (commandAdvancesRound(command) && !rejected) {
       const roundResult = advanceRound(cmdResult.state);
       room.engineState = roundResult.state;
       room.turnStartedAt = Date.now();
@@ -220,7 +237,7 @@ export function applyCommand(
     if (room.engineState.phase === 'finished') {
       room.status = 'finished';
     }
-    return { ok: true, room };
+    return { ok: true, rejected, room };
   } catch (e: any) {
     return { ok: false, error: e.message };
   }
