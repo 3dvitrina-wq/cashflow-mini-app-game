@@ -28,7 +28,8 @@ export interface PetCatalogItem {
   personality: string;
   isNew: boolean;
   rarity: 'common' | 'rare' | 'legendary';
-  videoSrc?: string; // animated version (black bg removed via mix-blend-mode: screen)
+  videoSrc?: string; // animated version (black bg removed via canvas luminance key)
+  videoScale?: number; // display scale 0–1, default 1
 }
 
 export const PET_ITEMS: PetCatalogItem[] = [
@@ -68,6 +69,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     isNew: true,
     rarity: 'rare',
     videoSrc: '/pets/gecko-anim.mp4',
+    videoScale: 0.5,
   },
   {
     id: 'pet-fish',

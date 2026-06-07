@@ -134,7 +134,7 @@ const HOST_BADGES = [
 ] as const;
 
 /** Renders a video with black background removed via per-frame canvas keying. */
-function AnimatedPet({ src }: { src: string }) {
+function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
@@ -171,7 +171,7 @@ function AnimatedPet({ src }: { src: string }) {
   return (
     <>
       <video ref={videoRef} src={src} loop muted playsInline style={{ display: 'none' }} />
-      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      <canvas ref={canvasRef} style={{ width: `${scale * 100}%`, height: `${scale * 100}%`, objectFit: 'contain' }} />
     </>
   );
 }
@@ -757,12 +757,12 @@ export const LobbyScreen: React.FC = () => {
               </div>
               {activeLobbyPet && (
                 <button
-                  className="lobby-hook-pet-stage"
+                  className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
                   onClick={() => setIsPetSheetOpen(true)}
                   aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
                 >
                   {activeLobbyPet.videoSrc
-                    ? <AnimatedPet src={activeLobbyPet.videoSrc} />
+                    ? <AnimatedPet src={activeLobbyPet.videoSrc} scale={activeLobbyPet.videoScale ?? 1} />
                     : <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
                   }
                 </button>

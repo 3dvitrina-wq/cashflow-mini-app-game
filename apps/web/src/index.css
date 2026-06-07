@@ -7450,6 +7450,241 @@ button {
   object-position: center 80px;
 }
 
+.lobby-scene-fx {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.lobby-scene-fx-full {
+  z-index: 2;
+  --lamp-x: 11%;
+  --lamp-y: 8%;
+  --lamp-scale: 1;
+  --lamp-beam-width: 200px;
+  --lamp-beam-height: 280px;
+  --neon-x: 75%;
+  --neon-y: 21%;
+  --neon-width: 138px;
+  --neon-height: 68px;
+  --neon-font: 48px;
+  --coffee-x: 26%;
+  --coffee-y: 68.8%;
+  --steam-scale: 1;
+}
+
+.lobby-scene-fx-showcase {
+  z-index: 2;
+  --lamp-x: 12%;
+  --lamp-y: 14%;
+  --lamp-scale: 0.48;
+  --lamp-beam-width: 108px;
+  --lamp-beam-height: 136px;
+  --neon-x: 76%;
+  --neon-y: 31%;
+  --neon-width: 88px;
+  --neon-height: 42px;
+  --neon-font: 26px;
+  --coffee-x: 19%;
+  --coffee-y: 79%;
+  --steam-scale: 0.68;
+}
+
+.lobby-scene-lamp-glow,
+.lobby-scene-lamp-flare,
+.lobby-scene-neon-sign,
+.lobby-scene-neon-halo,
+.lobby-scene-coffee,
+.lobby-scene-steam {
+  position: absolute;
+}
+
+.lobby-scene-lamp-glow {
+  left: var(--lamp-x);
+  top: var(--lamp-y);
+  width: var(--lamp-beam-width);
+  height: var(--lamp-beam-height);
+  transform: translate(-50%, -8%) scale(var(--lamp-scale));
+  transform-origin: top center;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(255,246,214,.95) 0 10%, rgba(255,214,116,.55) 15%, rgba(255,177,72,.18) 26%, transparent 56%),
+    radial-gradient(ellipse at 50% 18%, rgba(255,201,100,.26), transparent 68%);
+  filter: blur(8px);
+  opacity: 0.55;
+  animation: lobbyLampGlowPulse 4.6s ease-in-out infinite;
+}
+
+.lobby-scene-lamp-flare {
+  left: var(--lamp-x);
+  top: calc(var(--lamp-y) + 5.2%);
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%) scale(var(--lamp-scale));
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255,245,214,.98) 0 14%, rgba(255,205,106,.86) 18%, rgba(255,160,56,.18) 42%, transparent 72%);
+  box-shadow: 0 0 20px rgba(255,190,94,.35);
+  animation: lobbyLampFlicker 5.2s linear infinite;
+}
+
+.lobby-scene-neon-sign {
+  left: var(--neon-x);
+  top: var(--neon-y);
+  display: grid;
+  width: var(--neon-width);
+  height: var(--neon-height);
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(175,110,255,.38);
+  border-radius: 12px;
+  color: rgba(241,199,255,.98);
+  font-size: var(--neon-font);
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, rgba(33,19,55,.1), rgba(18,10,32,.22));
+  text-shadow:
+    0 0 4px rgba(241,199,255,.96),
+    0 0 12px rgba(202,112,255,.88),
+    0 0 28px rgba(135,73,255,.64);
+  box-shadow:
+    inset 0 0 10px rgba(191,120,255,.2),
+    0 0 18px rgba(177,92,255,.34);
+  opacity: 0.92;
+  mix-blend-mode: screen;
+  animation: lobbyNeonBuzz 6s linear infinite;
+}
+
+.lobby-scene-neon-halo {
+  left: var(--neon-x);
+  top: var(--neon-y);
+  width: calc(var(--neon-width) + 40px);
+  height: calc(var(--neon-height) + 34px);
+  transform: translate(-50%, -50%);
+  border-radius: 18px;
+  background: radial-gradient(circle, rgba(176,94,255,.22), transparent 68%);
+  filter: blur(10px);
+  opacity: 0.58;
+  animation: lobbyNeonHalo 4.4s ease-in-out infinite;
+}
+
+.lobby-scene-coffee {
+  left: var(--coffee-x);
+  top: var(--coffee-y);
+  width: 70px;
+  height: 90px;
+  transform: translate(-50%, -50%) scale(var(--steam-scale));
+}
+
+.lobby-scene-coffee::before {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 46px;
+  height: 74px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(255,244,232,.18), rgba(255,244,232,.08) 42%, transparent 74%);
+  filter: blur(9px);
+  opacity: 0.36;
+  content: "";
+  animation: lobbySteamHush 5.2s ease-in-out infinite;
+}
+
+.lobby-scene-steam {
+  left: 50%;
+  bottom: 22px;
+  width: 20px;
+  height: 60px;
+  margin-left: -10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,0), rgba(255,243,232,.44) 42%, rgba(255,255,255,0));
+  filter: blur(4px);
+  mix-blend-mode: screen;
+  opacity: 0;
+  animation: lobbySteamRise 4.2s ease-in infinite;
+}
+
+.lobby-scene-steam-1 {
+  --steam-drift: -8px;
+  animation-delay: 0s;
+}
+
+.lobby-scene-steam-2 {
+  --steam-drift: 10px;
+  left: 56%;
+  height: 66px;
+  animation-delay: 1.2s;
+}
+
+.lobby-scene-steam-3 {
+  --steam-drift: 2px;
+  left: 44%;
+  height: 52px;
+  animation-delay: 2.2s;
+}
+
+@keyframes lobbyLampGlowPulse {
+  0%, 100% { opacity: 0.46; filter: blur(8px); }
+  12% { opacity: 0.53; }
+  18% { opacity: 0.34; }
+  22% { opacity: 0.58; }
+  57% { opacity: 0.48; }
+  61% { opacity: 0.32; }
+  66% { opacity: 0.57; }
+}
+
+@keyframes lobbyLampFlicker {
+  0%, 16%, 20%, 53%, 57%, 100% { opacity: 0.9; transform: translate(-50%, -50%) scale(var(--lamp-scale)); }
+  17% { opacity: 0.66; transform: translate(-50%, -50%) scale(calc(var(--lamp-scale) * 0.97)); }
+  19% { opacity: 0.98; }
+  55% { opacity: 0.72; }
+  56% { opacity: 0.93; }
+}
+
+@keyframes lobbyNeonBuzz {
+  0%, 18%, 22%, 64%, 100% {
+    opacity: 0.9;
+    text-shadow:
+      0 0 4px rgba(241,199,255,.96),
+      0 0 12px rgba(202,112,255,.88),
+      0 0 28px rgba(135,73,255,.64);
+  }
+  19% {
+    opacity: 0.62;
+    text-shadow:
+      0 0 2px rgba(241,199,255,.88),
+      0 0 6px rgba(202,112,255,.58),
+      0 0 18px rgba(135,73,255,.34);
+  }
+  20% { opacity: 0.96; }
+  66% { opacity: 0.76; }
+  68% { opacity: 0.95; }
+}
+
+@keyframes lobbyNeonHalo {
+  0%, 100% { opacity: 0.42; transform: translate(-50%, -50%) scale(0.96); }
+  50% { opacity: 0.66; transform: translate(-50%, -50%) scale(1.03); }
+}
+
+@keyframes lobbySteamRise {
+  0% {
+    transform: translateY(4px) translateX(0) scale(0.82);
+    opacity: 0;
+  }
+  18% { opacity: 0.34; }
+  54% { opacity: 0.28; }
+  100% {
+    transform: translateY(-44px) translateX(var(--steam-drift, 0px)) scale(1.12);
+    opacity: 0;
+  }
+}
+
+@keyframes lobbySteamHush {
+  0%, 100% { opacity: 0.24; transform: translateX(-50%) scale(0.94); }
+  50% { opacity: 0.42; transform: translateX(-50%) scale(1.06); }
+}
+
 /* Soft top veil so header / room pill / player rows read against the art */
 .lobby-bg-veil {
   pointer-events: none;
@@ -7749,6 +7984,7 @@ button {
 .lobby-room-showcase::after {
   position: absolute;
   inset: 0;
+  z-index: 1;
   background:
     linear-gradient(180deg, rgba(4,5,8,.12), rgba(4,5,8,.14) 52%, rgba(4,5,8,.78)),
     radial-gradient(circle at 64% 36%, rgba(123,91,215,.24), transparent 38%);
@@ -7757,7 +7993,7 @@ button {
 
 .lobby-room-showcase-glass {
   position: relative;
-  z-index: 2;
+  z-index: 3;
   display: flex;
   justify-content: space-between;
   padding: 14px;
@@ -7789,8 +8025,24 @@ button {
   position: absolute;
   right: 12px;
   bottom: 12px;
-  z-index: 2;
+  z-index: 3;
   border-color: rgba(245,197,36,.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lobby-scene-lamp-glow,
+  .lobby-scene-lamp-flare,
+  .lobby-scene-neon-sign,
+  .lobby-scene-neon-halo,
+  .lobby-scene-coffee::before,
+  .lobby-scene-steam {
+    animation: none;
+  }
+
+  .lobby-scene-steam {
+    opacity: 0.16;
+    transform: translateY(-18px);
+  }
 }
 
 .lobby-room-pet-chip img {
@@ -8082,6 +8334,10 @@ button {
   border-radius: 50%;
   background: radial-gradient(circle, rgba(123,91,215,.64), rgba(10,12,18,.08) 72%);
   content: "";
+}
+
+.lobby-hook-pet-stage--video::before {
+  display: none;
 }
 
 .lobby-hook-pet-stage img {
