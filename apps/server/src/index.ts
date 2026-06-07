@@ -191,6 +191,24 @@ async function main() {
         if (existing) {
           const alreadyMember = existing.members.find((m) => m.playerId === pid);
           if (alreadyMember && !alreadyMember.isBot) {
+            // Guard: if this member still has a LIVE socket, this is a SECOND
+            // client with the same playerId (e.g. host opened their own invite
+            // link in the same browser/webview, sharing sessionStorage `dyor_pid`),
+            // not a genuine reconnect. Reject instead of silently hijacking the
+            // slot — otherwise the joiner takes over the host and nobody sees two
+            // players in the lobby.
+            if (
+              alreadyMember.connected &&
+              alreadyMember.ws &&
+              alreadyMember.ws !== ws &&
+              alreadyMember.ws.readyState === 1
+            ) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                error: 'этот профиль уже в комнате — открой на другом устройстве или в другом окне',
+              }));
+              return;
+            }
             const room = reconnectPlayer(code, pid, ws);
             if (room) {
               roomCode = code;
