@@ -1157,6 +1157,78 @@ button {
   transform: translateX(-50%);
 }
 
+/* ── Waiting-for-turn panel (online, non-active player) ───────────────────── */
+.turn-wait-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  padding: 16px;
+}
+
+.turn-wait-avatar-stage {
+  position: relative;
+  width: 150px;
+  height: 170px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.turn-wait-halo {
+  position: absolute;
+  inset: 6px;
+  border-radius: 40px;
+  background:
+    radial-gradient(circle at 50% 38%, rgba(91,215,224,.22), transparent 56%),
+    radial-gradient(circle at 50% 84%, rgba(8,10,16,.72), rgba(8,10,16,.18) 62%, transparent 76%);
+  animation: turn-wait-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes turn-wait-pulse {
+  0%, 100% { opacity: .65; }
+  50% { opacity: 1; }
+}
+
+.turn-wait-avatar {
+  position: relative;
+  z-index: 2;
+  width: 140px;
+  height: 168px;
+  object-fit: contain;
+  object-position: center bottom;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 18px rgba(0,0,0,.55));
+}
+
+.turn-wait-kicker {
+  font-size: 11px;
+  letter-spacing: .14em;
+  font-weight: 700;
+  color: rgba(255,255,255,.55);
+}
+
+.turn-wait-name {
+  font-size: 20px;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.turn-wait-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #5BD7E0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(91,215,224,.10);
+}
+
 .you-avatar-overlay {
   position: absolute;
   inset: 0;
@@ -8342,22 +8414,12 @@ button {
   background: transparent;
   padding: 0;
   cursor: pointer;
+}
+
+/* Static (image) pets render with no shadow. The animated video pet (gecko) keeps
+   its original drop-shadow so its look is unchanged. */
+.lobby-hook-pet-stage--video {
   filter: drop-shadow(0 16px 20px rgba(0,0,0,.72));
-}
-
-.lobby-hook-pet-stage::before {
-  position: absolute;
-  right: 18px;
-  bottom: 0;
-  left: 18px;
-  height: 42px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(123,91,215,.64), rgba(10,12,18,.08) 72%);
-  content: "";
-}
-
-.lobby-hook-pet-stage--video::before {
-  display: none;
 }
 
 .lobby-hook-pet-stage img {
