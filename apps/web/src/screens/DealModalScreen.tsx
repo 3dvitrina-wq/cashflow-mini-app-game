@@ -29,14 +29,8 @@ import {
 } from '../assets/Icons';
 import { useStore } from '../store';
 import {
-  DEAL_PARTNER_LIST,
   DEAL_PRESETS,
-  DEAL_PROPOSALS,
-  DealPartner,
-  DealProposal,
   ENFORCEMENT_OPTIONS,
-  ME_PARTNER,
-  trustVerdict,
 } from '../store/deals';
 import type { PlayerState } from '../store/types';
 
@@ -63,25 +57,6 @@ function moneyShort(n: number): string {
   return `${n < 0 ? '-' : ''}$${a}`;
 }
 
-function assetKindLabel(p: DealProposal): string {
-  const kinds: Record<string, string> = {
-    property: 'Недвижимость',
-    business: 'Бизнес',
-    license: 'Лицензия',
-    crypto: 'Крипто',
-    service: 'Сервис',
-  };
-  const incs: Record<string, string> = {
-    recurring: 'Постоянный доход',
-    royalty: 'Роялти',
-    speculative: 'Спекулятивный',
-    one_time: 'Разовый',
-  };
-  const kind = kinds[p.assetKind] ?? p.assetKind;
-  const inc = incs[p.incomeKind] ?? p.incomeKind;
-  return `${kind} · ${inc}`;
-}
-
 // ─────────────────────────────────────────────────────────
 // MINI player rail (above modal sheet)
 // ─────────────────────────────────────────────────────────
@@ -95,14 +70,14 @@ const PnL: React.FC<{ value: number }> = ({ value }) => {
   );
 };
 
-const MiniPlayerTile: React.FC<{ p: PlayerState; isMe?: boolean }> = ({ p, isMe }) => (
+const MiniPlayerTile: React.FC<{ p: PlayerState; isMe?: boolean; dealCost?: number }> = ({ p, isMe, dealCost }) => (
   <div className="deal-mini-player-tile">
     <div className={`deal-mini-player-frame ${isMe ? 'deal-mini-you-glow' : ''}`}>
       {isMe && <span className="deal-mini-you-tag">ВЫ</span>}
       <img src={avatarSrc(p.name)} alt={p.name} draggable={false} />
     </div>
     <span className="deal-mini-player-name">{p.name}</span>
-    <PnL value={p.cashflowPerMonth} />
+    {dealCost !== undefined && <PnL value={dealCost} />}
   </div>
 );
 
@@ -111,42 +86,67 @@ const MiniPlayerTile: React.FC<{ p: PlayerState; isMe?: boolean }> = ({ p, isMe 
 // ─────────────────────────────────────────────────────────
 
 export const DealModalScreen: React.FC = () => {
-  const { match, setScreen, submitDealOffer } = useStore();
+  const { match, incomingDeal, acceptIncomingDeal, rejectIncomingDeal, setScreen } = useStore();
 
   const me = match.players.find((p) => !p.isBot) || match.players[0];
   const otherPlayers = match.players.filter((p) => p.id !== me.id);
   const railPlayers: PlayerState[] = [me, ...otherPlayers.slice(0, 4)];
 
-  const proposal: DealProposal = useMemo(() => {
-    const seed = match.round || 1;
-    return DEAL_PROPOSALS[seed % DEAL_PROPOSALS.length];
-  }, [match.round]);
+  // Real pending offer from engine state — null when no deal is incoming
+  const offer = incomingDeal?.offer ?? null;
+  const proposer = incomingDeal
+    ? match.players.find((p) => p.id === incomingDeal.proposerId)
+    : null;
 
-  // Local UI state
-  const [share, setShare] = useState(proposal.defaultShare);
+  // Asset value from the real offer (for cost calculations)
+  const assetValue = offer?.projectedAssetValue ?? 0;
+  const monthlyIncome = offer?.projectedMonthlyIncome ?? 0;
+  const cashOffer = offer?.cashOffer ?? 0; // side-payment proposer sends to me
+
+  // Local UI state — share slider defaults to whatever the offer says or 50
+  const defaultShare = useMemo(() => {
+    if (!offer?.shareSplit || !me.id) return 50;
+    const myRaw = offer.shareSplit[me.id];
+    return myRaw !== undefined ? Math.round(myRaw * 100) : 50;
+  }, [offer, me.id]);
+
+  const [share, setShare] = useState(defaultShare);
   const [payout, setPayout] = useState(50);
-  const [ownerId, setOwnerId] = useState<string>(proposal.proposer.id);
+  const [ownerId, setOwnerId] = useState<string>('me');
   const [presetId, setPresetId] = useState<string>('equal-split');
-  const [enforcementId, setEnforcementId] = useState<'word' | 'iou' | 'written' | 'lawyer'>(
-    proposal.proposer.rep < 0 ? 'lawyer' : 'iou'
-  );
+  const [enforcementId, setEnforcementId] = useState<'word' | 'iou' | 'written' | 'lawyer'>('iou');
   const [presetMenuOpen, setPresetMenuOpen] = useState(false);
 
-  const contribution = Math.round((proposal.assetValue * share) / 100);
-  const monthlyShare = Math.round((proposal.monthlyIncome * share) / 100);
+  // Live per-player cost: each player pays their share of the asset value.
+  // Proposer also pays the cashOffer (side payment) on top; I receive it.
+  const myContribution = Math.round((assetValue * share) / 100);
+  const partnerShare = 100 - share;
+  const partnerContribution = Math.round((assetValue * partnerShare) / 100);
 
-  const owners: DealPartner[] = useMemo(
-    () => [ME_PARTNER, proposal.proposer, ...DEAL_PARTNER_LIST.filter((p) => p.id !== proposal.proposer.id).slice(0, 1)],
-    [proposal]
-  );
+  // Net cost for the rail: negative = pays, positive = receives
+  // Me: I pay myContribution but receive cashOffer from proposer
+  // Proposer: pays partnerContribution + cashOffer (they give the side payment)
+  const myCost = -(myContribution - cashOffer);
+  const proposerCost = -(partnerContribution + cashOffer);
 
-  const ownerPartner = owners.find((o) => o.id === ownerId) || proposal.proposer;
-  const verdict = trustVerdict(ownerPartner.rep);
-  const verdictLabel =
-    verdict === 'safe' ? 'надёжный' : verdict === 'careful' ? 'осторожно' : verdict === 'risky' ? 'рискованно' : 'избегай';
+  const dealCostByPlayerId = useMemo<Record<string, number>>(() => {
+    const map: Record<string, number> = {};
+    map[me.id] = myCost;
+    if (proposer) map[proposer.id] = proposerCost;
+    return map;
+  }, [me.id, myCost, proposer, proposerCost]);
+
+  const monthlyShare = Math.round((monthlyIncome * share) / 100);
+
+  // Legal-owner choices come from real match data: you + the real proposer.
+  const owners = useMemo<{ id: string; handle: string; avatarKey: string }[]>(() => {
+    const list = [{ id: 'me', handle: 'Вы', avatarKey: 'you' }];
+    if (proposer) list.push({ id: proposer.id, handle: proposer.name, avatarKey: proposer.name });
+    return list;
+  }, [proposer]);
 
   const enforcement = ENFORCEMENT_OPTIONS.find((e) => e.id === enforcementId)!;
-  const heroArtwork = resolveDealArtwork(proposal.illustration);
+  const heroArtwork = resolveDealArtwork('warehouse');
 
   const handlePreset = (id: string) => {
     setPresetId(id);
@@ -158,35 +158,57 @@ export const DealModalScreen: React.FC = () => {
   };
 
   const handleAccept = () => {
-    submitDealOffer(proposal.proposer.id, {
-      targetPlayerId: proposal.proposer.id,
-      cashOffer: contribution + enforcement.cost,
-      projectedMonthlyIncome: monthlyShare,
-      projectedAssetValue: proposal.assetValue,
-      enforcement: enforcementId,
-      description: proposal.title,
-    });
+    acceptIncomingDeal();
     setScreen('main');
   };
 
   const handleDecline = () => {
+    rejectIncomingDeal();
     setScreen('main');
   };
 
   const handleCounter = () => {
-    // For now: counter == accept with current settings but at -10% share
     setShare(Math.max(10, share - 10));
   };
 
-  // ----- RENDER -----
+  // ----- No real deal: idle state -----
+  if (!incomingDeal) {
+    return (
+      <div className="deal-shell">
+        <header className="deal-mini-topbar">
+          <div className="left" />
+          <div className="center">СДЕЛКИ</div>
+          <button className="right" onClick={() => setScreen('main')} aria-label="закрыть">
+            <IconDots size={18} />
+          </button>
+        </header>
+        <div className="deal-sheet no-scrollbar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, padding: 32 }}>
+          <IconInfo size={36} style={{ color: '#7D7B6F' }} />
+          <p style={{ color: '#8D8B7E', fontSize: 14, textAlign: 'center', margin: 0 }}>
+            Нет входящих предложений. Дождитесь, пока партнёр предложит сделку.
+          </p>
+          <button className="deal-action-btn deal-action-decline" onClick={() => setScreen('main')}>
+            Назад
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ----- RENDER (real deal) -----
+
+  const dealTitle = offer?.description ?? 'Совместная инвестиция';
+  const proposerName = proposer?.name ?? 'Партнёр';
 
   return (
     <div className="deal-shell">
-      {/* === Mini topbar === */}
+      {/* === Mini topbar — no fake timer === */}
       <header className="deal-mini-topbar">
         <div className="left">
           <IconTimer size={14} />
-          <span style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace' }}>00:47</span>
+          <span style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace', opacity: 0.5 }}>
+            раунд {incomingDeal.expiresRound}
+          </span>
         </div>
         <div className="center">ВАШ ХОД</div>
         <button className="right" onClick={() => setScreen('main')} aria-label="more">
@@ -207,10 +229,15 @@ export const DealModalScreen: React.FC = () => {
         <span className="arrow" style={{ marginLeft: 'auto' }}>▶</span>
       </div>
 
-      {/* === Mini player rail === */}
+      {/* === Mini player rail with live deal costs === */}
       <section className="deal-mini-player-rail">
         {railPlayers.map((p, i) => (
-          <MiniPlayerTile key={p.id} p={p} isMe={i === 0} />
+          <MiniPlayerTile
+            key={p.id}
+            p={p}
+            isMe={i === 0}
+            dealCost={dealCostByPlayerId[p.id]}
+          />
         ))}
       </section>
 
@@ -234,12 +261,12 @@ export const DealModalScreen: React.FC = () => {
           <div
             className="deal-hero-illustration"
             style={{
-              background: `radial-gradient(circle at 50% 12%, ${proposal.illustrationGradient[0]}55, transparent 56%), linear-gradient(180deg, rgba(19,21,29,.95), rgba(12,14,20,.98))`,
+              background: 'radial-gradient(circle at 50% 12%, #3B66A055, transparent 56%), linear-gradient(180deg, rgba(19,21,29,.95), rgba(12,14,20,.98))',
             }}
           >
             <img
               src={heroArtwork.src}
-              alt={proposal.title}
+              alt={dealTitle}
               style={{
                 width: '100%',
                 height: '100%',
@@ -254,50 +281,57 @@ export const DealModalScreen: React.FC = () => {
             <div className="title-row">
               <div className="title-left">
                 <IconBuilding size={14} />
-                <span className="title-name">{proposal.title}</span>
+                <span className="title-name">{dealTitle}</span>
               </div>
-              <span className="asset-value">${proposal.assetValue.toLocaleString()}</span>
+              {assetValue > 0 && <span className="asset-value">${assetValue.toLocaleString()}</span>}
             </div>
             <div className="title-row">
-              <span className="tags">{assetKindLabel(proposal)}</span>
-              <span className="asset-sub">Стоимость актива</span>
+              <span className="tags">от {proposerName}</span>
+              {assetValue > 0 && <span className="asset-sub">Стоимость актива</span>}
             </div>
-            <div className="income">
-              <span className="income-label">
-                Ожид. доход <IconInfo size={11} style={{ color: '#7D7B6F' }} />
-              </span>
-              <span className="income-value">+ ${proposal.monthlyIncome.toLocaleString()} /мес</span>
-            </div>
+            {monthlyIncome > 0 && (
+              <div className="income">
+                <span className="income-label">
+                  Ожид. доход <IconInfo size={11} style={{ color: '#7D7B6F' }} />
+                </span>
+                <span className="income-value">+ ${monthlyIncome.toLocaleString()} /мес</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Your share */}
-        <div className="deal-slider-card">
-          <div className="deal-slider-header">
-            <span className="deal-slider-label">Твоя доля</span>
-            <span className="deal-slider-value" style={{ marginLeft: 'auto', marginRight: '50%', transform: `translateX(${(share - 50) * 2.6}px)` }}>
-              {share}%
-            </span>
+        {/* Your share — only show if asset value is known */}
+        {assetValue > 0 && (
+          <div className="deal-slider-card">
+            <div className="deal-slider-header">
+              <span className="deal-slider-label">Твоя доля</span>
+              <span className="deal-slider-value" style={{ marginLeft: 'auto', marginRight: '50%', transform: `translateX(${(share - 50) * 2.6}px)` }}>
+                {share}%
+              </span>
+            </div>
+            <div className="deal-slider" style={{ '--pct': `${share}%`, '--fill': '#7B5BD7' } as React.CSSProperties}>
+              <div className="track" />
+              <div className="fill" />
+              <input
+                type="range"
+                min={10}
+                max={90}
+                step={5}
+                value={share}
+                onChange={(e) => setShare(Number(e.target.value))}
+                aria-label="Your share"
+              />
+            </div>
+            <div className="deal-slider-foot">
+              <span>
+                Твой взнос: <span className="lavender">${myContribution.toLocaleString()}</span>
+              </span>
+              {cashOffer > 0 && (
+                <span style={{ color: '#28C76F', fontSize: 11 }}>+ получаешь ${cashOffer.toLocaleString()}</span>
+              )}
+            </div>
           </div>
-          <div className="deal-slider" style={{ '--pct': `${share}%`, '--fill': '#7B5BD7' } as React.CSSProperties}>
-            <div className="track" />
-            <div className="fill" />
-            <input
-              type="range"
-              min={10}
-              max={90}
-              step={5}
-              value={share}
-              onChange={(e) => setShare(Number(e.target.value))}
-              aria-label="Your share"
-            />
-          </div>
-          <div className="deal-slider-foot">
-            <span>
-              Твой взнос: <span className="lavender">${contribution.toLocaleString()}</span>
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* Payout split */}
         <div className="deal-slider-card">
@@ -344,15 +378,6 @@ export const DealModalScreen: React.FC = () => {
                 </span>
                 <span className="deal-legal-info">
                   <span className="deal-legal-handle">{o.handle}</span>
-                  {o.id !== 'me' && (
-                    <span
-                      className={`deal-legal-rep ${
-                        o.rep > 0 ? 'positive' : o.rep < 0 ? 'negative' : 'neutral'
-                      }`}
-                    >
-                      реп {o.rep > 0 ? `+${o.rep}` : o.rep}
-                    </span>
-                  )}
                 </span>
               </button>
             ))}
@@ -454,24 +479,6 @@ export const DealModalScreen: React.FC = () => {
             })}
           </div>
         </div>
-
-        {/* Trust warning */}
-        {ownerPartner.id !== 'me' && (
-          <div className="deal-trust-warning">
-            <IconWarning size={18} />
-            <div>
-              <span className="copy">
-                Доверие: <strong>{ownerPartner.handle} реп {ownerPartner.rep > 0 ? `+${ownerPartner.rep}` : ownerPartner.rep}</strong> ({verdictLabel})
-              </span>
-              {(ownerPartner.brokenPromises || ownerPartner.ghosted) && (
-                <div className="copy" style={{ opacity: 0.8, marginTop: 2 }}>
-                  Прошлые сделки: {ownerPartner.brokenPromises || 0} нарушений, {ownerPartner.ghosted || 0} проигнорировано
-                </div>
-              )}
-            </div>
-            <IconChevronRight size={14} style={{ color: '#F5C524' }} />
-          </div>
-        )}
 
         {/* Actions */}
         <div className="deal-actions-row">

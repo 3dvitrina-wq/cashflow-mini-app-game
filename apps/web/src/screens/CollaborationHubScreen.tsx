@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
+import type { OfferPayload } from '../../../../packages/shared/src';
 
 interface CollaborationHubScreenProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ export const CollaborationHubScreen: React.FC<CollaborationHubScreenProps> = ({
   initialPartnerId,
 }) => {
   const match = useStore((s) => s.match);
+  const submitDealOffer = useStore((s) => s.submitDealOffer);
   const otherPlayers = match.players.filter((p) => !p.isBot || p.name !== 'You');
 
   const [selectedPartner, setSelectedPartner] = useState<string | null>(initialPartnerId || null);
@@ -45,7 +47,41 @@ export const CollaborationHubScreen: React.FC<CollaborationHubScreenProps> = ({
       showToast('Выберите партнёра', 'warning');
       return;
     }
-    showToast(`Предложение отправлено ${partner.name}!`, 'success');
+
+    const descriptionParts: string[] = [currentDeal.label];
+    if (dealType === 'coinvest' || dealType === 'partnership') {
+      descriptionParts.push(`${splitRatio}/${100 - splitRatio}`);
+    } else {
+      descriptionParts.push(`$${amount.toLocaleString()}`);
+    }
+    descriptionParts.push(currentEnforcement.label);
+
+    const offer: OfferPayload = {
+      targetPlayerId: partner.id,
+      description: descriptionParts.join(' · '),
+      enforcement: enforcement === 'handshake' ? 'word' : enforcement === 'written' ? 'written' : 'lawyer',
+      ...(dealType === 'coinvest' || dealType === 'partnership'
+        ? {
+            shareSplit: {
+              [match.players.find((p) => !p.isBot)?.id ?? '']: splitRatio,
+              [partner.id]: 100 - splitRatio,
+            },
+            projectedMonthlyIncome: 0,
+            projectedAssetValue: 0,
+          }
+        : dealType === 'loan'
+        ? { cashOffer: amount }
+        : { cashRequest: amount }),
+    };
+
+    const outcome = submitDealOffer(partner.id, offer);
+    if (outcome === 'accepted') {
+      showToast(`${partner.name} принял предложение`, 'success');
+    } else if (outcome === 'rejected') {
+      showToast(`${partner.name} отклонил предложение`, 'warning');
+    } else {
+      showToast('Предложение не отправилось - нет активного матча', 'error');
+    }
     onClose();
   };
 

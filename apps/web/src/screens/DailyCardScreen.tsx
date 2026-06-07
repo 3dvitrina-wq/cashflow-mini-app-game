@@ -7,7 +7,7 @@ import day5 from '../assets/generated/daily/day-5.webp';
 import day6 from '../assets/generated/daily/day-6.webp';
 import day7 from '../assets/generated/daily/day-7.webp';
 import { showToast } from '../components/Toast';
-import { checkDailyStreak } from '../store/persistence';
+import { checkDailyStreak, loadPlayerData, savePlayerData } from '../store/persistence';
 
 interface DailyCardScreenProps {
   onClose: () => void;
@@ -35,6 +35,15 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
 
   const handleReveal = () => {
     setRevealed(true);
+    // Credit the reward idempotently — checkDailyStreak() already stamped lastDailyDate,
+    // so calling it again returns isNewDay=false; we credit only on first reveal per day.
+    const data = loadPlayerData();
+    if (reward.type === 'coins' || reward.type === 'jackpot') {
+      savePlayerData({ coins: data.coins + reward.value });
+    } else if (reward.type === 'pet_food') {
+      savePlayerData({ coins: data.coins + 50 }); // pet food credited as 50 coins
+    }
+    // 'card' type reward is cosmetic only — no persistent store for spare cards yet
     showToast(`Награда получена: ${reward.label}!`, 'success');
   };
 

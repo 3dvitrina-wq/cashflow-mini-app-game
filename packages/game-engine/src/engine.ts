@@ -1121,12 +1121,35 @@ function formPartnerships(
       shareRules,
       createdRound: state.round,
     };
+
+    // Build a set of players who already paid via partnership.invite (the resolver
+    // debited their cash before formPartnerships runs). Any partner in the shareRules
+    // who is NOT in that paid set — e.g. partners joined through the acceptDeal path —
+    // must be debited now so the full cost is always split proportionally.
+    const paidIds = new Set(coInvestors.map((c) => c.playerId));
     for (const id of partnerIds) {
       const player = state.players.find((p) => p.id === id);
-      if (player && !player.partnerships.some((pp) => pp.id === partnership.id)) {
+      if (!player) continue;
+      if (!player.partnerships.some((pp) => pp.id === partnership.id)) {
         player.partnerships.push(partnership);
       }
+      if (!paidIds.has(id)) {
+        // Passive partner: debit proportional share of the asset's full cost.
+        const share = shareRules[id] ?? 0;
+        const due = Math.round(fullCost * share);
+        if (due > 0) {
+          player.cash = Math.max(0, player.cash - due);
+          events.push({
+            type: 'money',
+            playerId: id,
+            effectType: 'partnership.invite',
+            amount: -due,
+            message: `co-invest share (passive): ${Math.round(share * 100)}% of ${fullCost}`,
+          });
+        }
+      }
     }
+
     events.push({
       type: 'effect',
       effectType: 'partnership.create',

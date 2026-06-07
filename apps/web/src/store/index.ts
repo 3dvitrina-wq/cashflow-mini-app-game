@@ -23,6 +23,7 @@ import {
   type FairnessResult,
   type ChoicePreview,
 } from '../../../../packages/game-engine/src';
+import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 import type {
   CardDefinition,
   Command,
@@ -202,15 +203,16 @@ function choiceEffectsFromCard(card: CardDefinition): string[][] {
 
 function toUiCard(card: CardDefinition | null | undefined): CardData | null {
   if (!card) return null;
+  const loc = getLocalizedCard(card.id);
   return {
     id: card.id,
     type: card.type as CardType,
-    title: card.title,
-    text: card.text,
+    title: loc.title,
+    text: loc.text,
     consequences: consequencesFromCard(card),
-    choices: (card.choices ?? []).map((choice) => choice.label),
+    choices: loc.choices.length > 0 ? loc.choices.map((c) => c.label) : (card.choices ?? []).map((choice) => choice.label),
     choiceEffects: choiceEffectsFromCard(card),
-    hostCue: card.hostCue,
+    hostCue: loc.hostCue,
   };
 }
 
@@ -363,7 +365,7 @@ function createEngineMatch(
   // and uses healthy defaults (stress 3, trust 6, debt 2, passiveIncome 200). We keep
   // those values: NO economic override here anymore. Only carry over the chosen outfit
   // (already passed) and inventory the roster may hold.
-  const match = createMatch(20260529, enginePlayers, { maxRounds, mode });
+  const match = createMatch(Date.now() ^ (Math.random() * 0xffffffff | 0), enginePlayers, { maxRounds, mode });
 
   // Every match is a clean slate: no pets, businesses, or protections carry over from
   // a previous session (otherwise a Rematch would inherit the last game's inventory).

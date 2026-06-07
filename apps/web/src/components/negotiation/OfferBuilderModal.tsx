@@ -196,6 +196,10 @@ export const OfferBuilderModal: React.FC<Props> = ({
           >+</button>
         </div>
 
+        <p className="negot-sidepay-hint">
+          Разовый бонус партнёру при подписании - подсласти невыгодную сделку.
+        </p>
+
         {/* ── 4. Protection ── */}
         <div className="negot-section-label">4. ЗАЩИТА</div>
         <div className="negot-enforce-row">

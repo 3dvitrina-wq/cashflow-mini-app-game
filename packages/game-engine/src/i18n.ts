@@ -589,6 +589,57 @@ const CARD_LOCALES_RU: Record<string, CardLocale> = {
       skip: { label: 'Пропустить' },
     },
   },
+  // ─── FUTURES ──────────────────────────────────────────────────────────
+  'futures-neon-long-2x': {
+    title: 'NEON - ЛОНГ 2X',
+    text: 'NEON растёт. Плечо 2x, управляемый риск. Ты знаешь, что делать.',
+    hostCue: 'Двойная надежда. Двойной потенциал сожаления.',
+    choices: {
+      long_2x: { label: '2x Лонг NEON ($2K маржа)', hint: 'Плечо 2x - ликвидация при падении NEON на 50%' },
+      long_1x: { label: '1x Безопасный NEON ($1K)', hint: 'Без риска ликвидации, полная экспозиция к цене' },
+      pass: { label: 'Пропустить' },
+    },
+  },
+  'futures-drift-short-2x': {
+    title: 'ШОРТ DRIFT 2X',
+    text: 'Фундаментал DRIFT ужасен. Все знают. Заработай на неизбежном.',
+    hostCue: 'Шортить DRIFT: смелость или самонадеянность? Рынок рассудит.',
+    choices: {
+      short_2x: { label: '2x Шорт DRIFT ($1.5K маржа)', hint: 'Плечо 2x - ликвидация при росте DRIFT на 50%' },
+      short_1x: { label: '1x Шорт ($800)', hint: 'Безопаснее, меньше потенциал' },
+      pass: { label: 'Пропустить' },
+    },
+  },
+  'futures-volt-3x-long': {
+    title: 'VOLT - ПЛЕЧО 3X',
+    text: 'VOLT пробивает сопротивление. Жми на максимум. Слава или картонная коробка.',
+    hostCue: 'Тройной доход. И тройной счёт психотерапевта.',
+    choices: {
+      long_3x: { label: '3x Лонг VOLT ($2K маржа)', hint: 'Плечо 3x - ликвидация при падении VOLT на 33%' },
+      long_2x: { label: '2x Лонг VOLT ($1K маржа)', hint: 'Управляемый риск, хороший потенциал' },
+      pass: { label: 'Пропустить' },
+    },
+  },
+  'futures-iron-short-3x': {
+    title: 'ЖЕЛЕЗНАЯ МЕДВЕЖЬЯ ЛОВУШКА',
+    text: 'Переизбыток IRON сигналит о крахе. Зашорти до того, как толпа заметит.',
+    hostCue: 'Шортить IRON с плечом 3x. Дерзость. Потенциал. Стресс.',
+    choices: {
+      short_3x: { label: '3x Шорт IRON ($2K маржа)', hint: 'Плечо 3x - ликвидация при росте IRON на 33%' },
+      short_1x: { label: '1x Шорт IRON ($1K)', hint: 'Консервативный шорт, без риска ликвидации' },
+      pass: { label: 'Пропустить' },
+    },
+  },
+  'futures-neon-yolo-3x': {
+    title: 'NEON ИЛИ КАРТОН',
+    text: 'Максимальное плечо. Максимальная драма. AI-ведущий молчит от изумления.',
+    hostCue: '...Мне нечего добавить. Удачи.',
+    choices: {
+      yolo_3x: { label: '3x NEON ва-банк ($3K маржа)', hint: 'Ликвидация при падении NEON на 33% - бинарный исход' },
+      half_bet: { label: 'Полставки 2x ($1.5K)', hint: 'Всё ещё высокий риск, но не полный ва-банк' },
+      pass: { label: 'Пропустить' },
+    },
+  },
 };
 
 /** Get localized card data. Falls back to English (original card data). */
@@ -646,6 +697,12 @@ export function getLocalizedCard(cardId: string, locale?: Locale): {
 
 // ─── Effect descriptions ────────────────────────────────────────────────────
 
+// WIP: неполный словарь, расширять по мере надобности. Нигде не импортируется.
 const EFFECT_DESCRIPTIONS_RU: Record<string, string> = {
   'cash.delta': 'Деньги',
   'cash.set_zero': 'Потеря всех денег',
+};
+
+export function getEffectDescriptionRu(effectType: string): string | undefined {
+  return EFFECT_DESCRIPTIONS_RU[effectType];
+}

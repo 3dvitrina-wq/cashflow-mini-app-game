@@ -9900,6 +9900,13 @@ input[type="range"]::-moz-range-thumb {
   flex-shrink: 0;
 }
 
+.negot-sidepay-hint {
+  margin: 4px 0 10px;
+  font-size: 11px;
+  color: #7D7B6F;
+  line-height: 1.4;
+}
+
 .negot-slider {
   flex: 1;
   accent-color: #F5C524;

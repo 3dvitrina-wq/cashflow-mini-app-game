@@ -23,6 +23,7 @@ import { showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { playSound } from '../lib/sound';
 import { HostInterjection, type HostMoment } from '../components/HostInterjection';
+import { TutorialOverlay } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
 
 // The host is a guest, not a narrator: it only has something to say when a market
@@ -805,9 +806,41 @@ export const MainTurnTableScreen: React.FC = () => {
                 <h2 className="turn-wait-name">
                   {locale === 'ru' ? `Ходит ${activePlayer.name}` : `${activePlayer.name} is acting`}
                 </h2>
+                {/* A1: live stat line for the active player */}
+                <span style={{ fontSize: 12, color: '#B8B6A9', marginTop: 2 }}>
+                  <IconCoin size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                  ${moneyShort(activePlayer.cash)}
+                  {' · '}
+                  <IconStress size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
+                  {locale === 'ru' ? `стресс ${activePlayer.stress}/10` : `stress ${activePlayer.stress}/10`}
+                </span>
                 <span className="turn-wait-timer">
                   <IconTimer size={14} /> {timer}s
                 </span>
+                {/* A1: quick reactions available during wait */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'center' }}>
+                  {[REACTIONS[0], REACTIONS[1], REACTIONS[2]].filter(Boolean).map((reaction, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => { hapticImpact('light'); handleReaction(reaction.label || 'NEXT'); }}
+                      style={{
+                        background: 'rgba(255,255,255,0.08)',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 10,
+                        width: 44,
+                        height: 44,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                      }}
+                      aria-label={reaction.label}
+                    >
+                      <img src={reaction.image} alt="" draggable={false} style={{ width: 28, height: 28 }} />
+                    </button>
+                  ))}
+                </div>
               </div>
             </main>
           </div>
@@ -998,6 +1031,16 @@ export const MainTurnTableScreen: React.FC = () => {
                   {visibleChoices.map((choice, i) => {
                     const label = stripFirstEmoji(choice) || choice;
                     const canAfford = affordable[i] ?? true;
+                    const preview = choicePreviews[i];
+                    // A3: inline delta hint (cash + monthly net)
+                    const inlineDelta = preview
+                      ? (() => {
+                          const parts: string[] = [];
+                          if (preview.now !== 0) parts.push(`${preview.now > 0 ? '+' : ''}$${moneyShort(Math.abs(preview.now))}`);
+                          if (preview.monthlyNet !== 0) parts.push(`${preview.monthlyNet > 0 ? '+' : ''}$${moneyShort(Math.abs(preview.monthlyNet))}/мес`);
+                          return parts.join(' · ');
+                        })()
+                      : null;
                     return (
                       <button
                         key={choice}
@@ -1008,6 +1051,19 @@ export const MainTurnTableScreen: React.FC = () => {
                       >
                         <span className="survival-choice-icon">{canAfford ? choiceIcon(choice) : '🔒'}</span>
                         <span className="survival-choice-label">{label}</span>
+                        {inlineDelta && canAfford && (
+                          <span style={{
+                            display: 'block',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            color: preview && preview.now + preview.monthlyNet >= 0 ? '#28C76F' : '#E84B2A',
+                            lineHeight: 1.2,
+                            marginTop: 2,
+                            opacity: 0.85,
+                          }}>
+                            {inlineDelta}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -1135,6 +1191,38 @@ export const MainTurnTableScreen: React.FC = () => {
             zIndex: 99,
           }}
         />
+      )}
+
+      {/* A4: spectator stake banner — shown to non-active players when a deal/interest window is live */}
+      {!canActNow && (interestWindow?.status === 'open' || (incomingDeal && dealBannerReady)) && (
+        <div style={{
+          position: 'fixed',
+          top: 12,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 180,
+          background: 'rgba(91,215,224,0.10)',
+          border: '1px solid rgba(91,215,224,0.35)',
+          borderRadius: 14,
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          maxWidth: 320,
+          width: 'calc(100% - 32px)',
+        }}>
+          <span style={{ fontSize: 16 }}>🤝</span>
+          <span style={{ fontSize: 12, color: '#F5F4ED', fontWeight: 700, flex: 1, lineHeight: 1.3 }}>
+            {interestWindow?.status === 'open'
+              ? (locale === 'ru' ? `${activePlayer.name} рассматривает сделку` : `${activePlayer.name} is reviewing a deal`)
+              : incomingDeal
+                ? (locale === 'ru'
+                    ? `${match.players.find(p => p.id === incomingDeal.proposerId)?.name ?? 'Игрок'} предлагает партнёрство`
+                    : `${match.players.find(p => p.id === incomingDeal.proposerId)?.name ?? 'Player'} proposes a deal`)
+                : ''}
+          </span>
+          <span style={{ fontSize: 11, color: '#7D7B6F' }}>{timer}s</span>
+        </div>
       )}
 
       {/* Phase 3: Interest Window Banner */}
@@ -1291,6 +1379,9 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* AI host — slides in only on meaningful moments, retreats on its own */}
       <HostInterjection moment={hostMoment} onDismiss={dismissHost} />
+
+      {/* Native tutorial coach-mark: runs once for first-time players during an active match */}
+      {card && canActNow && <TutorialOverlay />}
     </div>
   );
 };

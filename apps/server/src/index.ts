@@ -271,9 +271,28 @@ async function main() {
         const result = applyCommand(roomCode, msg.command);
         if (!result.ok || !result.room) {
           ws.send(JSON.stringify({ type: 'error', error: result.error }));
-          // The active player's turn timer was cleared above. Re-arm it so a turn that
-          // errored out still times out to a bot instead of freezing the match forever.
-          drainBotTurns(roomCode);
+          // If the active player's timer was cleared above but the command errored
+          // (turn did not advance), re-arm it so the match doesn't hang. Guard against
+          // double-arming: if the timer is still running (command came from a non-active
+          // player), leave it untouched.
+          const errRoom = getRoom(roomCode);
+          if (errRoom && errRoom.status === 'playing' && !errRoom.turnTimer) {
+            const timerCode = roomCode;
+            errRoom.turnTimer = setTimeout(() => {
+              const r = getRoom(timerCode);
+              if (!r || r.status !== 'playing') return;
+              if (!isBotCurrentTurn(r)) {
+                const engineState = r.engineState;
+                if (engineState) {
+                  const idx = engineState.activePlayerIndex;
+                  const player = engineState.players[idx];
+                  const member = r.members.find((m) => m.playerId === player.id);
+                  if (member) member.botControlled = true;
+                }
+              }
+              drainBotTurns(timerCode);
+            }, TURN_TIMEOUT_MS);
+          }
           return;
         }
         broadcast(result.room, { type: 'state_update', state: result.room.engineState });
