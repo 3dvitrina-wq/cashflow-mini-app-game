@@ -20,6 +20,10 @@ declare global {
         setHeaderColor?: (c: string) => void;
         setBackgroundColor?: (c: string) => void;
         requestFullscreen?: () => void;
+        version?: string;
+        isFullscreen?: boolean;
+        isVersionAtLeast?: (v: string) => boolean;
+        onEvent?: (event: string, cb: (...args: unknown[]) => void) => void;
         viewportHeight?: number;
         viewportStableHeight?: number;
         shareMessage?: (msg: string, params?: Record<string, unknown>) => void;
@@ -40,10 +44,18 @@ try {
   if (tg) {
     tg.ready?.();
     tg.expand?.();
-    tg.requestFullscreen?.();
     tg.disableVerticalSwipes?.();
     tg.setHeaderColor?.('#0B0D11');
     tg.setBackgroundColor?.('#0B0D11');
+    // Fullscreen (Bot API 8.0+) hides the standard header bar (Закрыть + collapse
+    // chevron). Telegram's minimal floating close/⋯ controls always stay and can't
+    // be removed by design. No-op on older clients.
+    tg.onEvent?.('fullscreenFailed', (...a: unknown[]) => console.warn('[tg-fullscreen-failed]', ...a));
+    if (tg.requestFullscreen && (tg.isVersionAtLeast?.('8.0') ?? false)) {
+      try { tg.requestFullscreen(); } catch (e) { console.warn('[tg-fullscreen]', e); }
+    } else {
+      console.warn('[tg] fullscreen unsupported, version=', tg.version);
+    }
   }
 } catch (e) {
   console.warn('[telegram-init]', e);
