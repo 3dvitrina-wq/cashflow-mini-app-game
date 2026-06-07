@@ -12,9 +12,66 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <title>DYOR</title>
+    <style>
+      #boot {
+        position: fixed; inset: 0; z-index: 9999;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        gap: 18px; background: #0B0D11; transition: opacity .35s ease;
+      }
+      #boot .boot-logo {
+        font-family: 'Inter', system-ui, sans-serif; font-weight: 900; font-size: 34px;
+        letter-spacing: .12em; color: #F5C524; text-shadow: 0 0 18px rgba(245,197,36,.35);
+      }
+      #boot .boot-bar {
+        width: 200px; height: 6px; border-radius: 999px;
+        background: rgba(255,255,255,.08); overflow: hidden;
+      }
+      #boot #boot-fill {
+        height: 100%; width: 0; border-radius: 999px;
+        background: linear-gradient(90deg, #F5C524, #5BD7E0); transition: width .15s linear;
+      }
+      #boot #boot-pct {
+        font-family: 'Inter', system-ui, sans-serif; font-size: 13px; font-weight: 800; color: #B8B6A9;
+      }
+    </style>
   </head>
   <body class="bg-canvas text-text-primary">
     <div id="root"></div>
+    <div id="boot">
+      <div class="boot-logo">DYOR</div>
+      <div class="boot-bar"><div id="boot-fill"></div></div>
+      <div id="boot-pct">0%</div>
+    </div>
+    <script>
+      // Instant loading screen — shows before the JS bundle/assets finish so the
+      // app never opens to a blank black screen. Creeps toward 90% while loading,
+      // then main.tsx calls window.__bootDone() which snaps to 100% and fades out.
+      (function () {
+        var fill = document.getElementById('boot-fill');
+        var pct = document.getElementById('boot-pct');
+        var p = 0, target = 0, done = false;
+        var creep = setInterval(function () {
+          target = Math.min(90, target + (90 - target) * 0.08 + 1);
+        }, 200);
+        function frame() {
+          p += (target - p) * 0.12;
+          if (done && p > 99.5) p = 100;
+          var v = Math.round(p);
+          if (fill) fill.style.width = v + '%';
+          if (pct) pct.textContent = v + '%';
+          if (p < 100) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+        window.__bootDone = function () {
+          if (done) return;
+          done = true; target = 100; clearInterval(creep);
+          setTimeout(function () {
+            var b = document.getElementById('boot');
+            if (b) { b.style.opacity = '0'; setTimeout(function () { b.remove(); }, 350); }
+          }, 200);
+        };
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

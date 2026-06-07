@@ -9,6 +9,8 @@ initLocale();
 
 declare global {
   interface Window {
+    /** Set by the inline loading screen in index.html; hides it once React mounts. */
+    __bootDone?: () => void;
     Telegram?: {
       WebApp?: {
         ready: () => void;
@@ -60,3 +62,6 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <App />
   </React.StrictMode>
 );
+
+// Hide the instant loading screen once React has painted the first frame.
+requestAnimationFrame(() => requestAnimationFrame(() => window.__bootDone?.()));
