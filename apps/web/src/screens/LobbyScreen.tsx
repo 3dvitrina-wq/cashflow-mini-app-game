@@ -138,6 +138,7 @@ function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
+  const lastVideoTimeRef = useRef<number>(-1);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -146,10 +147,16 @@ function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
+    const onMeta = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+    };
+    video.addEventListener('loadedmetadata', onMeta);
+    if (video.readyState >= 1) onMeta();
+
     const draw = () => {
-      if (video.readyState >= 2 && video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.currentTime !== lastVideoTimeRef.current) {
+        lastVideoTimeRef.current = video.currentTime;
         ctx.drawImage(video, 0, 0);
         const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const d = frame.data;
@@ -165,7 +172,10 @@ function AnimatedPet({ src, scale = 1 }: { src: string; scale?: number }) {
 
     video.play().catch(() => {});
     rafRef.current = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(rafRef.current);
+    return () => {
+      cancelAnimationFrame(rafRef.current);
+      video.removeEventListener('loadedmetadata', onMeta);
+    };
   }, [src]);
 
   return (
@@ -755,18 +765,6 @@ export const LobbyScreen: React.FC = () => {
                   </span>
                 ))}
               </div>
-              {activeLobbyPet && (
-                <button
-                  className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
-                  onClick={() => setIsPetSheetOpen(true)}
-                  aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
-                >
-                  {activeLobbyPet.videoSrc
-                    ? <AnimatedPet src={activeLobbyPet.videoSrc} scale={activeLobbyPet.videoScale ?? 1} />
-                    : <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
-                  }
-                </button>
-              )}
             </section>
 
             <div className="lobby-hook-lower">
@@ -1050,6 +1048,20 @@ export const LobbyScreen: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Pet — fixed on background layer, does not scroll with lobby-content */}
+      {activeLobbyPet && multiMode === 'none' && !isRoomOpen && (
+        <button
+          className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
+          onClick={() => setIsPetSheetOpen(true)}
+          aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
+        >
+          {activeLobbyPet.videoSrc
+            ? <AnimatedPet src={activeLobbyPet.videoSrc} scale={activeLobbyPet.videoScale ?? 1} />
+            : <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
+          }
+        </button>
+      )}
 
       {/* Lobby reactions — same set as in-match, exchanged with the room */}
       {(isRoomOpen || multiMode === 'waiting') && (

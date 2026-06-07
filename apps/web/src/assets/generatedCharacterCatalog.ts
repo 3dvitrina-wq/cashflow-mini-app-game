@@ -28,6 +28,8 @@ import rapQueenProfile from './generated/characters/rap_queen/portraits/rap_quee
 import rapQueenStable from './generated/characters/rap_queen/emotions/rap_queen_stable.png';
 import skyPilotProfile from './generated/characters/sky_pilot/portraits/sky_pilot_profile_bust.png';
 import skyPilotStable from './generated/characters/sky_pilot/emotions/sky_pilot_stable.png';
+import investorProfile from './generated/characters/investor/turnaround/investor_front.png';
+import investorStable from './generated/characters/investor/emotions/investor_stable.png';
 
 export type CharacterId =
   | 'artist'
@@ -43,7 +45,8 @@ export type CharacterId =
   | 'mad_fashion'
   | 'police_officer'
   | 'rap_queen'
-  | 'sky_pilot';
+  | 'sky_pilot'
+  | 'investor';
 
 export interface GeneratedCharacter {
   id: CharacterId;
@@ -173,6 +176,14 @@ export const GENERATED_CHARACTERS: GeneratedCharacter[] = [
     profile: rapQueenProfile,
     stable: rapQueenStable,
     engineOutfit: 'creator',
+  },
+  {
+    id: 'investor',
+    displayName: 'Investor',
+    displayNameRu: 'Инвестор',
+    profile: investorProfile,
+    stable: investorStable,
+    engineOutfit: 'trader',
   },
 ];
 
