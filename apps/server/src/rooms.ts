@@ -22,6 +22,7 @@ export interface RoomMember {
   /** Lightweight lobby meta so peers can "visit" this player's profile. */
   meta?: {
     characterId?: string;
+    professionId?: string;
     level?: number;
     housingId?: string | null;
     petId?: string | null;
@@ -173,7 +174,12 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
   }
 }
 
-export function startRoom(code: string): Room | null {
+export interface StartOptions {
+  maxRounds?: number;
+  mode?: 'classic' | 'draft';
+}
+
+export function startRoom(code: string, opts: StartOptions = {}): Room | null {
   const room = rooms.get(code);
   if (!room || room.status !== 'waiting' || room.members.length < 2) return null;
   const players = room.members.map((m) => ({
@@ -181,8 +187,15 @@ export function startRoom(code: string): Room | null {
     name: m.name,
     outfit: m.outfit as any,
     isBot: m.isBot,
+    // Carry the lobby choices into the engine so the in-match identity and economy
+    // match what each player picked (otherwise everyone reset to default profession).
+    characterId: m.meta?.characterId,
+    professionId: m.meta?.professionId,
   }));
-  room.engineState = createMatch(room.seed, players);
+  room.engineState = createMatch(room.seed, players, {
+    maxRounds: opts.maxRounds,
+    mode: opts.mode,
+  });
   room.status = 'playing';
   room.turnStartedAt = Date.now();
   return room;

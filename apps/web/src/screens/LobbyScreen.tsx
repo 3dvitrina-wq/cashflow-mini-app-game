@@ -591,12 +591,13 @@ export const LobbyScreen: React.FC = () => {
   const myJoinMeta = useMemo(
     () => ({
       characterId: selectedCharacterId,
+      professionId: rolledProfession.id,
       level: myLevel,
       housingId: hostHome?.id ?? null,
       petId: lobbyPetId,
       achievements: playerData.achievements.length,
     }),
-    [selectedCharacterId, myLevel, hostHome?.id, lobbyPetId, playerData.achievements.length],
+    [selectedCharacterId, rolledProfession.id, myLevel, hostHome?.id, lobbyPetId, playerData.achievements.length],
   );
 
   const handleCreateRoom = useCallback(async () => {
@@ -649,8 +650,8 @@ export const LobbyScreen: React.FC = () => {
   }, [WS_URL_MP, joinInput, myPlayerId, myName, myOutfit, myJoinMeta]);
 
   const handleMultiStart = useCallback(() => {
-    wsClient.send({ type: 'start' });
-  }, []);
+    wsClient.send({ type: 'start', maxRounds: roundPreset, mode: gameMode });
+  }, [roundPreset, gameMode]);
 
   const addBot = () => {
     if (players.length >= 6) return;
@@ -789,6 +790,28 @@ export const LobbyScreen: React.FC = () => {
                 </div>
               )}
             </div>
+            {isHost && (
+              <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
+                {ROUND_PRESETS.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => setRoundPreset(preset.id)}
+                    style={{
+                      flex: 1,
+                      height: 42,
+                      borderRadius: 12,
+                      fontSize: 13,
+                      fontWeight: 800,
+                      background: roundPreset === preset.id ? '#5BD7E0' : 'rgba(255,255,255,0.05)',
+                      color: roundPreset === preset.id ? '#0B0B0C' : '#B8B6A9',
+                      border: roundPreset === preset.id ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="lobby-actions">
               <button className="lobby-btn lobby-btn-invite" onClick={() => { wsClient.disconnect(); setMultiMode('none'); setRoomCode(''); setServerMembers([]); setIsConnecting(false); }}>
                 Выйти

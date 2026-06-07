@@ -238,7 +238,9 @@ async function main() {
 
       // ── start ──────────────────────────────────────────────────────────────
       if (msg.type === 'start' && roomCode) {
-        const room = startRoom(roomCode);
+        const maxRounds = typeof msg.maxRounds === 'number' ? msg.maxRounds : undefined;
+        const mode = msg.mode === 'draft' ? 'draft' : msg.mode === 'classic' ? 'classic' : undefined;
+        const room = startRoom(roomCode, { maxRounds, mode });
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot start' }));
           return;

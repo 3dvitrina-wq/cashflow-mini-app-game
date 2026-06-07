@@ -115,6 +115,8 @@ export interface NewPlayer {
   botStrategy?: 'safe_cashflow' | 'active_dealmaker' | 'high_risk_speculator';
   /** Phase 3: optional profession id; if set, seeds economics from catalog. */
   professionId?: string;
+  /** Chosen lobby identity (avatar/character); carried through so online keeps the picked look. */
+  characterId?: string;
 }
 
 export function createPlayer(p: NewPlayer): PlayerState {
@@ -146,6 +148,7 @@ export function createPlayer(p: NewPlayer): PlayerState {
     expenses: prof ? prof.baseExpenses : 800,
 
     professionId: p.professionId,
+    characterId: p.characterId,
     taxBand: prof ? prof.taxBand : undefined,
 
     stress: 3,

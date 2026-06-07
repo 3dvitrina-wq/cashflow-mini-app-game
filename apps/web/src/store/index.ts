@@ -241,7 +241,7 @@ function toUiPlayer(
     id: p.id,
     name: p.name,
     outfit: p.outfit as Outfit,
-    characterId: resolveGeneratedCharacterId(p.id) ?? resolveGeneratedCharacterId(p.name),
+    characterId: p.characterId ?? resolveGeneratedCharacterId(p.id) ?? resolveGeneratedCharacterId(p.name),
     mood: moodFromEngine(p),
     cash: Math.round(p.cash),
     cashflowPerMonth: boostedActiveIncome,
@@ -356,6 +356,7 @@ function createEngineMatch(
     isBot: p.isBot,
     botPersona: p.isBot ? (index % 2 === 0 ? 'balanced' : 'aggressive') : undefined,
     professionId: resolveStarterProfession(p, index),
+    characterId: p.characterId,
   }));
 
   // createMatch -> createPlayer seeds cash/income/expenses/taxBand from the profession

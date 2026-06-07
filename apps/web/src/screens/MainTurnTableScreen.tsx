@@ -341,7 +341,7 @@ export const MainTurnTableScreen: React.FC = () => {
     rejectIncomingDeal,
   } = useStore();
   const { locale, t, tCard } = useI18n();
-  const [timer, setTimer] = useState(47);
+  const [timer, setTimer] = useState(90);
   const [playerReactions, setPlayerReactions] = useState<Record<string, FloatingReaction>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerState | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -365,6 +365,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
+  const card = match.currentCard ? tCard(match.currentCard) : null;
   // Deal banner shown with delay when card is active, hidden while interestWindow is open
   const [dealBannerReady, setDealBannerReady] = useState(false);
   const dealBannerTimer = useRef<number>(0);
@@ -385,11 +386,15 @@ export const MainTurnTableScreen: React.FC = () => {
   const devOpenBank = devParams?.get('bank') === '1';
   const devOpenTools = devParams?.get('tools') === '1';
 
+  // Reset the turn countdown whenever the turn passes to a different player. Online,
+  // each new turn arrives as a server state_update, so this stays in sync (within
+  // latency) with the server's per-turn timeout; offline it tracks local advances.
+  const activeTurnPlayerId = match.players.find((p) => p.isActive)?.id;
   useEffect(() => {
     setTimer(match.timer);
     const iv = setInterval(() => setTimer((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(iv);
-  }, [match.round, match.timer]);
+  }, [activeTurnPlayerId, match.round, match.timer]);
 
   useEffect(() => () => {
     Object.values(reactionTimers.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
@@ -432,7 +437,6 @@ export const MainTurnTableScreen: React.FC = () => {
     }
   }, []);
 
-  const card = match.currentCard ? tCard(match.currentCard) : null;
   const cardArtwork = card
     ? resolveGameplayCardArtwork({
         id: card.id,

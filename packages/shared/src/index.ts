@@ -437,6 +437,8 @@ export interface PlayerState {
 
   // Profession (Phase 3 — optional, backward-compatible)
   professionId?: string;
+  /** Chosen lobby identity (avatar/character). Independent from the rolled profession. */
+  characterId?: string;
   /** Tax band from profession catalog; undefined = baseline multiplier 1.0. */
   taxBand?: 'a' | 'b' | 'c' | 'd';
 
