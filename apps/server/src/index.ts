@@ -272,6 +272,17 @@ async function main() {
         return;
       }
 
+      // ── set_privacy (host toggles room visibility while waiting) ──────────────
+      if (msg.type === 'set_privacy' && roomCode) {
+        const room = getRoom(roomCode);
+        if (!room || room.status !== 'waiting') return;
+        const host = room.members.find((m) => !m.isBot);
+        if (host && host.playerId === playerId) {
+          room.isPrivate = !!msg.isPrivate;
+        }
+        return;
+      }
+
       // ── start ──────────────────────────────────────────────────────────────
       if (msg.type === 'start' && roomCode) {
         const maxRounds = typeof msg.maxRounds === 'number' ? msg.maxRounds : undefined;

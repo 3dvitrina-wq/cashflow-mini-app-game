@@ -538,7 +538,7 @@ export const LobbyScreen: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const pendingJoinRef = useRef<object | null>(null);
   type PublicRoom = { code: string; host: string; players: number; max: number };
-  const [createPrivate, setCreatePrivate] = useState(false);
+  const [roomPrivate, setRoomPrivate] = useState(false);
   const [roomsBrowserOpen, setRoomsBrowserOpen] = useState(false);
   const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
 
@@ -646,7 +646,7 @@ export const LobbyScreen: React.FC = () => {
       const ctrl = new AbortController();
       const timer = window.setTimeout(() => ctrl.abort(), 20000);
       try {
-        const res = await fetch(HTTP_URL + '/rooms/new' + (createPrivate ? '?private=1' : ''), { signal: ctrl.signal });
+        const res = await fetch(HTTP_URL + '/rooms/new', { signal: ctrl.signal });
         if (!res.ok) throw new Error(`сервер вернул ${res.status}`);
         return await res.json() as { code: string };
       } finally {
@@ -665,6 +665,7 @@ export const LobbyScreen: React.FC = () => {
       const code = data.code;
       setRoomCode(code);
       setIsHost(true);
+      setRoomPrivate(false); // new rooms start public; host can flip it in the room
       setMultiMode('waiting');
       const joinMsg = { type: 'join', roomCode: code, playerId: myPlayerId, name: myName, outfit: myOutfit, meta: myJoinMeta };
       pendingJoinRef.current = joinMsg;
@@ -684,7 +685,7 @@ export const LobbyScreen: React.FC = () => {
       showToast(full, 'warning');
       setIsConnecting(false);
     }
-  }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta, createPrivate]);
+  }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
 
   const joinByCode = useCallback((rawCode: string) => {
     const code = rawCode.trim().toUpperCase();
@@ -849,6 +850,22 @@ export const LobbyScreen: React.FC = () => {
               )}
             </div>
             {isHost && (
+              <button
+                type="button"
+                onClick={() => { const next = !roomPrivate; setRoomPrivate(next); wsClient.send({ type: 'set_privacy', isPrivate: next }); hapticImpact('light'); }}
+                aria-pressed={roomPrivate}
+                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', margin: '0 0 8px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', textAlign: 'left' }}
+              >
+                <span style={{ width: 40, height: 22, borderRadius: 999, background: roomPrivate ? 'rgba(255,255,255,0.15)' : '#34D399', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
+                  <span style={{ position: 'absolute', top: 2, left: roomPrivate ? 2 : 20, width: 18, height: 18, borderRadius: '50%', background: '#0B0B0C', transition: 'left .15s' }} />
+                </span>
+                <span style={{ flex: 1 }}>
+                  <b style={{ color: '#F5F4ED', display: 'block', fontSize: 13 }}>{roomPrivate ? '🔒 Приватная' : '🌐 Публичная'}</b>
+                  <small style={{ color: '#8D8B7E', fontSize: 11 }}>{roomPrivate ? 'только по коду' : 'видна в списке «Комнаты»'}</small>
+                </span>
+              </button>
+            )}
+            {isHost && (
               <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
                 {ROUND_PRESETS.map((preset) => (
                   <button
@@ -926,17 +943,9 @@ export const LobbyScreen: React.FC = () => {
                   <span><b>Скины</b><small>Выделяйся стилем</small></span>
                   <IconChevronRight size={16} />
                 </button>
-	              </section>
+              </section>
 
-	              <button className="lobby-hook-play-now" onClick={handleStart}>
-	                <IconPlay size={22} />
-	                <span>
-	                  Играть
-	                  <small>Long 25 · с ботами</small>
-	                </span>
-	              </button>
-
-	              <section className="lobby-entry-actions lobby-hook-actions">
+              <section className="lobby-entry-actions lobby-hook-actions">
                 <button className="lobby-hook-secondary" onClick={() => setRoomsBrowserOpen(true)}>
                   <IconUsers size={18} />
                   Комнаты
@@ -964,17 +973,6 @@ export const LobbyScreen: React.FC = () => {
                   <IconPlusCircle size={20} />
                   {isConnecting ? '...' : 'Создать'}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setCreatePrivate((v) => !v)}
-                  aria-pressed={createPrivate}
-                  style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', color: '#B8B6A9', fontSize: 12, padding: '4px 2px', cursor: 'pointer', alignSelf: 'center' }}
-                >
-                  <span style={{ width: 36, height: 20, borderRadius: 999, background: createPrivate ? '#F5C524' : 'rgba(255,255,255,0.15)', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
-                    <span style={{ position: 'absolute', top: 2, left: createPrivate ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#0B0B0C', transition: 'left .15s' }} />
-                  </span>
-                  Приватная · только по коду
-                </button>
               </section>
 
               {wsError && (
@@ -988,6 +986,14 @@ export const LobbyScreen: React.FC = () => {
                   сервер недоступен: {apiProbe}
                 </div>
               )}
+
+              <button className="lobby-hook-play-now" onClick={handleStart}>
+                <IconPlay size={22} />
+                <span>
+                  Играть
+                  <small>Long 25 · с ботами</small>
+                </span>
+              </button>
 
               <section className="lobby-hook-online" aria-label="Сейчас в сети">
                 <span className="lobby-online-dot" />
