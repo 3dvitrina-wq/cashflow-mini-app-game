@@ -604,13 +604,14 @@ export const LobbyScreen: React.FC = () => {
     setWsError(null);
     setIsConnecting(true);
 
-    // One POST attempt with a generous timeout. iOS WebView over VPN can be
-    // slow; the old 8s abort was killing otherwise-valid requests.
+    // Create via GET, not POST: some mobile VPNs/proxies stall plain POST
+    // requests until timeout (GET passes fine — proven by /api/health). 20s
+    // timeout because iOS WebView over VPN can be slow.
     const attemptCreate = async (): Promise<{ code: string }> => {
       const ctrl = new AbortController();
       const timer = window.setTimeout(() => ctrl.abort(), 20000);
       try {
-        const res = await fetch(HTTP_URL + '/rooms', { method: 'POST', signal: ctrl.signal });
+        const res = await fetch(HTTP_URL + '/rooms/new', { signal: ctrl.signal });
         if (!res.ok) throw new Error(`сервер вернул ${res.status}`);
         return await res.json() as { code: string };
       } finally {

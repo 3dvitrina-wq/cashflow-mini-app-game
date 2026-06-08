@@ -96,6 +96,15 @@ async function main() {
     return { code: room.code };
   });
 
+  // GET variant of room creation. Some mobile VPNs/proxies stall plain POST
+  // requests (GET passes, POST buffers until timeout). Creating via GET goes
+  // through the same path that already works for clients on such networks.
+  // Static path — matched before '/rooms/:code'.
+  app.get('/rooms/new', async (_req, _reply) => {
+    const room = createRoom();
+    return { code: room.code };
+  });
+
   app.get('/rooms/:code', async (req, reply) => {
     const { code } = req.params as { code: string };
     const room = getRoom(code.toUpperCase());
