@@ -666,6 +666,7 @@ export const LobbyScreen: React.FC = () => {
       setRoomCode(code);
       setIsHost(true);
       setRoomPrivate(false); // new rooms start public; host can flip it in the room
+      setRoomsBrowserOpen(false);
       setMultiMode('waiting');
       const joinMsg = { type: 'join', roomCode: code, playerId: myPlayerId, name: myName, outfit: myOutfit, meta: myJoinMeta };
       pendingJoinRef.current = joinMsg;
@@ -946,32 +947,13 @@ export const LobbyScreen: React.FC = () => {
               </section>
 
               <section className="lobby-entry-actions lobby-hook-actions">
-                <button className="lobby-hook-secondary" onClick={() => setRoomsBrowserOpen(true)}>
+                <button className="lobby-hook-primary" onClick={() => setRoomsBrowserOpen(true)}>
                   <IconUsers size={18} />
                   Комнаты
                 </button>
-                <div className="lobby-hook-join">
-                  <input
-                    className="lobby-hook-code-input"
-                    placeholder="Код"
-                    value={joinInput}
-                    onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
-                    maxLength={8}
-                    onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
-                    aria-label="Код комнаты"
-                  />
-                  <button
-                    className="lobby-hook-primary"
-                    onClick={handleJoinRoom}
-                    disabled={joinInput.trim().length < 3 || isConnecting}
-                  >
-                    <IconLink size={18} />
-                    Войти
-                  </button>
-                </div>
-                <button className="lobby-hook-secondary" onClick={handleCreateRoom} disabled={isConnecting}>
-                  <IconPlusCircle size={20} />
-                  {isConnecting ? '...' : 'Создать'}
+                <button className="lobby-hook-secondary" onClick={() => setIsRoomOpen(true)}>
+                  <IconBot size={18} />
+                  Играть с ботами
                 </button>
               </section>
 
@@ -1250,11 +1232,47 @@ export const LobbyScreen: React.FC = () => {
             style={{ margin: 'auto', width: 'min(440px, 92vw)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', background: '#13151D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Публичные комнаты</span>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Комнаты</span>
               <button onClick={() => setRoomsBrowserOpen(false)} aria-label="закрыть" style={{ background: 'transparent', border: 'none', color: '#8D8B7E', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
             </div>
 
-            <div className="no-scrollbar" style={{ overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                onClick={handleCreateRoom}
+                disabled={isConnecting}
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, width: '100%', height: 46, borderRadius: 12, background: '#F5C524', color: '#0B0B0C', border: 'none', fontSize: 14, fontWeight: 800, cursor: 'pointer' }}
+              >
+                <IconPlusCircle size={18} />
+                {isConnecting ? '...' : 'Создать комнату'}
+              </button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <input
+                  className="lobby-hook-code-input"
+                  placeholder="Код комнаты"
+                  value={joinInput}
+                  onChange={(e) => setJoinInput(e.target.value.toUpperCase())}
+                  maxLength={8}
+                  onKeyDown={(e) => e.key === 'Enter' && handleJoinRoom()}
+                  aria-label="Код комнаты"
+                  style={{ flex: 1 }}
+                />
+                <button
+                  onClick={handleJoinRoom}
+                  disabled={joinInput.trim().length < 3 || isConnecting}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 16px', height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', color: '#F5F4ED', fontSize: 14, fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' }}
+                >
+                  <IconLink size={16} />
+                  Войти
+                </button>
+              </div>
+              {wsError && (
+                <div style={{ color: '#fca5a5', fontSize: 12, wordBreak: 'break-all' }}>⚠ {wsError}</div>
+              )}
+            </div>
+
+            <div style={{ padding: '10px 14px 2px', fontSize: 12, fontWeight: 800, color: '#8D8B7E', textTransform: 'uppercase', letterSpacing: '.04em' }}>Публичные</div>
+
+            <div className="no-scrollbar" style={{ overflowY: 'auto', padding: '4px 12px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
               {publicRooms.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#8D8B7E', fontSize: 13, padding: '28px 12px', lineHeight: 1.5 }}>
                   Пока нет открытых комнат.<br />Создай свою или зайди по коду.
@@ -1276,15 +1294,6 @@ export const LobbyScreen: React.FC = () => {
                   </button>
                 ))
               )}
-            </div>
-
-            <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
-              <button
-                onClick={() => { setRoomsBrowserOpen(false); setIsRoomOpen(true); }}
-                style={{ width: '100%', height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#B8B6A9', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
-              >
-                🎴 Локальная игра (офлайн)
-              </button>
             </div>
           </div>
         </div>
