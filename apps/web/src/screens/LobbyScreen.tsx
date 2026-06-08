@@ -603,14 +603,29 @@ export const LobbyScreen: React.FC = () => {
   const handleCreateRoom = useCallback(async () => {
     setWsError(null);
     setIsConnecting(true);
-    // Abort after 8s: on mobile/VPN networks fly.dev can be unreachable and a
-    // plain fetch hangs forever, leaving the button stuck on "..." with no error.
-    const ctrl = new AbortController();
-    const timer = window.setTimeout(() => ctrl.abort(), 8000);
+
+    // One POST attempt with a generous timeout. iOS WebView over VPN can be
+    // slow; the old 8s abort was killing otherwise-valid requests.
+    const attemptCreate = async (): Promise<{ code: string }> => {
+      const ctrl = new AbortController();
+      const timer = window.setTimeout(() => ctrl.abort(), 20000);
+      try {
+        const res = await fetch(HTTP_URL + '/rooms', { method: 'POST', signal: ctrl.signal });
+        if (!res.ok) throw new Error(`сервер вернул ${res.status}`);
+        return await res.json() as { code: string };
+      } finally {
+        window.clearTimeout(timer);
+      }
+    };
+
     try {
-      const res = await fetch(HTTP_URL + '/rooms', { method: 'POST', signal: ctrl.signal });
-      if (!res.ok) throw new Error(`Сервер вернул ${res.status}`);
-      const data = await res.json() as { code: string };
+      let data: { code: string };
+      try {
+        data = await attemptCreate();
+      } catch {
+        // single retry — transient mobile/VPN network errors are common
+        data = await attemptCreate();
+      }
       const code = data.code;
       setRoomCode(code);
       setIsHost(true);
@@ -623,13 +638,15 @@ export const LobbyScreen: React.FC = () => {
       });
     } catch (e: unknown) {
       const aborted = e instanceof DOMException && e.name === 'AbortError';
-      const msg = aborted
-        ? 'сервер не отвечает (проверь VPN/сеть)'
-        : e instanceof Error ? e.message : 'нет ответа';
-      showToast(`Не удалось создать комнату: ${msg}`, 'warning');
+      // Surface the EXACT failure persistently (not just a transient toast) so a
+      // phone with no devtools can self-report: e.g. "TypeError: Load failed".
+      const detail = aborted
+        ? 'таймаут 20с — сервер/сеть не ответили'
+        : e instanceof Error ? `${e.name}: ${e.message}` : 'нет ответа';
+      const full = `Не удалось создать комнату — ${detail}`;
+      setWsError(full);
+      showToast(full, 'warning');
       setIsConnecting(false);
-    } finally {
-      window.clearTimeout(timer);
     }
   }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
 
