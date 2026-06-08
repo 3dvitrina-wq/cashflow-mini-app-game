@@ -538,6 +538,22 @@ export const LobbyScreen: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const pendingJoinRef = useRef<object | null>(null);
 
+  // Diagnostic: in-page fetch to the API (same request shape as room creation).
+  // Lets a phone self-report whether fetch/XHR reaches the server at all.
+  const [apiProbe, setApiProbe] = useState<string>('проверяю...');
+  useEffect(() => {
+    const ctrl = new AbortController();
+    const t = window.setTimeout(() => ctrl.abort(), 10000);
+    fetch(SERVER_HTTP_URL + '/health', { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
+      .then(() => setApiProbe('ok'))
+      .catch((e: unknown) => {
+        const aborted = e instanceof DOMException && e.name === 'AbortError';
+        setApiProbe(aborted ? 'таймаут 10с (fetch не прошёл)' : e instanceof Error ? `${e.name}: ${e.message}` : 'ошибка');
+      })
+      .finally(() => window.clearTimeout(t));
+  }, []);
+
   const myPlayerId = useMemo(() => {
     const key = 'dyor_pid';
     let id = sessionStorage.getItem(key);
@@ -923,6 +939,10 @@ export const LobbyScreen: React.FC = () => {
                   ⚠ {wsError}
                 </div>
               )}
+
+              <div style={{ fontSize: 11, fontFamily: 'monospace', padding: '4px 0', wordBreak: 'break-all', color: apiProbe === 'ok' ? '#34d399' : apiProbe === 'проверяю...' ? '#9ca3af' : '#f87171' }}>
+                сервер (fetch): {apiProbe === 'ok' ? '✓ доступен' : apiProbe}
+              </div>
 
               <section className="lobby-hook-online" aria-label="Сейчас в сети">
                 <span className="lobby-online-dot" />
