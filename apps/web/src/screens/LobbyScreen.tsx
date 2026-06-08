@@ -537,6 +537,25 @@ export const LobbyScreen: React.FC = () => {
   const [serverMembers, setServerMembers] = useState<ServerMember[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const pendingJoinRef = useRef<object | null>(null);
+  type PublicRoom = { code: string; host: string; players: number; max: number };
+  const [createPrivate, setCreatePrivate] = useState(false);
+  const [roomsBrowserOpen, setRoomsBrowserOpen] = useState(false);
+  const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
+
+  // Poll the public rooms list while the browser overlay is open.
+  useEffect(() => {
+    if (!roomsBrowserOpen) return;
+    let alive = true;
+    const load = () => {
+      fetch(SERVER_HTTP_URL + '/rooms/list')
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('list'))))
+        .then((d: { rooms?: PublicRoom[] }) => { if (alive) setPublicRooms(d.rooms ?? []); })
+        .catch(() => { /* keep last list on transient network error */ });
+    };
+    load();
+    const id = window.setInterval(load, 3500);
+    return () => { alive = false; window.clearInterval(id); };
+  }, [roomsBrowserOpen]);
 
   // Diagnostic: in-page fetch to the API (same request shape as room creation).
   // Lets a phone self-report whether fetch/XHR reaches the server at all.
@@ -627,7 +646,7 @@ export const LobbyScreen: React.FC = () => {
       const ctrl = new AbortController();
       const timer = window.setTimeout(() => ctrl.abort(), 20000);
       try {
-        const res = await fetch(HTTP_URL + '/rooms/new', { signal: ctrl.signal });
+        const res = await fetch(HTTP_URL + '/rooms/new' + (createPrivate ? '?private=1' : ''), { signal: ctrl.signal });
         if (!res.ok) throw new Error(`сервер вернул ${res.status}`);
         return await res.json() as { code: string };
       } finally {
@@ -665,13 +684,14 @@ export const LobbyScreen: React.FC = () => {
       showToast(full, 'warning');
       setIsConnecting(false);
     }
-  }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
+  }, [HTTP_URL, WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta, createPrivate]);
 
-  const handleJoinRoom = useCallback(() => {
-    const code = joinInput.trim().toUpperCase();
+  const joinByCode = useCallback((rawCode: string) => {
+    const code = rawCode.trim().toUpperCase();
     if (code.length < 3) return;
     setWsError(null);
     setIsConnecting(true);
+    setRoomsBrowserOpen(false);
     setRoomCode(code);
     setIsHost(false);
     setMultiMode('waiting');
@@ -681,7 +701,11 @@ export const LobbyScreen: React.FC = () => {
     wsClient.onOpen(() => {
       if (pendingJoinRef.current) { wsClient.send(pendingJoinRef.current); pendingJoinRef.current = null; }
     });
-  }, [WS_URL_MP, joinInput, myPlayerId, myName, myOutfit, myJoinMeta]);
+  }, [WS_URL_MP, myPlayerId, myName, myOutfit, myJoinMeta]);
+
+  const handleJoinRoom = useCallback(() => {
+    joinByCode(joinInput);
+  }, [joinByCode, joinInput]);
 
   const handleMultiStart = useCallback(() => {
     wsClient.send({ type: 'start', maxRounds: roundPreset, mode: gameMode });
@@ -902,10 +926,18 @@ export const LobbyScreen: React.FC = () => {
                   <span><b>Скины</b><small>Выделяйся стилем</small></span>
                   <IconChevronRight size={16} />
                 </button>
-              </section>
+	              </section>
 
-              <section className="lobby-entry-actions lobby-hook-actions">
-                <button className="lobby-hook-secondary" onClick={() => setIsRoomOpen(true)}>
+	              <button className="lobby-hook-play-now" onClick={handleStart}>
+	                <IconPlay size={22} />
+	                <span>
+	                  Играть
+	                  <small>Long 25 · с ботами</small>
+	                </span>
+	              </button>
+
+	              <section className="lobby-entry-actions lobby-hook-actions">
+                <button className="lobby-hook-secondary" onClick={() => setRoomsBrowserOpen(true)}>
                   <IconUsers size={18} />
                   Комнаты
                 </button>
@@ -932,6 +964,17 @@ export const LobbyScreen: React.FC = () => {
                   <IconPlusCircle size={20} />
                   {isConnecting ? '...' : 'Создать'}
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setCreatePrivate((v) => !v)}
+                  aria-pressed={createPrivate}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'transparent', border: 'none', color: '#B8B6A9', fontSize: 12, padding: '4px 2px', cursor: 'pointer', alignSelf: 'center' }}
+                >
+                  <span style={{ width: 36, height: 20, borderRadius: 999, background: createPrivate ? '#F5C524' : 'rgba(255,255,255,0.15)', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
+                    <span style={{ position: 'absolute', top: 2, left: createPrivate ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: '#0B0B0C', transition: 'left .15s' }} />
+                  </span>
+                  Приватная · только по коду
+                </button>
               </section>
 
               {wsError && (
@@ -940,9 +983,11 @@ export const LobbyScreen: React.FC = () => {
                 </div>
               )}
 
-              <div style={{ fontSize: 11, fontFamily: 'monospace', padding: '4px 0', wordBreak: 'break-all', color: apiProbe === 'ok' ? '#34d399' : apiProbe === 'проверяю...' ? '#9ca3af' : '#f87171' }}>
-                сервер (fetch): {apiProbe === 'ok' ? '✓ доступен' : apiProbe}
-              </div>
+              {apiProbe !== 'ok' && apiProbe !== 'проверяю...' && (
+                <div style={{ fontSize: 11, fontFamily: 'monospace', padding: '4px 0', wordBreak: 'break-all', color: '#f87171' }}>
+                  сервер недоступен: {apiProbe}
+                </div>
+              )}
 
               <section className="lobby-hook-online" aria-label="Сейчас в сети">
                 <span className="lobby-online-dot" />
@@ -1186,6 +1231,57 @@ export const LobbyScreen: React.FC = () => {
             : <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
           }
         </button>
+      )}
+
+      {/* Public rooms browser — opened from the "Комнаты" button */}
+      {roomsBrowserOpen && (
+        <div
+          onClick={() => setRoomsBrowserOpen(false)}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,9,12,0.92)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column' }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ margin: 'auto', width: 'min(440px, 92vw)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', background: '#13151D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Публичные комнаты</span>
+              <button onClick={() => setRoomsBrowserOpen(false)} aria-label="закрыть" style={{ background: 'transparent', border: 'none', color: '#8D8B7E', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+            </div>
+
+            <div className="no-scrollbar" style={{ overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {publicRooms.length === 0 ? (
+                <div style={{ textAlign: 'center', color: '#8D8B7E', fontSize: 13, padding: '28px 12px', lineHeight: 1.5 }}>
+                  Пока нет открытых комнат.<br />Создай свою или зайди по коду.
+                </div>
+              ) : (
+                publicRooms.map((r) => (
+                  <button
+                    key={r.code}
+                    onClick={() => joinByCode(r.code)}
+                    disabled={isConnecting}
+                    style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', padding: '12px 14px', borderRadius: 12, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', cursor: 'pointer' }}
+                  >
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: '#F5F4ED' }}>{r.host}</span>
+                      <span style={{ display: 'block', fontSize: 12, color: '#8D8B7E', fontFamily: 'JetBrains Mono, monospace' }}>#{r.code}</span>
+                    </span>
+                    <span style={{ fontSize: 12, color: '#B8B6A9', whiteSpace: 'nowrap' }}>{r.players}/{r.max} 👤</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#F5C524', whiteSpace: 'nowrap' }}>Войти →</span>
+                  </button>
+                ))
+              )}
+            </div>
+
+            <div style={{ padding: 12, borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+              <button
+                onClick={() => { setRoomsBrowserOpen(false); setIsRoomOpen(true); }}
+                style={{ width: '100%', height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#B8B6A9', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+              >
+                🎴 Локальная игра (офлайн)
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Lobby reactions — same set as in-match, exchanged with the room */}

@@ -33,6 +33,8 @@ export interface RoomMember {
 export interface Room {
   code: string;
   status: RoomStatus;
+  /** Private rooms join by code only; public rooms appear in the lobby list. */
+  isPrivate: boolean;
   members: RoomMember[];
   engineState: MatchState | null;
   seed: number;
@@ -64,11 +66,12 @@ function randomCode(): string {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-export function createRoom(): Room {
+export function createRoom(isPrivate = false): Room {
   const code = randomCode();
   const room: Room = {
     code,
     status: 'waiting',
+    isPrivate,
     members: [],
     engineState: null,
     seed: Date.now(),
@@ -77,6 +80,18 @@ export function createRoom(): Room {
   };
   rooms.set(code, room);
   return room;
+}
+
+/** Public rooms that are still in the lobby (waiting), have a human host, and aren't full. */
+export function listPublicRooms(): { code: string; host: string; players: number; max: number }[] {
+  const out: { code: string; host: string; players: number; max: number }[] = [];
+  for (const room of rooms.values()) {
+    if (room.isPrivate || room.status !== 'waiting') continue;
+    const humans = room.members.filter((m) => !m.isBot && m.connected);
+    if (humans.length === 0 || room.members.length >= 6) continue;
+    out.push({ code: room.code, host: humans[0]?.name ?? 'Игрок', players: room.members.length, max: 6 });
+  }
+  return out;
 }
 
 export function getRoom(code: string): Room | undefined {

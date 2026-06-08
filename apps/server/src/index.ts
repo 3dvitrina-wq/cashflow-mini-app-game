@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import { WebSocketServer } from 'ws';
 import {
   createRoom,
+  listPublicRooms,
   getRoom,
   getAllRooms,
   joinRoom,
@@ -91,18 +92,26 @@ async function main() {
   // REST endpoints
   app.get('/health', async () => ({ ok: true }));
 
-  app.post('/rooms', async (_req, _reply) => {
-    const room = createRoom();
+  app.post('/rooms', async (req, _reply) => {
+    const isPrivate = (req.body as { isPrivate?: boolean })?.isPrivate === true
+      || (req.query as { private?: string })?.private === '1';
+    const room = createRoom(isPrivate);
     return { code: room.code };
   });
 
   // GET variant of room creation. Some mobile VPNs/proxies stall plain POST
   // requests (GET passes, POST buffers until timeout). Creating via GET goes
   // through the same path that already works for clients on such networks.
-  // Static path — matched before '/rooms/:code'.
-  app.get('/rooms/new', async (_req, _reply) => {
-    const room = createRoom();
+  // Static path — matched before '/rooms/:code'. `?private=1` makes it private.
+  app.get('/rooms/new', async (req, _reply) => {
+    const isPrivate = (req.query as { private?: string })?.private === '1';
+    const room = createRoom(isPrivate);
     return { code: room.code };
+  });
+
+  // Public rooms list for the lobby browser. Static path — before '/rooms/:code'.
+  app.get('/rooms/list', async () => {
+    return { rooms: listPublicRooms() };
   });
 
   app.get('/rooms/:code', async (req, reply) => {
