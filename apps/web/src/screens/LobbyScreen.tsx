@@ -25,7 +25,6 @@ import {
   IconPlay,
   IconPlusCircle,
   IconReadyDot,
-  IconUsers,
 } from '../assets/Icons';
 import { useStore } from '../store';
 import { Outfit, PlayerState } from '../store/types';
@@ -528,7 +527,7 @@ export const LobbyScreen: React.FC = () => {
   }, []);
 
   const [multiMode, setMultiMode] = useState<MultiMode>('none');
-  const [gameMode, setGameMode] = useState<'classic' | 'draft'>('classic');
+  const [gameMode, setGameMode] = useState<'shared' | 'individual' | 'draft'>('shared');
   const [roundPreset, setRoundPreset] = useState<number>(25);
   const [roomCode, setRoomCode] = useState('');
   const [joinInput, setJoinInput] = useState('');
@@ -710,7 +709,12 @@ export const LobbyScreen: React.FC = () => {
   }, [joinByCode, joinInput]);
 
   const handleMultiStart = useCallback(() => {
-    wsClient.send({ type: 'start', maxRounds: roundPreset, mode: gameMode });
+    wsClient.send({
+      type: 'start',
+      maxRounds: roundPreset,
+      mode: gameMode === 'draft' ? 'draft' : 'classic',
+      cardMode: gameMode === 'individual' ? 'individual' : 'shared',
+    });
   }, [roundPreset, gameMode]);
 
   const addBot = () => {
@@ -749,7 +753,7 @@ export const LobbyScreen: React.FC = () => {
   };
 
   const handleStart = () => {
-    startMatch(buildStarterRoster(players), { mode: gameMode, maxRounds: roundPreset });
+    startMatch(buildStarterRoster(players), { mode: gameMode === 'draft' ? 'draft' : 'classic', maxRounds: roundPreset });
   };
 
   const emptySlots = Math.max(0, 6 - players.length);
@@ -888,6 +892,27 @@ export const LobbyScreen: React.FC = () => {
                 ))}
               </div>
             )}
+            {isHost && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 10px' }}>
+                <span style={{ flex: 1, fontSize: 13, color: '#B8B6A9' }}>
+                  Боты: <b style={{ color: '#F5F4ED' }}>{serverMembers.filter((m) => m.isBot).length}</b> · добавь, чтобы играть одному
+                </span>
+                <button
+                  onClick={() => wsClient.send({ type: 'remove_bot' })}
+                  disabled={serverMembers.filter((m) => m.isBot).length === 0}
+                  aria-label="убрать бота"
+                  style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#F5F4ED', fontSize: 22, fontWeight: 800, cursor: 'pointer', lineHeight: 1 }}
+                >−</button>
+                <button
+                  onClick={() => wsClient.send({ type: 'add_bot' })}
+                  disabled={serverMembers.length >= 6}
+                  aria-label="добавить бота"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 40, borderRadius: 10, background: 'rgba(91,215,224,0.15)', border: '1px solid rgba(91,215,224,0.4)', color: '#5BD7E0', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                >
+                  <IconBot size={16} /> Бот
+                </button>
+              </div>
+            )}
             <div className="lobby-actions">
               <button className="lobby-btn lobby-btn-invite" onClick={() => { wsClient.disconnect(); setMultiMode('none'); setRoomCode(''); setServerMembers([]); setIsConnecting(false); }}>
                 Выйти
@@ -946,17 +971,6 @@ export const LobbyScreen: React.FC = () => {
                 </button>
               </section>
 
-              <section className="lobby-entry-actions lobby-hook-actions">
-                <button className="lobby-hook-primary" onClick={() => setRoomsBrowserOpen(true)}>
-                  <IconUsers size={18} />
-                  Комнаты
-                </button>
-                <button className="lobby-hook-secondary" onClick={() => setIsRoomOpen(true)}>
-                  <IconBot size={18} />
-                  Играть с ботами
-                </button>
-              </section>
-
               {wsError && (
                 <div style={{ background: '#7f1d1d', color: '#fca5a5', padding: '10px 14px', borderRadius: 10, fontSize: 13, marginTop: 6, wordBreak: 'break-all' }}>
                   ⚠ {wsError}
@@ -969,11 +983,11 @@ export const LobbyScreen: React.FC = () => {
                 </div>
               )}
 
-              <button className="lobby-hook-play-now" onClick={handleStart}>
+              <button className="lobby-hook-play-now" onClick={() => setRoomsBrowserOpen(true)}>
                 <IconPlay size={22} />
                 <span>
                   Играть
-                  <small>Long 25 · с ботами</small>
+                  <small>создай комнату или зайди к другим</small>
                 </span>
               </button>
 
@@ -1146,7 +1160,11 @@ export const LobbyScreen: React.FC = () => {
 
             {/* Game mode toggle */}
             <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
-              {([['classic', '🎴 Классика'], ['draft', '🃏 Драфт']] as const).map(([m, label]) => (
+              {([
+                ['shared', '🎴 Общие'],
+                ['individual', '👤 Личные'],
+                ['draft', '🃏 Драфт'],
+              ] as const).map(([m, label]) => (
                 <button
                   key={m}
                   onClick={() => setGameMode(m)}
@@ -1161,6 +1179,16 @@ export const LobbyScreen: React.FC = () => {
                 </button>
               ))}
             </div>
+            {gameMode === 'shared' && (
+              <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
+                Все игроки видят одну карту и выбирают одновременно.
+              </p>
+            )}
+            {gameMode === 'individual' && (
+              <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
+                Старая ветка: у каждого игрока своя карта по очереди.
+              </p>
+            )}
             {gameMode === 'draft' && (
               <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
                 6 карт в центре · подсмотри 2 · зарезервируй 2 · спорь за карты

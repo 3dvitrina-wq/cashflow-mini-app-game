@@ -283,11 +283,38 @@ async function main() {
         return;
       }
 
+      // ── add_bot / remove_bot (host fills the room to play solo vs bots) ───────
+      if (msg.type === 'add_bot' && roomCode) {
+        const room = getRoom(roomCode);
+        if (!room || room.status !== 'waiting') return;
+        const host = room.members.find((m) => !m.isBot);
+        if (!host || host.playerId !== playerId || room.members.length >= 6) return;
+        const BOTS = ['@SmartBot', '@RiskBot', '@CalmBot', '@WildBot', '@SteadyBot'];
+        const used = new Set(room.members.filter((m) => m.isBot).map((m) => m.name));
+        const name = BOTS.find((n) => !used.has(n)) ?? `@Bot${room.members.length}`;
+        joinRoom(roomCode, { playerId: `bot-${Math.random().toString(36).slice(2, 8)}`, name, outfit: 'trader', ws: null, isBot: true });
+        broadcast(room, { type: 'room_update', members: room.members.map(lobbyMember) });
+        return;
+      }
+
+      if (msg.type === 'remove_bot' && roomCode) {
+        const room = getRoom(roomCode);
+        if (!room || room.status !== 'waiting') return;
+        const host = room.members.find((m) => !m.isBot);
+        if (!host || host.playerId !== playerId) return;
+        for (let i = room.members.length - 1; i >= 0; i--) {
+          if (room.members[i].isBot) { room.members.splice(i, 1); break; }
+        }
+        broadcast(room, { type: 'room_update', members: room.members.map(lobbyMember) });
+        return;
+      }
+
       // ── start ──────────────────────────────────────────────────────────────
       if (msg.type === 'start' && roomCode) {
         const maxRounds = typeof msg.maxRounds === 'number' ? msg.maxRounds : undefined;
         const mode = msg.mode === 'draft' ? 'draft' : msg.mode === 'classic' ? 'classic' : undefined;
-        const room = startRoom(roomCode, { maxRounds, mode });
+        const cardMode = msg.cardMode === 'individual' ? 'individual' : 'shared';
+        const room = startRoom(roomCode, { maxRounds, mode, cardMode });
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot start' }));
           return;
