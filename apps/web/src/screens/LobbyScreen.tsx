@@ -952,7 +952,7 @@ export const LobbyScreen: React.FC = () => {
                 {LOBBY_REGALIA.slice(1).map((badge) => (
                   <span key={badge.id} className="lobby-hook-regalia-chip">
                     {badge.imgSrc
-                      ? <img src={badge.imgSrc} alt="" draggable={false} style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
+                      ? <img src={badge.imgSrc} alt="" draggable={false} style={{ width: 36, height: 36, objectFit: 'contain', flexShrink: 0 }} />
                       : <b>{badge.icon}</b>
                     }
                     <span>{badge.title}<small>{badge.subtitle}</small></span>

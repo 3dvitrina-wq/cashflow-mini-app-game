@@ -8374,7 +8374,7 @@ button {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 100%;
-  margin-top: 8px;
+  margin-top: 18px;
   border-radius: 16px;
   overflow: hidden;
   border: 1px solid rgba(245,197,36,.24);
@@ -8384,10 +8384,10 @@ button {
 
 .lobby-hook-regalia-chip {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: 36px minmax(0, 1fr);
   align-items: center;
   gap: 6px;
-  min-height: 56px;
+  min-height: 64px;
   padding: 8px;
   border-right: 1px solid rgba(255,255,255,.07);
 }
@@ -8398,8 +8398,8 @@ button {
 
 .lobby-hook-regalia-chip > b {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 36px;
+  height: 36px;
   place-items: center;
   border-radius: 9px;
   background: rgba(123,91,215,.18);
@@ -8417,8 +8417,8 @@ button {
 }
 
 .lobby-hook-regalia-avatar img {
-  width: 30px;
-  height: 38px;
+  width: 36px;
+  height: 46px;
   object-fit: contain;
   object-position: bottom center;
   border-radius: 8px;
