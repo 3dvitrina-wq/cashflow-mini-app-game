@@ -289,10 +289,16 @@ async function main() {
         if (!room || room.status !== 'waiting') return;
         const host = room.members.find((m) => !m.isBot);
         if (!host || host.playerId !== playerId || room.members.length >= 6) return;
-        const BOTS = ['@SmartBot', '@RiskBot', '@CalmBot', '@WildBot', '@SteadyBot'];
-        const used = new Set(room.members.filter((m) => m.isBot).map((m) => m.name));
-        const name = BOTS.find((n) => !used.has(n)) ?? `@Bot${room.members.length}`;
-        joinRoom(roomCode, { playerId: `bot-${Math.random().toString(36).slice(2, 8)}`, name, outfit: 'trader', ws: null, isBot: true });
+        const BOTS: Array<{ name: string; characterId: string; outfit: string }> = [
+          { name: '@SmartBot',  characterId: 'deal_maven',         outfit: 'trader'   },
+          { name: '@RiskBot',   characterId: 'fixer_consultant',   outfit: 'trader'   },
+          { name: '@CalmBot',   characterId: 'checkout_cashier',   outfit: 'operator' },
+          { name: '@WildBot',   characterId: 'campus_student',     outfit: 'creator'  },
+          { name: '@SteadyBot', characterId: 'classroom_teacher',  outfit: 'office'   },
+        ];
+        const usedNames = new Set(room.members.filter((m) => m.isBot).map((m) => m.name));
+        const bot = BOTS.find((b) => !usedNames.has(b.name)) ?? { name: `@Bot${room.members.length}`, characterId: 'burnout_clerk', outfit: 'office' };
+        joinRoom(roomCode, { playerId: `bot-${Math.random().toString(36).slice(2, 8)}`, name: bot.name, outfit: bot.outfit, ws: null, isBot: true, meta: { characterId: bot.characterId } });
         broadcast(room, { type: 'room_update', members: room.members.map(lobbyMember) });
         return;
       }

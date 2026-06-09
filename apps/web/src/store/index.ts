@@ -543,7 +543,7 @@ function advanceDraftAndDeal(resolved: EngineMatchState, negotiatingIds: string[
 }
 
 export const useStore = create<AppState>((set, get) => ({
-  screen: 'onboarding',
+  screen: loadPlayerData().onboardingComplete ? 'lobby' : 'onboarding',
   rulesReturnScreen: 'lobby',
   settingsReturnScreen: 'main',
   activeTab: 'table',
@@ -1058,7 +1058,11 @@ export const useStore = create<AppState>((set, get) => ({
         const active = st.engineMatch
           ? st.engineMatch.players[st.engineMatch.activePlayerIndex]
           : undefined;
-        if (me && active && me.id === active.id) {
+        // In intent_window all alive players submit intents (not just the active one).
+        // A choiceless card shows "Продолжить" — human must pass even when not active.
+        const inIntentWindow = st.engineMatch?.phase === 'intent_window';
+        const isMyTurn = me && active && me.id === active.id;
+        if (me && (isMyTurn || inIntentWindow)) {
           wsClient.send({ type: 'command', command: { type: 'pass', playerId: me.id } });
         }
         return st;

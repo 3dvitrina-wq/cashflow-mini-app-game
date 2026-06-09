@@ -321,6 +321,7 @@ function previewToColor(key: PreviewKey, from: number, to: number): string {
 export const MainTurnTableScreen: React.FC = () => {
   const {
     match,
+    engineMatch,
     setScreen,
     openSettings,
     openRules,
@@ -409,6 +410,28 @@ export const MainTurnTableScreen: React.FC = () => {
     if (devOpenTools) setFabExpanded(true);
   }, [devOpenBank, devOpenLabor, devOpenMarket, devOpenTools]);
 
+  const showPlayerReaction = useCallback((playerId: string, reaction: string, options: { sound?: boolean } = {}) => {
+    const label = reaction.trim().toUpperCase();
+    if (!label) return;
+    const id = reactionNonce.current;
+    reactionNonce.current += 1;
+    if (reactionTimers.current[playerId]) window.clearTimeout(reactionTimers.current[playerId]);
+    setPlayerReactions((current) => ({
+      ...current,
+      [playerId]: { id, label },
+    }));
+    if (options.sound !== false) playSound('reaction');
+    reactionTimers.current[playerId] = window.setTimeout(() => {
+      setPlayerReactions((current) => {
+        if (current[playerId]?.id !== id) return current;
+        const next = { ...current };
+        delete next[playerId];
+        return next;
+      });
+      delete reactionTimers.current[playerId];
+    }, 1450);
+  }, []);
+
   // In multiplayer, receive server state updates via wsClient singleton
   useEffect(() => {
     if (!isMultiplayer) return;
@@ -416,6 +439,8 @@ export const MainTurnTableScreen: React.FC = () => {
       const m = msg as Record<string, unknown>;
       if (m.type === 'state_update' || m.type === 'match_started') {
         receiveServerState(m.state as import('../../../../packages/shared/src').MatchState);
+      } else if (m.type === 'reaction') {
+        showPlayerReaction(String(m.playerId ?? ''), String(m.label ?? 'OK'));
       } else if (m.type === 'error') {
         showToast(String(m.error ?? (locale === 'ru' ? 'Команда отклонена' : 'Command rejected')), 'warning');
       } else if (m.type === 'player_disconnected') {
@@ -424,7 +449,7 @@ export const MainTurnTableScreen: React.FC = () => {
         showToast(locale === 'ru' ? 'Вы вернулись за стол' : 'You rejoined the table', 'success');
       }
     });
-  }, [isMultiplayer, locale, receiveServerState]);
+  }, [isMultiplayer, locale, receiveServerState, showPlayerReaction]);
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).get('you') === '1') {
@@ -449,11 +474,21 @@ export const MainTurnTableScreen: React.FC = () => {
     : null;
   const me = (isMultiplayer && localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) || match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
   const activePlayer = match.players.find((p) => p.isActive) ?? me;
-  const canActNow = !isMultiplayer || activePlayer.id === me?.id;
+  const hasSubmittedSharedIntent = !!(
+    isMultiplayer
+    && engineMatch?.phase === 'intent_window'
+    && me?.id
+    && engineMatch.pendingIntents[me.id]
+  );
+  const canActNow = !isMultiplayer
+    || (engineMatch?.phase === 'intent_window' && !hasSubmittedSharedIntent)
+    || activePlayer.id === me?.id;
   const phaseLabel = interestWindow?.status === 'open'
     ? (locale === 'ru' ? 'Окно сделки открыто' : 'Deal interest open')
     : isAdvancingTime
     ? (locale === 'ru' ? 'Месяц считается' : 'Resolving month')
+    : hasSubmittedSharedIntent
+    ? (locale === 'ru' ? 'Ждём остальных' : 'Waiting for others')
     : canActNow
     ? (locale === 'ru' ? 'Твой выбор сейчас' : 'Your action now')
     : locale === 'ru'
@@ -526,31 +561,13 @@ export const MainTurnTableScreen: React.FC = () => {
     [submitIntent, isAdvancingTime]
   );
 
-  const showPlayerReaction = useCallback((playerId: string, reaction: string, options: { sound?: boolean } = {}) => {
-    const label = reaction.trim().toUpperCase();
-    if (!label) return;
-    const id = reactionNonce.current;
-    reactionNonce.current += 1;
-    if (reactionTimers.current[playerId]) window.clearTimeout(reactionTimers.current[playerId]);
-    setPlayerReactions((current) => ({
-      ...current,
-      [playerId]: { id, label },
-    }));
-    if (options.sound !== false) playSound('reaction');
-    reactionTimers.current[playerId] = window.setTimeout(() => {
-      setPlayerReactions((current) => {
-        if (current[playerId]?.id !== id) return current;
-        const next = { ...current };
-        delete next[playerId];
-        return next;
-      });
-      delete reactionTimers.current[playerId];
-    }, 1450);
-  }, []);
-
   const handleReaction = (reaction: string) => {
     if (!me?.id) return;
-    showPlayerReaction(me.id, reaction);
+    if (isMultiplayer) {
+      wsClient.send({ type: 'reaction', playerId: me.id, label: reaction });
+    } else {
+      showPlayerReaction(me.id, reaction);
+    }
   };
 
   useEffect(() => {
@@ -774,7 +791,7 @@ export const MainTurnTableScreen: React.FC = () => {
       </header>
 
       {/* ========== PLAYER RAIL ========== */}
-      <section className="relative z-10 shrink-0">
+      <section className="relative z-20 shrink-0">
         <div className="player-rail">
           {match.players.filter((p) => p.id !== me.id).slice(0, 5).map((p) => (
             <PlayerTile key={p.id} player={p} reaction={playerReactions[p.id]} onTap={handlePlayerTap} />
