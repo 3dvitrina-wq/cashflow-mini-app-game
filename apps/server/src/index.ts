@@ -53,23 +53,28 @@ function drainBotTurns(roomCode: string): void {
     const room = getRoom(roomCode);
     if (!room || room.status !== 'playing') break;
     if (!isBotCurrentTurn(room)) break;
+
+    // Track whether the current active player is a temporarily-controlled connected
+    // human (timer timeout). We restore their control right after their auto-turn so
+    // the loop doesn't continue running their future turns as a bot.
+    const currentPlayer = room.engineState ? room.engineState.players[room.engineState.activePlayerIndex] : null;
+    const currentMember = currentPlayer ? room.members.find((m) => m.playerId === currentPlayer.id) : null;
+    const isTemporaryBot = !!(currentMember && !currentMember.isBot && currentMember.connected && currentMember.botControlled);
+
     const result = runBotTurn(roomCode);
     if (!result.ok || !result.room) break;
     broadcast(result.room, { type: 'state_update', state: result.room.engineState });
     iterations++;
+
+    // Restore control to connected human immediately after their forced pass.
+    // Without this the loop treats every future human turn as a bot turn.
+    if (isTemporaryBot && currentMember) {
+      currentMember.botControlled = false;
+    }
+
     if (result.room.status === 'finished') {
       broadcast(result.room, { type: 'match_finished', state: result.room.engineState });
       break;
-    }
-  }
-  // After the cascade, un-bot any connected human who was only temporarily
-  // bot-controlled by the turn timer (disconnected players keep their flag).
-  const roomAfterDrain = getRoom(roomCode);
-  if (roomAfterDrain) {
-    for (const m of roomAfterDrain.members) {
-      if (!m.isBot && m.connected && m.botControlled) {
-        m.botControlled = false;
-      }
     }
   }
 
