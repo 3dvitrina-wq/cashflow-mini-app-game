@@ -23,6 +23,11 @@ const PROTECTION_COPY: Record<string, { title: string; description: string; tone
     description: 'Подушка на плохой месяц, чтобы не свалиться в панику.',
     tone: '#28C76F',
   },
+  crisis_immunity: {
+    title: 'Иммунитет',
+    description: 'Один раз за матч бросает 50% шанс отменить плохой кризисный сценарий.',
+    tone: '#F5C524',
+  },
   health_insurance: {
     title: 'Страховка',
     description: 'Срезает удар от неудачных событий по здоровью и стрессу.',

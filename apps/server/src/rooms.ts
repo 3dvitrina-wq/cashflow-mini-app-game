@@ -1,11 +1,21 @@
 // In-memory room store. No persistence needed for prototype.
 // Room lifecycle: creating -> waiting -> playing -> finished
 
-import { createMatch, resolveCommand, advanceRound, activePlayer } from '../../../packages/game-engine/src/index';
+import {
+  createMatch,
+  resolveCommand,
+  advanceRound,
+  activePlayer,
+  openIntentWindow,
+  resolveAllIntents,
+  allIntentsSubmitted,
+  dealDraftBoard,
+} from '../../../packages/game-engine/src/index';
 import { botIntent } from '../../../packages/game-engine/src/bot';
 import type { MatchState, Command } from '../../../packages/shared/src/index';
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
+export type CardMode = 'shared' | 'individual';
 
 export interface RoomMember {
   playerId: string;
@@ -42,6 +52,8 @@ export interface Room {
   turnTimer: ReturnType<typeof setTimeout> | null;
   /** Timestamp when the current turn started; for external inspection. */
   turnStartedAt: number;
+  /** Shared = everyone resolves one visible card together. Individual = old per-turn card flow. */
+  cardMode: CardMode;
 }
 
 const rooms = new Map<string, Room>();
@@ -62,6 +74,51 @@ function normalizeBotCommand(playerId: string, command: Command): Command {
   return command;
 }
 
+function toRoundIntent(playerId: string, command: Command): Command {
+  return command.type === 'choose_option' || command.type === 'pass'
+    ? command
+    : { type: 'pass', playerId };
+}
+
+function usesSharedCards(room: Room): boolean {
+  return room.cardMode === 'shared' && room.engineState?.matchMode !== 'draft';
+}
+
+function openSharedWindowIfNeeded(room: Room): void {
+  if (!room.engineState || !usesSharedCards(room) || room.engineState.phase === 'finished') return;
+  room.engineState = openIntentWindow(room.engineState);
+}
+
+function queueBotIntents(room: Room): void {
+  if (!room.engineState || room.engineState.phase !== 'intent_window') return;
+  for (const player of room.engineState.players.filter((p) => p.alive)) {
+    if (room.engineState.pendingIntents[player.id]) continue;
+    const member = room.members.find((m) => m.playerId === player.id);
+    if (!member?.isBot && !member?.botControlled) continue;
+    const raw = toRoundIntent(player.id, normalizeBotCommand(player.id, botIntent(room.engineState, player)));
+    let result = resolveCommand(room.engineState, raw);
+    if (wasRejected(result.events)) {
+      result = resolveCommand(room.engineState, { type: 'pass', playerId: player.id });
+    }
+    room.engineState = result.state;
+  }
+}
+
+function resolveSharedWindowIfReady(room: Room): void {
+  if (!room.engineState || room.engineState.phase !== 'intent_window') return;
+  queueBotIntents(room);
+  if (!allIntentsSubmitted(room.engineState)) return;
+  const resolved = resolveAllIntents(room.engineState);
+  const advanced = advanceRound(resolved.state);
+  room.engineState = advanced.state;
+  room.turnStartedAt = Date.now();
+  if (room.engineState.phase === 'finished') {
+    room.status = 'finished';
+  } else {
+    openSharedWindowIfNeeded(room);
+  }
+}
+
 function randomCode(): string {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
@@ -77,6 +134,7 @@ export function createRoom(isPrivate = false): Room {
     seed: Date.now(),
     turnTimer: null,
     turnStartedAt: 0,
+    cardMode: 'shared',
   };
   rooms.set(code, room);
   return room;
@@ -177,6 +235,11 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
   if (!player) return { ok: false, error: 'no active player' };
 
   try {
+    if (room.engineState.phase === 'intent_window') {
+      queueBotIntents(room);
+      resolveSharedWindowIfReady(room);
+      return { ok: true, room };
+    }
     const rawCommand: Command = botIntent(room.engineState, player);
     let command = normalizeBotCommand(player.id, rawCommand);
     let cmdResult = resolveCommand(room.engineState, command);
@@ -191,6 +254,7 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
     if (commandAdvancesRound(command) && !wasRejected(cmdResult.events)) {
       const roundResult = advanceRound(cmdResult.state);
       room.engineState = roundResult.state;
+      openSharedWindowIfNeeded(room);
     }
     if (room.engineState.phase === 'finished') {
       room.status = 'finished';
@@ -204,11 +268,13 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
 export interface StartOptions {
   maxRounds?: number;
   mode?: 'classic' | 'draft';
+  cardMode?: CardMode;
 }
 
 export function startRoom(code: string, opts: StartOptions = {}): Room | null {
   const room = rooms.get(code);
   if (!room || room.status !== 'waiting' || room.members.length < 2) return null;
+  room.cardMode = opts.cardMode ?? 'shared';
   const players = room.members.map((m) => ({
     id: m.playerId,
     name: m.name,
@@ -226,6 +292,11 @@ export function startRoom(code: string, opts: StartOptions = {}): Room | null {
     // deal "nobody sent". Real deals go through the explicit negotiation flow.
     autoDeals: false,
   });
+  if (opts.mode === 'draft') {
+    room.engineState = dealDraftBoard(room.engineState);
+  } else {
+    openSharedWindowIfNeeded(room);
+  }
   room.status = 'playing';
   room.turnStartedAt = Date.now();
   return room;
@@ -240,6 +311,7 @@ export function applyCommand(
     return { ok: false, error: 'room not in playing state' };
   }
   try {
+    const phaseBefore = room.engineState.phase;
     const cmdResult = resolveCommand(room.engineState, command);
     room.engineState = cmdResult.state;
     // Only advance the turn when the command was actually accepted. The engine
@@ -247,10 +319,13 @@ export function applyCommand(
     // and advancing on a rejection would skip the active player's turn or let a
     // non-active player's stray command rotate the turn (turn desync / freeze).
     const rejected = wasRejected(cmdResult.events);
-    if (commandAdvancesRound(command) && !rejected) {
+    if (!rejected && phaseBefore === 'intent_window') {
+      resolveSharedWindowIfReady(room);
+    } else if (commandAdvancesRound(command) && !rejected) {
       const roundResult = advanceRound(cmdResult.state);
       room.engineState = roundResult.state;
       room.turnStartedAt = Date.now();
+      openSharedWindowIfNeeded(room);
     }
     if (room.engineState.phase === 'finished') {
       room.status = 'finished';

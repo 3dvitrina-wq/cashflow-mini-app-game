@@ -11,13 +11,15 @@ import { ShopScreen } from './screens/ShopScreen';
 import { CharacterEditorScreen } from './screens/CharacterEditorScreen';
 import { ToastContainer } from './components/Toast';
 import { CharacterPreviewScreen } from './screens/CharacterPreviewScreen';
+import { savePlayerData } from './store/persistence';
+import { buildQuickStartRoster } from './lib/quickStartRoster';
 
 const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
 
 const GAME_SCREENS = new Set(['main', 'deal', 'futures', 'recap']);
 
 const App: React.FC = () => {
-  const { screen, rulesReturnScreen, settingsReturnScreen, setScreen } = useStore();
+  const { screen, rulesReturnScreen, settingsReturnScreen, setScreen, openRules, startMatch } = useStore();
 
   useEffect(() => {
     if (!tg) return;
@@ -72,12 +74,24 @@ const App: React.FC = () => {
 
   // Onboarding first
   if (screen === 'onboarding') {
-    return <OnboardingScreen mode="start" onComplete={() => setScreen('lobby')} />;
+    return (
+      <OnboardingScreen
+        mode="start"
+        onComplete={() => {
+          savePlayerData({ onboardingComplete: true });
+          startMatch(buildQuickStartRoster(), { mode: 'classic', maxRounds: 25 });
+        }}
+        onRules={() => {
+          savePlayerData({ onboardingComplete: true });
+          openRules('lobby');
+        }}
+      />
+    );
   }
 
   // Rules/help screen from the top menu
   if (screen === 'rules') {
-    return <OnboardingScreen mode="rules" onComplete={() => setScreen(rulesReturnScreen)} />;
+    return <OnboardingScreen mode="rules" onComplete={() => { savePlayerData({ onboardingComplete: true }); setScreen(rulesReturnScreen); }} />;
   }
 
   // Settings as overlay/full screen

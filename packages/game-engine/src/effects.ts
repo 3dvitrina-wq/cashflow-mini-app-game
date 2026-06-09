@@ -231,6 +231,9 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
 
   'protection.add': (_s, p, e) => {
     const protId = e.value ?? `prot_${p.protections.length}`;
+    if (protId === 'crisis_immunity' && (p.protections.includes(protId) || p.skillTags.includes('crisis_immunity_used'))) {
+      return [{ type: 'warn', playerId: p.id, effectType: 'protection.add', message: 'crisis_immunity already used this match' }];
+    }
     if (!p.protections.includes(protId)) p.protections.push(protId);
     return [{ type: 'effect', playerId: p.id, effectType: 'protection.add', message: protId }];
   },

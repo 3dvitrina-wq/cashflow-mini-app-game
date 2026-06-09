@@ -2,8 +2,8 @@
 
 ## Session
 
-- Date: 2026-06-05
-- Session log: `docs/agents/sessions/2026-06-05.md`
+- Date: 2026-06-08
+- Session log: `docs/agents/sessions/2026-06-08.md`
 
 ## Task
 
@@ -47,6 +47,15 @@ Ship a "friends-playable" rules slice for the current build:
 - Lobby now has a social-hook entry screen and richer host-room composition:
   pet/interior/regalia are cosmetic identity signals, not gameplay advantage claims.
 - `?lobby=1` is the QA route for lobby screenshots; `?autostart=1` still starts a match.
+- First-session fast path now starts a local `Long 25` bot match from the first screen,
+  and returning players skip mandatory onboarding into the lobby.
+- Online classic rooms default to shared-card simultaneous play: every player sees the
+  same current card and submits one intent; the old per-turn personal-card behavior is
+  kept as the explicit `Личные` room mode.
+- Online reactions are table-visible in-match: clients send the local player's reaction
+  through WebSocket and render the broadcast badge over each player's avatar.
+- `crisis_immunity` is an in-match protection token, not investment advice or real-money
+  trading logic: one per session, deterministic 50% roll on the next negative crisis choice.
 
 ## Next Step
 
@@ -60,6 +69,12 @@ Run targeted local playtests on offline and room flows to verify:
 - `sell asset` / `restructure debt` / `survival job` each create a meaningful rescue path;
 - `Long 25` actually gives enough room for starts to diverge.
 - lobby entry and room-open views remain readable at mobile viewport sizes without horizontal overflow.
+- shared-card online rooms keep all players on the same card through full 25-round matches;
+- individual-card mode remains available and clearly framed as the alternate branch;
+- reaction badges remain visible above own and peer miniatures in online matches;
+- Run a click-level browser check for the two new fast-start CTAs once Playwright module
+  resolution or the in-app Browser JS bridge is available; current verification covers build
+  and mobile screenshots.
 
 ## Advisory
 

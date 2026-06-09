@@ -16,13 +16,16 @@ import { useI18n } from '../i18n';
 interface OnboardingScreenProps {
   mode?: 'start' | 'rules';
   onComplete: () => void;
+  onRules?: () => void;
 }
 
 const ru = {
   eyebrow: '15-25 месяцев · 2-6 игроков · фиктивный рынок',
   title: 'DYOR',
   subtitle: 'Садись за стол: каждый месяц дает карту, сделку или катастрофу. Твоя задача - вырастить cashflow и не сгореть от стресса.',
-  start: 'Начать игру',
+  start: 'Играть сейчас',
+  howTo: 'Как играть',
+  warning: 'Фиктивный рынок, учебная сатира, не инвестсовет.',
   close: 'Вернуться',
   rulesTitle: 'Мини-обучение',
   rulesSubtitle: 'Пролистай три сцены: стол, решение месяца и кризис. Потом держи `?` для превью, жми `+` для банка/рынка/труда и тапай игроков для сделки.',
@@ -68,7 +71,9 @@ const en = {
   eyebrow: '15-25 months · 2-6 players · fictional market',
   title: 'DYOR',
   subtitle: 'Take a seat: every month brings a card, a deal, or a disaster. Grow cashflow and avoid stress burnout.',
-  start: 'Start game',
+  start: 'Play now',
+  howTo: 'How to play',
+  warning: 'Fictional market, educational satire, not investment advice.',
   close: 'Back',
   rulesTitle: 'Mini Tutorial',
   rulesSubtitle: 'Three scenes are enough: table, monthly decision, and crisis. Then hold `?` to preview, open `+` for Bank/Market/Labor, and tap players to inspect or deal.',
@@ -112,7 +117,7 @@ const en = {
 
 const slideImages = [introTableImg, introDecisionImg, introCrisisImg];
 
-export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'start', onComplete }) => {
+export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'start', onComplete, onRules }) => {
   const { locale } = useI18n();
   const copy = locale === 'ru' ? ru : en;
   const isRules = mode === 'rules';
@@ -143,51 +148,66 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
           </div>
         </header>
 
-        <section className="intro-story">
-          {copy.slides.map((slide, index) => (
-            <article key={slide.title} className={`intro-story-card intro-story-${slide.tone}`}>
-              <div className="intro-story-art">
-                <img src={slideImages[index]} alt="" draggable={false} />
-                <div className="intro-story-art-shade" />
-              </div>
-              <div className="intro-story-copy">
-                <span className="intro-section-label">{slide.badge}</span>
-                <h2>{slide.title}</h2>
-                <p>{slide.text}</p>
-                <div className="intro-chip-row">
-                  {slide.chips.map((chip) => (
-                    <span key={chip}>{chip}</span>
-                  ))}
-                </div>
-              </div>
-            </article>
-          ))}
-        </section>
+        {isRules ? (
+          <>
+            <section className="intro-story">
+              {copy.slides.map((slide, index) => (
+                <article key={slide.title} className={`intro-story-card intro-story-${slide.tone}`}>
+                  <div className="intro-story-art">
+                    <img src={slideImages[index]} alt="" draggable={false} />
+                    <div className="intro-story-art-shade" />
+                  </div>
+                  <div className="intro-story-copy">
+                    <span className="intro-section-label">{slide.badge}</span>
+                    <h2>{slide.title}</h2>
+                    <p>{slide.text}</p>
+                    <div className="intro-chip-row">
+                      {slide.chips.map((chip) => (
+                        <span key={chip}>{chip}</span>
+                      ))}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </section>
 
-        <section className="intro-rule-grid" aria-label={copy.rulesTitle}>
-          {rules.map((rule) => (
-            <article key={rule.title} className={`intro-rule-card intro-rule-${rule.tone}`}>
-              <div className="intro-rule-icon">{rule.icon}</div>
+            <section className="intro-rule-grid" aria-label={copy.rulesTitle}>
+              {rules.map((rule) => (
+                <article key={rule.title} className={`intro-rule-card intro-rule-${rule.tone}`}>
+                  <div className="intro-rule-icon">{rule.icon}</div>
+                  <div>
+                    <h2>{rule.title}</h2>
+                    <p>{rule.text}</p>
+                  </div>
+                </article>
+              ))}
+            </section>
+
+            <section className="intro-final">
               <div>
-                <h2>{rule.title}</h2>
-                <p>{rule.text}</p>
+                <IconChart size={22} />
+                <p>{copy.footer}</p>
               </div>
-            </article>
-          ))}
-        </section>
-
-        <section className="intro-final">
-          <div>
-            <IconChart size={22} />
-            <p>{copy.footer}</p>
-          </div>
-        </section>
+            </section>
+          </>
+        ) : (
+          <section className="intro-fast-panel" aria-label={copy.warning}>
+            <span className="intro-section-label">Long 25 · bots ready</span>
+            <h2>{copy.slides[0].title}</h2>
+            <p>{copy.warning}</p>
+          </section>
+        )}
       </div>
 
       <div className="intro-action-bar">
         <button onClick={onComplete} className="intro-primary-button">
           {isRules ? copy.close : copy.start}
         </button>
+        {!isRules && onRules && (
+          <button onClick={onRules} className="intro-secondary-button">
+            {copy.howTo}
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,163 +1,218 @@
----
-phase: ad-hoc-review
-reviewed: 2026-06-04T16:01:50Z
-depth: standard
-files_reviewed: 15
-files_reviewed_list:
-  - packages/game-engine/src/engine.ts
-  - packages/game-engine/src/bank.ts
-  - packages/game-engine/src/futures.ts
-  - packages/game-engine/src/contracts.ts
-  - packages/game-engine/src/deals.ts
-  - packages/game-engine/src/negotiation.ts
-  - packages/game-engine/src/effects.ts
-  - packages/game-engine/src/cards.ts
-  - packages/game-engine/src/bot.ts
-  - packages/game-engine/src/synergy.ts
-  - packages/game-engine/src/conditions.ts
-  - packages/shared/src/index.ts
-  - packages/shared/src/schemas.ts
-  - apps/web/src/store/index.ts
-  - apps/web/src/store/types.ts
-findings:
-  critical: 0
-  warning: 7
-  info: 1
-  total: 8
-status: issues_found
+# Game Engine Review
+
+_Reviewed: 2026-06-07_
+_Files: engine.ts, cards.ts, deals.ts, effects.ts, futures.ts, negotiation.ts, bot.ts, LobbyScreen.tsx, index.ts (server)_
+
 ---
 
-# Code Review Report
+## [CRITICAL] Loan cap allows borrowing with negative net cashflow
 
-**Reviewed:** 2026-06-04T16:01:50Z
-**Depth:** standard
-**Files Reviewed:** 15
-**Status:** issues_found
+**File:** `packages/game-engine/src/engine.ts:940`
 
-## Summary
+**Problem:** `monthlyCashflow(state, player).net * 10` - if net cashflow is negative (expenses > income, common early game), `maxLoan` becomes negative, so `Math.max(0, negative)` = 0. The player can never borrow when most needed. Conversely, high-passive-income players can borrow enormous sums.
 
-Reviewed the engine/store paths the request prioritized: `packages/game-engine`, `packages/shared`, and `apps/web/src/store`, with extra focus on deal, contract, bank, and futures flows. The main risks are authority drift between store and engine, settlement paths that accept invalid deal state, and several mechanics that are still hardcoded or split across duplicate formulas.
-
-Vitest spot-checks passed:
-
-- `npx vitest run packages/game-engine/src/__tests__/deal-balance.test.ts packages/game-engine/src/__tests__/economy-wiring.test.ts packages/game-engine/src/__tests__/engine.test.ts`
-
-The passing tests do not cover the issues below.
-
-## Warnings
-
-### WR-01: Unsupported public commands are accepted as successful no-ops
-
-**File:** `packages/shared/src/index.ts:458-465`, `packages/shared/src/schemas.ts:346-380`, `packages/game-engine/src/engine.ts:256-326`, `packages/game-engine/src/engine.ts:377-622`
-**Issue:** `submit_offer`, `accept_offer`, `decline_offer`, and `file_bankruptcy` are exposed in the shared command contract, but the engine never implements or rejects them. `resolveCommand()` still emits `command_accepted`, runs host/animation side effects, and in `decision` phase advances the match to `resolution`. A malformed or stale client can therefore burn a turn with a command that the engine does not support.
 **Fix:**
 ```ts
-// engine.ts
-const UNSUPPORTED_COMMANDS = new Set([
-  'submit_offer',
-  'accept_offer',
-  'decline_offer',
-  'file_bankruptcy',
-]);
-
-if (UNSUPPORTED_COMMANDS.has(cmd.type)) {
-  return 'unsupported command';
-}
+const maxLoan = Math.max(2000, monthlyCashflow(state, player).income * 10 * loanCapMultiplier(player));
 ```
-Or remove these commands from the shared schema until they are implemented end-to-end.
 
-### WR-02: Deal acceptance still pays out when the promised asset is gone
+---
 
-**File:** `packages/game-engine/src/deals.ts:140-203`
-**Issue:** `acceptDeal()` only transfers the asset if it still exists on the proposer, but if the asset was removed first, acceptance still creates the contract, moves any requested cash, and grants trust. That lets a seller get paid for an asset they no longer own.
-**Fix:**
+## [CRITICAL] `resolveAllIntents` loses all but the last player's intent via `Object.assign`
+
+**File:** `packages/game-engine/src/engine.ts:1046-1051`
+
+**Problem:** For each intent, `resolveCommand(state, intent)` clones `state` → returns `result.state`. Then `Object.assign(state, result.state)` overwrites `state` with a clone that was made BEFORE previous intents were applied. In a 2-player simultaneous round, only the second player's effects survive; the first player's choice is silently discarded.
+
+**Fix:** Chain results, each iteration using the previous result as input:
 ```ts
-if (deal.offer.assetId) {
-  const assetIdx = proposer.assets.findIndex((a) => a.id === deal.offer.assetId);
-  if (assetIdx < 0) {
-    deal.status = 'rejected';
-    return [{ type: 'command_rejected', playerId: acceptor.id, message: 'asset no longer available' }];
+let currentState = state;
+for (const [playerId, intent] of Object.entries(state.pendingIntents)) {
+  if (intent) {
+    const result = resolveCommand(currentState, intent);
+    events.push(...result.events);
+    currentState = result.state; // chain
   }
-  const [asset] = proposer.assets.splice(assetIdx, 1);
-  acceptor.assets.push(asset);
+  currentState.pendingIntents[playerId] = null;
 }
+Object.assign(state, currentState);
 ```
-
-### WR-03: Reachable store actions still mutate authoritative match state locally
-
-**File:** `apps/web/src/store/index.ts:479-560`, `apps/web/src/store/index.ts:616-673`, `apps/web/src/store/index.ts:926-975`
-**Issue:** `applyDealEffects`, `addReputation`, `buyPet`, `buyAsset`, `triggerInterestWindow`, and `passInterest` bypass engine/server authority by cloning and mutating `engineMatch` in the client store. That breaks the documented invariant that economy and deal state resolve on the engine only, and these methods are still wired to UI screens.
-**Fix:** Remove state mutation from these store actions. Each action should either:
-
-- dispatch an engine command and wait for the returned state, or
-- remain purely presentational with no `engineMatch` mutation.
-
-For flows that lack engine commands yet, add those commands first and reject the UI action until the engine path exists.
-
-### WR-04: Synergy bonuses stack into base stats every round instead of being derived
-
-**File:** `packages/game-engine/src/synergy.ts:99-144`
-**Issue:** `applySynergyBonuses()` permanently mutates `player.passiveIncome`, `player.expenses`, and `player.stress` each settlement. If the same synergy remains active for multiple rounds, the bonus is reapplied forever, so a `$200` cost reduction becomes `$400`, `$600`, etc. across rounds instead of remaining a stable modifier.
-**Fix:**
-```ts
-// Recompute active synergy modifiers each round instead of mutating base fields.
-const bonuses = checkSynergies(player);
-const passiveBonus = bonuses.filter(...).reduce(...);
-const expenseReduction = bonuses.filter(...).reduce(...);
-
-// Apply via derived cashflow or a modifier registry, not by editing base stats.
-```
-
-### WR-05: Futures use two different opening formulas depending on entry path
-
-**File:** `packages/game-engine/src/effects.ts:168-195`, `packages/game-engine/src/futures.ts:107-151`
-**Issue:** Card-driven futures positions use the `futures.open` effect resolver, while explicit `open_futures_position` uses `openFuturesPosition()`. These two paths compute different liquidation prices. For the same `2x` NEON long at the same entry, the card path liquidates at `58`, while the command path liquidates at `56.84`.
-**Fix:**
-```ts
-'futures.open': (state, p, e) => {
-  const payload = e.payload as FuturesPayload;
-  return openFuturesPosition(
-    state,
-    p,
-    payload.tokenSymbol,
-    payload.direction,
-    payload.leverage,
-    payload.amount,
-  );
-}
-```
-Keep a single source of truth for quantity, liquidation price, and logging.
-
-### WR-06: `iou` and `written` contract enforcement are still placeholders
-
-**File:** `packages/game-engine/src/contracts.ts:122-180`
-**Issue:** The engine only distinguishes `lawyer` from everything else. `iou` and `written` silently degrade to trust-only `word` behavior, so the four enforcement levels in `DEAL-08` do not actually exist in gameplay.
-**Fix:** Either implement differentiated settlement for `iou` and `written` or reject those enforcement levels until they have real behavior. At minimum, missed `iou`/`written` payments should create distinct liability/trust/reputation consequences instead of sharing the `word` branch.
-
-### WR-07: Deal equity math is not formula-driven yet
-
-**File:** `packages/game-engine/src/negotiation.ts:152-165`, `packages/game-engine/src/bot.ts:317-330`
-**Issue:** `checkDealFairness()` hardcodes `assetValue = 0`, so asset-backed deals are audited as if the asset were worthless. Separately, bot-generated “50/50” deals use `shareSplit: { ...: 50 }` rather than normalized fractions like `0.5`, which will break any downstream logic that treats shares as percentages-of-1.
-**Fix:**
-```ts
-const assetValue = offer.assetId
-  ? proposer.assets.find((a) => a.id === offer.assetId)?.value ?? 0
-  : 0;
-
-shareSplit: { [bot.id]: 0.5, [target.id]: 0.5 }
-```
-Normalize share storage once and use the same unit everywhere.
-
-## Info
-
-### IN-01: The bootcamp card contains a casted stub effect that never resolves
-
-**File:** `packages/game-engine/src/cards.ts:1017-1022`
-**Issue:** `e2a-education` injects `{ type: 'skillTags' } as unknown as ...` into the card effect list. At runtime this produces `warn: unregistered effect skillTags`, so the intended skill-tag behavior never happens.
-**Fix:** Add a real supported effect type such as `skill.tag.add`, or remove the cast and the dead effect until the mechanic is implemented.
 
 ---
 
-_Reviewed: 2026-06-04T16:01:50Z_
-_Reviewer: Codex (gsd-code-reviewer)_
-_Depth: standard_
+## [CRITICAL] `acceptDeal` double-transfers cash: once via `contractFromOffer`, once manually
+
+**File:** `packages/game-engine/src/deals.ts:156-183`
+
+**Problem:** `contractFromOffer` (line 156) processes the deal including cash. Then lines 174-183 ALSO manually transfer `cashRequest` from acceptor to proposer. If `contractFromOffer` handles cash internally, the proposer receives `cashRequest` twice and the acceptor loses it twice.
+
+**Fix:** Audit `contractFromOffer` - if it transfers cash, remove lines 174-183. Add a comment clarifying which function owns cash movement.
+
+---
+
+## [CRITICAL] `futures.resolve` REGISTRY resolver does not deduct margin on liquidation
+
+**File:** `packages/game-engine/src/effects.ts:215-222`
+
+**Problem:** On liquidation, the resolver does `p.cash = Math.max(0, p.cash)` - no subtraction. Margin was deducted at position open, so this is correct behavior for the open path. But this resolver is dead/duplicate code - `advanceRound` calls `resolveFutures()` from `futures.ts` directly, never triggering this registry path. If a card ever uses `futures.resolve` as an effect type, it produces a no-op instead of settlement.
+
+**Fix:** Remove `futures.resolve` from REGISTRY to prevent accidental usage, or add a `// not triggered by cards - settlement only` comment and guard:
+```ts
+'futures.resolve': () => [{ type: 'warn', message: 'futures.resolve must not be used as card effect' }],
+```
+
+---
+
+## [CRITICAL] Card-based asset purchases via `asset.add` effect never consume business slots
+
+**File:** `packages/game-engine/src/effects.ts:70-87`, `packages/game-engine/src/cards.ts:27-33`
+
+**Problem:** The `asset.add` resolver pushes an asset to `p.assets` but never increments `p.businessSlotsUsed`. Cards like `opp-storage` "Buy for $3K" include `asset.add` + `business.slot.modify` (increases max), but the used-slot counter stays 0. Players can own unlimited assets via cards with zero slot pressure. The slot limit only works for the explicit `buy_asset` command.
+
+**Fix:** In the `asset.add` resolver, increment `businessSlotsUsed`:
+```ts
+'asset.add': (_s, p, e) => {
+  if (payload?.kind) {
+    p.assets.push(asset);
+    p.businessSlotsUsed = Math.min(p.businessSlotsMax, p.businessSlotsUsed + 1);
+  }
+  return [{ type: 'effect', playerId: p.id, effectType: 'asset.add', amount: e.amount }];
+},
+```
+
+---
+
+## [MEDIUM] `settleAllFutures` at game end skips liquidation check
+
+**File:** `packages/game-engine/src/futures.ts:83-105`
+
+**Problem:** `settleAllFutures()` unconditionally returns `margin + pnl` for every position. If at game-end a position is at/beyond liquidation price, the player still gets their margin back instead of losing it.
+
+**Fix:**
+```ts
+const liquidated = (pos.direction === 'long' && finalPrice <= pos.liquidationPrice) ||
+                   (pos.direction === 'short' && finalPrice >= pos.liquidationPrice);
+if (liquidated) {
+  player.recapTags.push('futures_liquidated');
+  events.push({ type: 'futures', playerId: player.id, effectType: 'futures.resolve', amount: -pos.margin, message: 'liquidated at game end' });
+} else {
+  player.cash = Math.max(0, player.cash + pos.margin + pnl);
+  // ...
+}
+```
+
+---
+
+## [MEDIUM] Card-path `futures.open` effect uses different liquidation price formula than command path
+
+**File:** `packages/game-engine/src/effects.ts:184-185`, `packages/game-engine/src/futures.ts:125-127`
+
+**Problem:** Effect resolver: `price * (1 - 1/leverage)`. `openFuturesPosition` command: `price * (1 - 1/leverage) * 0.98` (with 2% slippage). Players who open futures via card effects get liquidation prices ~2% more favorable than the command path. Inconsistent model, exploitable if players know.
+
+**Fix:** Extract to a shared helper:
+```ts
+function calcLiquidationPrice(price: number, direction: 'long'|'short', leverage: number): number {
+  return direction === 'long' ? price * (1 - 1/leverage) * 0.98 : price * (1 + 1/leverage) * 1.02;
+}
+```
+
+---
+
+## [MEDIUM] `high_risk_speculator` bot bypasses card system, returns `open_futures_position` instead of `choose_option`
+
+**File:** `packages/game-engine/src/bot.ts:160-186`
+
+**Problem:** When a futures card is drawn, the speculator bot returns `{ type: 'open_futures_position', ... }` directly - bypassing the card's `choose_option` flow. This means the card's `stress.delta` and `avatar.state.set` effects from the choice are never applied to the bot. The bot also opens its own sizing (60% of cash) rather than the card's margin amounts, doubling down on inconsistency.
+
+**Fix:** Return `choose_option` with the best futures choice index:
+```ts
+// find idx of the best 3x choice
+const best3xIdx = card.choices.findIndex((c) =>
+  c.effects.some((e) => e.type === 'futures.open' && ((e.payload?.['leverage'] as number) ?? 0) >= 3)
+);
+return { type: 'choose_option', playerId: player.id, choiceIndex: best3xIdx >= 0 ? best3xIdx : 0 };
+```
+
+---
+
+## [MEDIUM] Bankruptcy check triple-condition creates softlock at $0 with stress < 8
+
+**File:** `packages/game-engine/src/engine.ts:1214`
+
+**Problem:** `p.cash === 0 && p.passiveIncome < p.expenses && p.stress >= 8` - a player at $0 with negative cashflow and stress=7 is permanently stuck. `p.cash = Math.max(0, p.cash + net)` clamps to 0 every round. They can never recover (no cash to buy anything) and never go bankrupt. The game is softlocked for them.
+
+**Fix:** Lower stress threshold to 7, or trigger after N consecutive rounds at $0:
+```ts
+if (p.cash === 0 && monthlyCashflow(state, p).net < 0 && p.stress >= 7) {
+```
+
+---
+
+## [MEDIUM] `wsClient.onOpen` accumulates listeners on repeated create/join attempts
+
+**File:** `apps/web/src/screens/LobbyScreen.tsx:496-498`, `517-519`
+
+**Problem:** Every call to `handleCreateRoom` or `handleJoinRoom` registers a NEW `onOpen` listener via `wsClient.onOpen(callback)`. If a user clicks "Create" twice (e.g. after an error), the join message is sent twice on the next connection open, potentially registering them twice in the same room.
+
+**Fix:** Clear previous `onOpen` listener before registering a new one, or ensure `wsClient.onOpen` is idempotent (replaces, not stacks). Alternatively move WS connection to a `useEffect` with proper cleanup.
+
+---
+
+## [MEDIUM] `buildStarterRoster` returns UI-typed `PlayerState` that lacks engine fields
+
+**File:** `apps/web/src/screens/LobbyScreen.tsx:1045-1075`
+
+**Problem:** The hardcoded player in `buildStarterRoster` uses `mood`, `cashflowPerMonth`, `businessSlots` (UI field names) rather than engine fields (`avatarState`, `liabilities`, `assets`, `businessSlotsUsed/Max`, etc.). If `startMatch` passes these to the engine without conversion, any operation on `p.liabilities`, `p.assets`, etc. will throw `Cannot read properties of undefined`.
+
+**Fix:** Pass `NewPlayer`-shaped objects to `startMatch`; let the engine's `createPlayer` initialize proper state. Or ensure `startMatch` always calls `createPlayer` on UI-typed inputs.
+
+---
+
+## [LOW] `nextDealId` called twice in `proposeDeal` - offer gets different ID than deal
+
+**File:** `packages/game-engine/src/deals.ts:49-52`
+
+**Problem:** `deal.id = nextDealId(state)` then `offer: { ...offer, id: nextDealId(state) }`. Both calls produce the same value currently (eventLog hasn't changed), but this is fragile. A future refactor that mutates eventLog between these lines would silently create mismatched IDs.
+
+**Fix:**
+```ts
+const id = nextDealId(state);
+const deal: PendingDeal = { id, ..., offer: { ...offer, id } };
+```
+
+---
+
+## [LOW] `economy-deal-loan` card deducts lender cash but creates no repayment mechanism
+
+**File:** `packages/game-engine/src/cards.ts:1226-1238`
+
+**Problem:** "PEER-TO-PEER LOAN" takes $1K/$2K from the player via `cash.delta`, then emits `deal.resolve` which proposes a 50/50 partnership split using 30% of remaining cash. The original loan amount is gone with no liability on the borrower, no interest, no repayment. The deal type is conceptually wrong (partnership != loan).
+
+**Fix:** Use `cashRequest` in the deal offer so the borrower owes the exact loan amount, and model repayment via a liability added to borrower at `acceptDeal`.
+
+---
+
+## [LOW] Online player count is fake and grows with `matchesPlayed`
+
+**File:** `apps/web/src/screens/LobbyScreen.tsx:346`
+
+**Problem:** `const onlineCount = 1284 + Math.max(0, playerData.matchesPlayed * 7)` - this will show different values to different players and grows indefinitely. A player who has played 100 games sees "2,084 online". This is obviously not real and erodes trust when users notice.
+
+**Fix:** Show a static value or fetch from server `/health`. Remove the `matchesPlayed` multiplier.
+
+---
+
+## [LOW] `recentTransfers` array grows unbounded across all rounds
+
+**File:** `packages/game-engine/src/engine.ts:301`
+
+**Problem:** `deriveAvatarState` checks `p.recentTransfers.length > 0` but nothing trims this array. In a 25-round game with active deal-making, it grows without bound, adding serialization cost to each `clone()` call.
+
+**Fix:** In `advanceRound`, trim to last 5 entries:
+```ts
+p.recentTransfers = p.recentTransfers.slice(-5);
+```
+
+---
+
+_Reviewer: Claude_

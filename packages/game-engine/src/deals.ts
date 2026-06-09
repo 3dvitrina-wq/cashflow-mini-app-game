@@ -4,14 +4,17 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type {
+  Asset,
   DealStatus,
   GameEvent,
   MatchState,
   OfferPayload,
+  Partnership,
   PendingDeal,
   PlayerId,
   PlayerState,
 } from '../../shared/src/index';
+import { PARTNERSHIP_ASSET_PREFIX } from './effects';
 import { contractFromOffer } from './contracts';
 import { checkDealFairness } from './negotiation';
 
@@ -54,6 +57,7 @@ export function proposeDeal(
     status: 'pending',
     createdRound: state.round,
     expiresRound: state.round + DEAL_EXPIRY_ROUNDS,
+    sourceCardId: offer.sourceCardId ?? state.currentCardId ?? undefined,
   };
 
   // Add to both players' pending deals
@@ -180,6 +184,66 @@ export function acceptDeal(
       playerId: acceptor.id,
       amount: -deal.offer.cashRequest,
       message: `deal payment to ${proposer.name}`,
+    });
+  }
+
+  // Card-linked co-investment: when the deal was proposed on the still-active card,
+  // mint proportional assets for both players and form a Partnership.
+  if (
+    deal.sourceCardId &&
+    deal.sourceCardId === state.currentCardId &&
+    deal.offer.projectedAssetValue &&
+    deal.offer.shareSplit
+  ) {
+    const cardCost = deal.offer.projectedAssetValue;
+    const monthlyIncome = deal.offer.projectedMonthlyIncome ?? 0;
+    const shares = deal.offer.shareSplit;
+    const total = Object.values(shares).reduce((s, v) => s + v, 0) || 1;
+    const proposerFrac = (shares[proposer.id] ?? 0.5) / (total > 1.05 ? total / 100 : 1);
+    const acceptorFrac = (shares[acceptor.id] ?? 0.5) / (total > 1.05 ? total / 100 : 1);
+    const cardName = deal.offer.description.replace(/^[^—]*—\s*/, '') || 'Совместная инвестиция';
+    const assetBase = `${PARTNERSHIP_ASSET_PREFIX}deal_${state.round}_${deal.sourceCardId}`;
+
+    for (const [player, frac] of [[proposer, proposerFrac], [acceptor, acceptorFrac]] as [PlayerState, number][]) {
+      const cost = Math.round(cardCost * frac);
+      player.cash = Math.max(0, player.cash - cost);
+      const asset: Asset = {
+        id: `${assetBase}_${player.id}`,
+        kind: 'co_investment',
+        name: cardName,
+        tags: [],
+        synergyKeys: [],
+        incomePerRound: Math.round(monthlyIncome * frac),
+        upkeepPerRound: 0,
+        value: cost,
+        acquiredRound: state.round,
+        coOwners: [proposer.id, acceptor.id],
+      };
+      player.assets.push(asset);
+      events.push({
+        type: 'money',
+        playerId: player.id,
+        effectType: 'partnership.invite',
+        amount: -cost,
+        message: `co-invest via deal: ${Math.round(frac * 100)}% of ${cardName}`,
+      });
+    }
+
+    const cardPartnership: Partnership = {
+      id: `${assetBase}_p`,
+      players: [proposer.id, acceptor.id],
+      scope: [deal.sourceCardId],
+      shareRules: { [proposer.id]: proposerFrac, [acceptor.id]: acceptorFrac },
+      createdRound: state.round,
+    };
+    if (!proposer.partnerships.some((p) => p.id === cardPartnership.id)) proposer.partnerships.push(cardPartnership);
+    if (!acceptor.partnerships.some((p) => p.id === cardPartnership.id)) acceptor.partnerships.push(cardPartnership);
+
+    events.push({
+      type: 'effect',
+      effectType: 'partnership.create',
+      message: `Co-investment via deal: ${cardName}`,
+      payload: { players: [proposer.id, acceptor.id], cardConsumed: true, sourceCardId: deal.sourceCardId },
     });
   }
 

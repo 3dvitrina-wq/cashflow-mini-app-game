@@ -1316,20 +1316,11 @@ export const MainTurnTableScreen: React.FC = () => {
             me={me}
             partner={partner}
             cardTitle={card?.title ?? 'Инвестиция'}
+            cardCost={selectedPreview?.now != null && selectedPreview.now < 0 ? Math.abs(selectedPreview.now) : undefined}
+            cardMonthlyIncome={selectedPreview?.monthlyNet != null && selectedPreview.monthlyNet > 0 ? selectedPreview.monthlyNet : undefined}
+            cardSourceId={card?.id}
             onAccept={(offer) => {
-              const projectedMonthlyIncome = Math.max(
-                0,
-                selectedPreview?.monthlyNet ?? Math.round(Math.max(partner.passiveIncome, 300) * 0.5),
-              );
-              const projectedAssetValue = Math.max(
-                1200,
-                Math.abs(selectedPreview?.now ?? 0) + (offer.cashOffer ?? 0) + projectedMonthlyIncome * 4,
-              );
-              const outcome = submitDealOffer(partner.id, {
-                ...offer,
-                projectedMonthlyIncome,
-                projectedAssetValue,
-              });
+              const outcome = submitDealOffer(partner.id, offer);
               setIsOfferBuilderOpen(false);
               if (outcome === 'accepted') {
                 showToast(`${partner.name} принял сделку 🤝`, 'success');

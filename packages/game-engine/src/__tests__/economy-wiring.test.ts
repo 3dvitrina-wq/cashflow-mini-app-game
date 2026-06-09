@@ -185,6 +185,41 @@ describe('bank credit (take_loan)', () => {
   });
 });
 
+describe('crisis immunity', () => {
+  it('spends the once-per-match shield and can block a negative crisis choice', () => {
+    const match = createMatch(1, [...PLAYERS]);
+    match.currentCardId = 'crisis-tax';
+    const p1 = match.players.find((p) => p.id === 'p1')!;
+    p1.cash = 2200;
+    p1.stress = 3;
+    p1.protections.push('crisis_immunity');
+
+    const result = resolveCommand(match, { type: 'choose_option', playerId: 'p1', choiceIndex: 2 });
+    const after = result.state.players.find((p) => p.id === 'p1')!;
+
+    expect(result.events.some((e) => e.message === 'crisis_immunity blocked the crisis')).toBe(true);
+    expect(after.cash).toBe(2200);
+    expect(after.stress).toBe(3);
+    expect(after.protections).not.toContain('crisis_immunity');
+    expect(after.skillTags).toContain('crisis_immunity_used');
+  });
+
+  it('rejects buying another crisis immunity after the match token was used', () => {
+    const match = createMatch(7, [...PLAYERS]);
+    match.currentCardId = 'prot-crisis-immunity';
+    const p1 = match.players.find((p) => p.id === 'p1')!;
+    p1.cash = 1000;
+    p1.skillTags.push('crisis_immunity_used');
+
+    const result = resolveCommand(match, { type: 'choose_option', playerId: 'p1', choiceIndex: 0 });
+    const after = result.state.players.find((p) => p.id === 'p1')!;
+
+    expect(result.events.some((e) => e.type === 'command_rejected')).toBe(true);
+    expect(after.cash).toBe(1000);
+    expect(after.protections).not.toContain('crisis_immunity');
+  });
+});
+
 describe('profession powers + recovery actions', () => {
   it('salary_boost profession increases effective monthly income', () => {
     const match = createMatch(7, [

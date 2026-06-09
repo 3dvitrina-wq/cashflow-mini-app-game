@@ -871,12 +871,22 @@ export const useStore = create<AppState>((set, get) => ({
       if (!st.engineMatch || !st.incomingDeal) return st;
       const me = getLocalPlayer(st);
       if (!me) return st;
+      const humanCashBefore = me.cash;
       const cmd: Command = { type: 'accept_deal', playerId: me.id, dealId: st.incomingDeal.id };
       if (st.isMultiplayer) {
         wsClient.send({ type: 'command', command: cmd });
         return { incomingDeal: null } as Partial<AppState>;
       }
       const result = resolveCommand(st.engineMatch, cmd);
+      // Card-linked deal: assets were created, now close the card by advancing the round.
+      const cardConsumed = result.events.some(
+        (e) => e.type === 'effect' && (e.payload as Record<string, unknown>)?.cardConsumed === true,
+      );
+      if (cardConsumed) {
+        const withWindow = openIntentWindow(result.state);
+        const resolved = resolveAllIntents(withWindow).state;
+        return { ...advanceAndOpen(resolved, st.negotiatingPlayerIds, humanCashBefore), incomingDeal: null };
+      }
       return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds), incomingDeal: null };
     }),
 

@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// 50 MVP cards. DATA only — no card-id ifs in the engine.
-// 10 opportunity, 8 market pulse, 8 crisis, 6 protection,
+// 51 MVP cards. DATA only — no card-id ifs in the engine.
+// 10 opportunity, 8 market pulse, 8 crisis, 7 protection,
 // 6 staff, 6 modern earning, 6 expense-to-asset.
 // Each card: id, type, title, text, hostCue, choices/effects, animation hints.
 // ─────────────────────────────────────────────────────────────────────────────
@@ -385,7 +385,7 @@ export const CARDS: CardDefinition[] = [
     id: 'crisis-tax',
     type: 'crisis',
     title: 'TAX APOCALYPSE',
-    text: 'You forgot that "optional" payments are not optional.',
+    text: 'Your side income finally reached the tax office. Pay for a clean exit, run away, or let the bill eat your cash.',
     hostCue: 'Taxes, charts, receipts — welcome to adulthood!',
     tags: ['tax', 'financial'],
     animation: { cardEnter: 'explode', shake: true, glow: 'red', particles: 'fire', sound: 'alarm' },
@@ -412,7 +412,7 @@ export const CARDS: CardDefinition[] = [
     id: 'crisis-internet',
     type: 'crisis',
     title: 'INTERNET DOWN',
-    text: 'Your ISP had "scheduled maintenance" that lasted 3 days.',
+    text: 'Your income depends on being online. The router is blinking like a tiny casino and the client deadline is tonight.',
     hostCue: 'Have you tried turning your router off and on again?',
     tags: ['tech', 'infrastructure'],
     animation: { cardEnter: 'drop', shake: true, glow: 'red' },
@@ -420,14 +420,14 @@ export const CARDS: CardDefinition[] = [
       { id: 'coworking', label: 'Move to coworking', effects: [
         { type: 'cash.delta', amount: -200 },
         { type: 'stress.delta', amount: 1 },
-      ] },
+      ], hint: 'Pay cash to keep work moving' },
       { id: 'data', label: 'Buy mobile data', effects: [
         { type: 'cash.delta', amount: -120 },
-      ] },
+      ], hint: 'Cheaper fix, no stress relief' },
       { id: 'accept', label: 'Accept fate', effects: [
         { type: 'stress.delta', amount: 2 },
         { type: 'passive.add', amount: -100 },
-      ] },
+      ], hint: 'Save cash now, lose momentum' },
     ],
   },
 
@@ -509,7 +509,7 @@ export const CARDS: CardDefinition[] = [
     id: 'crisis-theft',
     type: 'crisis',
     title: 'EQUIPMENT STOLEN',
-    text: 'Your laptop, phone, and dignity — all gone in one grab.',
+    text: 'Your work kit vanished before a paid delivery. Replace it, claim insurance, or borrow and burn trust.',
     hostCue: 'The street giveth and the street taketh.',
     tags: ['theft', 'financial'],
     animation: { cardEnter: 'explode', shake: true, glow: 'red' },
@@ -533,7 +533,7 @@ export const CARDS: CardDefinition[] = [
     id: 'crisis-platform',
     type: 'crisis',
     title: 'PLATFORM BLOCK',
-    text: 'Your main income platform banned your account. No explanation given.',
+    text: 'The platform that sends you clients locked the account. You can appeal, diversify, or gamble on a risky restart.',
     hostCue: 'Terms of service: the contract nobody reads until it bites.',
     tags: ['tech', 'income'],
     animation: { cardEnter: 'drop', shake: true, glow: 'red' },
@@ -617,6 +617,25 @@ export const CARDS: CardDefinition[] = [
         { type: 'stress.delta', amount: -2 },
         { type: 'protection.add', value: 'emergency_fund' },
       ] },
+      { id: 'skip', label: 'Skip', effects: [] },
+    ],
+  },
+
+  {
+    id: 'prot-crisis-immunity',
+    type: 'protection',
+    title: 'CRISIS IMMUNITY TOKEN',
+    text: 'Buy one emergency override for this match. On the next negative crisis choice, it rolls 50% to cancel the hit.',
+    hostCue: 'Not invincible. Just one more chance to look lucky and call it planning.',
+    tags: ['protection', 'crisis', 'immunity'],
+    rarity: 'rare',
+    weight: 1,
+    animation: { cardEnter: 'slide_up', glow: 'gold', particles: 'sparkle' },
+    choices: [
+      { id: 'buy', label: 'Buy token ($700)', effects: [
+        { type: 'cash.delta', amount: -700 },
+        { type: 'protection.add', value: 'crisis_immunity' },
+      ], hint: 'One per match: 50% chance to block a future negative crisis' },
       { id: 'skip', label: 'Skip', effects: [] },
     ],
   },

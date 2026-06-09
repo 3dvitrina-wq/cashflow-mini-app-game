@@ -34,6 +34,12 @@ interface Props {
   me: PlayerState;
   partner: PlayerState;
   cardTitle: string;
+  /** Full cost of the active card. When provided, shows investment amounts instead of cash on hand. */
+  cardCost?: number;
+  /** Monthly income the active card generates. */
+  cardMonthlyIncome?: number;
+  /** ID of the active card — included in offer so acceptDeal can run co-investment. */
+  cardSourceId?: string;
   onAccept: (offer: OfferPayload) => void;
   onCounter: (offer: OfferPayload) => void;
   onPass: () => void;
@@ -70,7 +76,7 @@ export const FocusTokenEvent: React.FC<{ playerName: string }> = ({ playerName }
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export const OfferBuilderModal: React.FC<Props> = ({
-  me, partner, cardTitle, onAccept, onCounter, onPass,
+  me, partner, cardTitle, cardCost, cardMonthlyIncome, cardSourceId, onAccept, onCounter, onPass,
 }) => {
   const { computeFairness } = useStore();
   const [presetId, setPresetId] = useState<OfferPayload['preset']>('split_50_50');
@@ -85,7 +91,11 @@ export const OfferBuilderModal: React.FC<Props> = ({
     cashOffer: sidePayment,
     enforcement,
     description: `${preset.name} — ${cardTitle}`,
-  }), [presetId, sidePayment, enforcement, preset.name, cardTitle, partner.id]);
+    shareSplit: { [me.id]: preset.myShare / 100, [partner.id]: (100 - preset.myShare) / 100 },
+    sourceCardId: cardSourceId,
+    projectedAssetValue: cardCost,
+    projectedMonthlyIncome: cardMonthlyIncome,
+  }), [presetId, sidePayment, enforcement, preset.name, preset.myShare, cardTitle, partner.id, me.id, cardSourceId, cardCost, cardMonthlyIncome]);
 
   const fairness = useMemo(() => computeFairness(offer), [offer]);
   const enforcementCost = ENFORCEMENT_OPTS.find((e) => e.id === enforcement)?.cost ?? 0;
@@ -117,7 +127,13 @@ export const OfferBuilderModal: React.FC<Props> = ({
             }
             <div className="negot-player-info">
               <span className="negot-player-role negot-role-me">{me.name.toUpperCase()}</span>
-              <span className="negot-player-cash">${me.cash.toLocaleString('ru-RU')}</span>
+              {cardCost
+                ? <span className="negot-player-cash">
+                    Вклад ${Math.round(cardCost * preset.myShare / 100).toLocaleString('ru-RU')}
+                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}> +${Math.round(cardMonthlyIncome * preset.myShare / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                  </span>
+                : <span className="negot-player-cash">${me.cash.toLocaleString('ru-RU')}</span>
+              }
             </div>
           </div>
 
@@ -126,7 +142,13 @@ export const OfferBuilderModal: React.FC<Props> = ({
           <div className="negot-player-chip negot-player-partner">
             <div className="negot-player-info negot-info-right">
               <span className="negot-player-role negot-role-partner">{partner.name.toUpperCase()}</span>
-              <span className="negot-player-cash">${partner.cash.toLocaleString('ru-RU')}</span>
+              {cardCost
+                ? <span className="negot-player-cash">
+                    Вклад ${Math.round(cardCost * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}
+                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}> +${Math.round(cardMonthlyIncome * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                  </span>
+                : <span className="negot-player-cash">${partner.cash.toLocaleString('ru-RU')}</span>
+              }
             </div>
             {partnerPortrait
               ? <img src={partnerPortrait} alt="" className="negot-player-portrait" draggable={false} />

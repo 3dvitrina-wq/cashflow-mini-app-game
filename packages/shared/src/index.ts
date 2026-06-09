@@ -367,6 +367,8 @@ export interface PendingDeal {
   status: DealStatus;
   createdRound: number;
   expiresRound: number;
+  /** The card that was active when this deal was proposed. Set when deal is card-linked. */
+  sourceCardId?: string;
 }
 
 // ─── Phase 3: Interest Window ────────────────────────────────────────────────
@@ -512,6 +514,8 @@ export interface OfferPayload {
   projectedAssetValue?: number;
   enforcement?: EnforcementLevel;
   description: string;
+  /** Card that was active when this offer was built. Triggers card co-investment on accept. */
+  sourceCardId?: string;
 }
 
 // ─── Game Events ────────────────────────────────────────────────────────────

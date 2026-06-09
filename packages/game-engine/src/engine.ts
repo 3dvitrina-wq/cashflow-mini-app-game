@@ -8,6 +8,7 @@ import type {
   AvatarState,
   Command,
   CommandResult,
+  Effect,
   GameEvent,
   MacroProfile,
   MatchState,
@@ -329,6 +330,47 @@ function choiceUpfrontCost(choice: { effects: { type: string; amount?: number; p
   return need;
 }
 
+function isNegativeScenarioEffect(effect: Effect): boolean {
+  const amount = effect.amount ?? 0;
+  if (effect.type === 'cash.set_zero') return true;
+  if (effect.type === 'cash.delta' && amount < 0) return true;
+  if (effect.type === 'income.add' && amount < 0) return true;
+  if (effect.type === 'passive.add' && amount < 0) return true;
+  if (effect.type === 'expense.add' && amount > 0) return true;
+  if (effect.type === 'stress.delta' && amount > 0) return true;
+  if (effect.type === 'trust.delta' && amount < 0) return true;
+  if (effect.type === 'reputation.delta' && amount < 0) return true;
+  if (effect.type === 'debt.delta' && amount > 0) return true;
+  if (effect.type === 'avatar.state.set' && effect.value !== 'stable' && effect.value !== 'happy') return true;
+  return false;
+}
+
+function maybeUseCrisisImmunity(
+  state: MatchState,
+  actor: PlayerState,
+  card: NonNullable<ReturnType<typeof getCard>>,
+  choiceIndex: number,
+): GameEvent[] | null {
+  if (card.type !== 'crisis') return null;
+  const choice = card.choices?.[choiceIndex];
+  if (!choice?.effects.some(isNegativeScenarioEffect)) return null;
+  if (!actor.protections.includes('crisis_immunity')) return null;
+  if (actor.skillTags.includes('crisis_immunity_used')) return null;
+
+  actor.protections = actor.protections.filter((id) => id !== 'crisis_immunity');
+  actor.skillTags.push('crisis_immunity_used');
+  const playerIndex = Math.max(0, state.players.findIndex((p) => p.id === actor.id));
+  const roll = rngFloat(state.seed, state.rngCounter + state.round * 97 + playerIndex * 13 + choiceIndex);
+  const blocked = roll < 0.5;
+  return [{
+    type: 'effect',
+    playerId: actor.id,
+    effectType: 'protection.add',
+    message: blocked ? 'crisis_immunity blocked the crisis' : 'crisis_immunity failed',
+    payload: { protectionId: 'crisis_immunity', roll: Number(roll.toFixed(4)), blocked },
+  }];
+}
+
 // True if `playerId` may pick `choiceIndex`: either they can pay its upfront cost,
 // or every option costs more than they have (a forced crisis with no way out — let
 // the clamp-to-zero damage model resolve it). Shared by validateCommand and the UI
@@ -480,6 +522,14 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex)) {
       return 'insufficient cash for this option';
     }
+
+    const actor = state.players.find((p) => p.id === cmd.playerId);
+    const addsCrisisImmunity = choices[cmd.choiceIndex]?.effects.some(
+      (effect) => effect.type === 'protection.add' && effect.value === 'crisis_immunity',
+    );
+    if (actor && addsCrisisImmunity && (actor.protections.includes('crisis_immunity') || actor.skillTags.includes('crisis_immunity_used'))) {
+      return 'crisis immunity already used this match';
+    }
   }
   // Note: open_futures_position is validated earlier (self-economy branch).
 
@@ -543,6 +593,12 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       if (card?.choices) {
         const choice = card.choices[cmd.choiceIndex];
         if (choice) {
+          const immunityEvents = maybeUseCrisisImmunity(state, actor, card, cmd.choiceIndex);
+          if (immunityEvents) {
+            events.push(...immunityEvents);
+            const blocked = immunityEvents.some((e) => e.payload?.blocked === true);
+            if (blocked) break;
+          }
           events.push(...applyEffects(state, actor, choice.effects));
         }
       }
