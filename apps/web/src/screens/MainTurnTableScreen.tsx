@@ -367,6 +367,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
+  const [showDealConfirm, setShowDealConfirm] = useState(false);
   const card = match.currentCard ? tCard(match.currentCard) : null;
   // Deal banner shown with delay when card is active, hidden while interestWindow is open
   const [dealBannerReady, setDealBannerReady] = useState(false);
@@ -1287,7 +1288,7 @@ export const MainTurnTableScreen: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
-                  onClick={() => { acceptIncomingDeal(); showToast('Партнёрство принято 🤝', 'success'); }}
+                  onClick={() => setShowDealConfirm(true)}
                   style={{ flex: 1, height: 40, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
                 >
                   Принять
@@ -1297,6 +1298,69 @@ export const MainTurnTableScreen: React.FC = () => {
                   style={{ flex: 1, height: 40, borderRadius: 12, fontWeight: 800, fontSize: 13, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#B8B6A9' }}
                 >
                   Отклонить
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Deal confirmation sheet */}
+      {showDealConfirm && incomingDeal && (() => {
+        const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
+        const myShareFrac = incomingDeal.offer.shareSplit?.[me.id] ?? 0.5;
+        const cardCostFull = incomingDeal.offer.projectedAssetValue ?? 0;
+        const monthlyFull = incomingDeal.offer.projectedMonthlyIncome ?? 0;
+        const myInvest = Math.round(cardCostFull * myShareFrac);
+        const myMonthly = Math.round(monthlyFull * myShareFrac);
+        const newPassive = (me.passiveIncome ?? 0) + myMonthly;
+        return (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 9000,
+            background: 'rgba(0,0,0,0.7)',
+            display: 'flex', alignItems: 'flex-end',
+          }}>
+            <div style={{
+              width: '100%', maxWidth: 480, margin: '0 auto',
+              background: '#16151A', borderRadius: '20px 20px 0 0',
+              padding: '24px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16,
+            }}>
+              <div style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED' }}>
+                🤝 Подтвердить партнёрство
+              </div>
+              <div style={{ fontSize: 13, color: '#7D7B6F' }}>
+                {proposer?.name ?? 'Игрок'} · {incomingDeal.offer.description}
+              </div>
+              <div style={{
+                background: 'rgba(255,255,255,0.04)', borderRadius: 14,
+                padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: '#B8B6A9' }}>Ваш вклад</span>
+                  <span style={{ color: '#E84B2A', fontWeight: 900 }}>−${myInvest.toLocaleString('ru-RU')}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: '#B8B6A9' }}>Ваш доход</span>
+                  <span style={{ color: '#28C76F', fontWeight: 900 }}>+${myMonthly.toLocaleString('ru-RU')}/мес</span>
+                </div>
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                  <span style={{ color: '#B8B6A9' }}>Пассивный доход после</span>
+                  <span style={{ color: '#F5C524', fontWeight: 900 }}>${newPassive.toLocaleString('ru-RU')}/мес</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <button
+                  onClick={() => { setShowDealConfirm(false); acceptIncomingDeal(); showToast('Партнёрство принято 🤝', 'success'); }}
+                  style={{ flex: 2, height: 48, borderRadius: 14, border: 'none', fontWeight: 900, fontSize: 15, background: '#28C76F', color: '#0B0B0C' }}
+                >
+                  Подтвердить
+                </button>
+                <button
+                  onClick={() => setShowDealConfirm(false)}
+                  style={{ flex: 1, height: 48, borderRadius: 14, fontWeight: 800, fontSize: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#B8B6A9' }}
+                >
+                  Назад
                 </button>
               </div>
             </div>
@@ -1316,8 +1380,8 @@ export const MainTurnTableScreen: React.FC = () => {
             me={me}
             partner={partner}
             cardTitle={card?.title ?? 'Инвестиция'}
-            cardCost={selectedPreview?.now != null && selectedPreview.now < 0 ? Math.abs(selectedPreview.now) : undefined}
-            cardMonthlyIncome={selectedPreview?.monthlyNet != null && selectedPreview.monthlyNet > 0 ? selectedPreview.monthlyNet : undefined}
+            cardCost={(() => { const v = choicePreviews.filter(p => p && p.now < 0).map(p => Math.abs(p!.now)); return v.length ? Math.max(...v) : undefined; })()}
+            cardMonthlyIncome={(() => { const v = choicePreviews.filter(p => p && p.monthlyNet > 0).map(p => p!.monthlyNet); return v.length ? Math.max(...v) : undefined; })()}
             cardSourceId={card?.id}
             onAccept={(offer) => {
               const outcome = submitDealOffer(partner.id, offer);

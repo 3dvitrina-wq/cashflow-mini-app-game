@@ -128,9 +128,9 @@ export const OfferBuilderModal: React.FC<Props> = ({
             <div className="negot-player-info">
               <span className="negot-player-role negot-role-me">{me.name.toUpperCase()}</span>
               {cardCost
-                ? <span className="negot-player-cash">
-                    Вклад ${Math.round(cardCost * preset.myShare / 100).toLocaleString('ru-RU')}
-                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}> +${Math.round(cardMonthlyIncome * preset.myShare / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                ? <span className="negot-player-cash" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span>−${Math.round(cardCost * preset.myShare / 100).toLocaleString('ru-RU')}</span>
+                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}>+${Math.round(cardMonthlyIncome * preset.myShare / 100).toLocaleString('ru-RU')}/мес</span> : null}
                   </span>
                 : <span className="negot-player-cash">${me.cash.toLocaleString('ru-RU')}</span>
               }
@@ -143,9 +143,9 @@ export const OfferBuilderModal: React.FC<Props> = ({
             <div className="negot-player-info negot-info-right">
               <span className="negot-player-role negot-role-partner">{partner.name.toUpperCase()}</span>
               {cardCost
-                ? <span className="negot-player-cash">
-                    Вклад ${Math.round(cardCost * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}
-                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}> +${Math.round(cardMonthlyIncome * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                ? <span className="negot-player-cash" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    <span>−${Math.round(cardCost * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}</span>
+                    {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}>+${Math.round(cardMonthlyIncome * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}/мес</span> : null}
                   </span>
                 : <span className="negot-player-cash">${partner.cash.toLocaleString('ru-RU')}</span>
               }
