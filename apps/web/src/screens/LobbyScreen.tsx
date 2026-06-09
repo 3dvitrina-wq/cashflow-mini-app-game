@@ -971,7 +971,7 @@ export const LobbyScreen: React.FC = () => {
                   <span><b>Питомцы</b><small>Собери свою коллекцию</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => players[0] && openVisit(players[0], undefined, 'home')}>
-                  <img src={hostHome?.image ?? iconRoom} alt="" draggable={false} style={hostHome?.image ? undefined : { width: 40, height: 40, objectFit: 'contain' }} />
+                  <img src={iconRoom} alt="" draggable={false} style={{ width: 40, height: 40, objectFit: 'contain' }} />
                   <span><b>Интерьеры</b><small>Прокачай комнату</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => setIsCharSelectOpen(true)}>
