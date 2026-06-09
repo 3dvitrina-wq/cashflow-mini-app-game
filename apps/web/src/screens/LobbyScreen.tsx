@@ -964,14 +964,14 @@ export const LobbyScreen: React.FC = () => {
             <div className="lobby-hook-lower">
               <section className="lobby-hook-carousel" aria-label="Коллекции лобби">
                 <button className="lobby-feature-tile" onClick={() => setIsPetSheetOpen(true)}>
-                  {activeLobbyPet
+                  {lobbyPetId && activeLobbyPet
                     ? <img src={activeLobbyPet.image} alt="" draggable={false} />
-                    : <img src={iconPaw} alt="" draggable={false} />
+                    : <img src={iconPaw} alt="" draggable={false} style={{ borderRadius: 0 }} />
                   }
                   <span><b>Питомцы</b><small>Собери свою коллекцию</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => players[0] && openVisit(players[0], undefined, 'home')}>
-                  <img src={iconRoom} alt="" draggable={false} style={{ borderRadius: 0, width: 72, height: 72 }} />
+                  <img src={iconRoom} alt="" draggable={false} style={{ borderRadius: 0 }} />
                   <span><b>Интерьеры</b><small>Прокачай комнату</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => setIsCharSelectOpen(true)}>
