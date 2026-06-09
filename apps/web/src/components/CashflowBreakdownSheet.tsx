@@ -45,11 +45,8 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
     const sub = partnerNames.length
       ? `🤝 ${partnerNames.join(', ')}${mySharePct != null ? ` · ваша доля ${mySharePct}%` : ''}`
       : undefined;
-    // also show upkeep inline if this asset has both income and upkeep
-    const upkeepNote = asset.upkeepPerRound > 0 ? ` (обслуж. −$${fmt(asset.upkeepPerRound)})` : '';
-    incomeItems.push({ icon: '🏢', label: asset.name + upkeepNote, sub, amount: asset.incomePerRound });
+    incomeItems.push({ icon: '🏢', label: asset.name, sub, amount: asset.incomePerRound });
   }
-  const totalIncome = incomeItems.reduce((s, i) => s + i.amount, 0);
 
   // ── expense items ────────────────────────────────────────────────────────────
   const expenseItems: { icon: string; label: string; sub?: string; amount: number }[] = [];
@@ -80,20 +77,10 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   if (tax > 0) {
     expenseItems.push({ icon: '📊', label: 'Налог', amount: tax });
   }
+
+  const totalIncome = incomeItems.reduce((s, i) => s + i.amount, 0);
   const totalExpense = expenseItems.reduce((s, i) => s + i.amount, 0);
-
-  // ── partnerships summary ─────────────────────────────────────────────────────
-  const partnershipItems = p.partnerships.map((pt) => {
-    const partners = pt.players.filter((id) => id !== p.id).map((id) => allNames[id] ?? id);
-    const myShare = pt.shareRules[p.id] ?? 0;
-    return { partners, scope: pt.scope[0] ?? 'Сделка', share: Math.round(myShare * 100) };
-  });
-
-  const isIncome = mode === 'income';
-  const items = isIncome ? incomeItems : expenseItems;
-  const total = isIncome ? totalIncome : totalExpense;
-  const title = isIncome ? '💰 Доходы' : '🔥 Расходы';
-  const totalColor = isIncome ? '#28C76F' : '#E84B2A';
+  const net = totalIncome - totalExpense;
 
   return (
     <div
@@ -115,7 +102,7 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
       >
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED' }}>{title}</span>
+          <span style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED' }}>💸 Денежный поток</span>
           <button
             onClick={onClose}
             style={{ background: 'transparent', border: 'none', color: '#7D7B6F', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}
@@ -126,19 +113,21 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
 
         {/* List */}
         <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {items.length === 0 && (
-            <div style={{ fontSize: 13, color: '#7D7B6F', textAlign: 'center', padding: 24 }}>
-              Нет данных
+
+          {/* Income section label */}
+          {incomeItems.length > 0 && (
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#28C76F', textTransform: 'uppercase', margin: '2px 0 2px', padding: '0 4px' }}>
+              Доходы
             </div>
           )}
-          {items.map((item, idx) => (
+          {incomeItems.map((item, idx) => (
             <div
-              key={idx}
+              key={`inc-${idx}`}
               style={{
                 display: 'flex', alignItems: 'center', gap: 10,
                 padding: '10px 12px',
                 borderRadius: 12,
-                background: 'rgba(255,255,255,0.04)',
+                background: 'rgba(40,199,111,0.05)',
               }}
             >
               <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
@@ -150,55 +139,61 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
                   <div style={{ fontSize: 11, color: '#7D7B6F', marginTop: 2 }}>{item.sub}</div>
                 )}
               </div>
-              <span style={{ fontSize: 14, fontWeight: 900, color: totalColor, flexShrink: 0 }}>
-                {isIncome ? '+' : '-'}${fmt(item.amount)}
+              <span style={{ fontSize: 14, fontWeight: 900, color: '#28C76F', flexShrink: 0 }}>
+                +${fmt(item.amount)}
               </span>
             </div>
           ))}
 
-          {/* Partnerships section (only on income tab) */}
-          {isIncome && partnershipItems.length > 0 && (
-            <>
-              <div style={{ fontSize: 11, fontWeight: 900, color: '#7D7B6F', textTransform: 'uppercase', margin: '10px 0 4px', padding: '0 4px' }}>
-                Партнёрства
-              </div>
-              {partnershipItems.map((pt, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 10,
-                    padding: '10px 12px',
-                    borderRadius: 12,
-                    background: 'rgba(123,91,215,0.07)',
-                    border: '1px solid rgba(123,91,215,0.18)',
-                  }}
-                >
-                  <span style={{ fontSize: 18, flexShrink: 0 }}>🤝</span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#F5F4ED', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {pt.scope}
-                    </div>
-                    <div style={{ fontSize: 11, color: '#7D7B6F', marginTop: 2 }}>
-                      с {pt.partners.join(', ')} · ваша доля {pt.share}%
-                    </div>
-                  </div>
+          {/* Expense section label */}
+          {expenseItems.length > 0 && (
+            <div style={{ fontSize: 11, fontWeight: 900, color: '#E84B2A', textTransform: 'uppercase', margin: '8px 0 2px', padding: '0 4px' }}>
+              Расходы
+            </div>
+          )}
+          {expenseItems.map((item, idx) => (
+            <div
+              key={`exp-${idx}`}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '10px 12px',
+                borderRadius: 12,
+                background: 'rgba(232,75,42,0.05)',
+              }}
+            >
+              <span style={{ fontSize: 18, flexShrink: 0 }}>{item.icon}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#F5F4ED', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {item.label}
                 </div>
-              ))}
-            </>
+                {item.sub && (
+                  <div style={{ fontSize: 11, color: '#7D7B6F', marginTop: 2 }}>{item.sub}</div>
+                )}
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 900, color: '#E84B2A', flexShrink: 0 }}>
+                −${fmt(item.amount)}
+              </span>
+            </div>
+          ))}
+
+          {incomeItems.length === 0 && expenseItems.length === 0 && (
+            <div style={{ fontSize: 13, color: '#7D7B6F', textAlign: 'center', padding: 24 }}>
+              Нет данных
+            </div>
           )}
 
-          {/* Total */}
+          {/* Net total */}
           <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
             padding: '12px 12px',
             marginTop: 6,
             borderRadius: 12,
             background: 'rgba(255,255,255,0.06)',
-            borderTop: `2px solid ${totalColor}22`,
+            borderTop: `2px solid ${net >= 0 ? '#28C76F' : '#E84B2A'}22`,
           }}>
             <span style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED' }}>Итого / месяц</span>
-            <span style={{ fontSize: 16, fontWeight: 900, color: totalColor }}>
-              {isIncome ? '+' : '-'}${fmt(total)}
+            <span style={{ fontSize: 16, fontWeight: 900, color: net >= 0 ? '#28C76F' : '#E84B2A' }}>
+              {net >= 0 ? '+' : '−'}${fmt(net)}
             </span>
           </div>
         </div>
