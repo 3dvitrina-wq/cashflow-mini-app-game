@@ -19,6 +19,7 @@ import { DailyCardScreen } from './DailyCardScreen';
 import { PlayerStatsScreen } from './PlayerStatsScreen';
 import { BusinessSlotsScreen } from './BusinessSlotsScreen';
 import { ProtectionScreen } from './ProtectionScreen';
+import { CashflowBreakdownSheet } from '../components/CashflowBreakdownSheet';
 import { showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { playSound } from '../lib/sound';
@@ -368,6 +369,7 @@ export const MainTurnTableScreen: React.FC = () => {
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
+  const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | null>(null);
   const card = match.currentCard ? tCard(match.currentCard) : null;
   // Deal banner shown with delay when card is active, hidden while interestWindow is open
   const [dealBannerReady, setDealBannerReady] = useState(false);
@@ -946,14 +948,14 @@ export const MainTurnTableScreen: React.FC = () => {
                       <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
                       <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
                     </span>
-                    <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'}>
+                    <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'} style={{ cursor: 'pointer' }} onClick={() => setCashflowSheet('income')}>
                       <em>{locale === 'ru' ? 'ПОТОК' : 'FLOW'}</em>
                       <strong>
                         <IconChart size={14} />
                         {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
                       </strong>
                     </span>
-                    <span className="you-stat-card">
+                    <span className="you-stat-card" style={{ cursor: 'pointer' }} onClick={() => setCashflowSheet('expense')}>
                       <em>{locale === 'ru' ? 'РАСХОДЫ' : 'BURN'}</em>
                       <strong><IconDebt size={14} /> ${moneyShort(me.monthlyExpenses ?? 0)}</strong>
                     </span>
@@ -1458,6 +1460,14 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* Native tutorial coach-mark: runs once for first-time players during an active match */}
       {card && canActNow && <TutorialOverlay />}
+
+      {/* Cashflow breakdown sheet */}
+      <CashflowBreakdownSheet
+        mode={cashflowSheet}
+        engineMatch={engineMatch}
+        localPlayerId={localPlayerId}
+        onClose={() => setCashflowSheet(null)}
+      />
     </div>
   );
 };
