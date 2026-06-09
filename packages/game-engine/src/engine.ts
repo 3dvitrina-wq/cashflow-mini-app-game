@@ -304,12 +304,29 @@ export function activePlayer(state: MatchState): PlayerState | null {
 // ─── Avatar State Derivation ────────────────────────────────────────────────
 
 export function deriveAvatarState(p: PlayerState): AvatarState {
-  if (p.cash === 0 && p.stress >= 10) return 'cardboard';
+  // Approximate net monthly cashflow from all available player fields
+  const assetIncome = p.assets.reduce((s, a) => s + a.incomePerRound, 0);
+  const assetUpkeep = p.assets.reduce((s, a) => s + a.upkeepPerRound, 0);
+  const loanPayments = p.liabilities.reduce(
+    (s, l) => (l.remainingPayments > 0 ? s + Math.round(l.principal * l.interestRate) : s), 0,
+  );
+  const approxNet = p.activeIncome + p.passiveIncome + assetIncome - p.expenses - assetUpkeep - loanPayments;
+  const bleeding = approxNet < -200;
+
+  // Бомж: nearly out of cash and losing money every month
+  if (p.cash < 500 && bleeding) return 'cardboard';
+  if (p.cash === 0 && p.stress >= 8) return 'cardboard';
+  // Overleveraged: high stress + high debt
   if (p.stress >= 7 && p.debt > 5) return 'overleveraged';
-  if (p.avatarState === 'futures_liq') return 'futures_liq'; // Sticky until next round
-  if (p.stress >= 4) return 'overworked';
+  // Sticky futures liquidation
+  if (p.avatarState === 'futures_liq') return 'futures_liq';
+  // Overworked: high stress OR meaningfully negative cashflow
+  if (p.stress >= 4 || bleeding) return 'overworked';
+  // Nomad lifestyle
   if (p.housing === 'nomad' || p.migrationStatus === 'digital_nomad') return 'nomad';
-  if (p.stress <= 3 && p.passiveIncome > p.expenses) return 'passive_calm';
+  // Passive calm: low stress AND cash is growing
+  if (p.stress <= 3 && approxNet > 0 && p.passiveIncome > 0) return 'passive_calm';
+  // Comeback: recent windfall
   if (p.recentTransfers.length > 0 && p.cash > 5000) return 'comeback';
   return 'stable';
 }
