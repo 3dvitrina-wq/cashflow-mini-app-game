@@ -966,12 +966,12 @@ export const LobbyScreen: React.FC = () => {
                 <button className="lobby-feature-tile" onClick={() => setIsPetSheetOpen(true)}>
                   {activeLobbyPet
                     ? <img src={activeLobbyPet.image} alt="" draggable={false} />
-                    : <img src={iconPaw} alt="" draggable={false} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                    : <img src={iconPaw} alt="" draggable={false} />
                   }
                   <span><b>Питомцы</b><small>Собери свою коллекцию</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => players[0] && openVisit(players[0], undefined, 'home')}>
-                  <img src={iconRoom} alt="" draggable={false} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                  <img src={iconRoom} alt="" draggable={false} style={{ borderRadius: 0 }} />
                   <span><b>Интерьеры</b><small>Прокачай комнату</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => setIsCharSelectOpen(true)}>
