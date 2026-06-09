@@ -7,6 +7,10 @@ import avatarSasha from '../assets/generated/avatar-sasha.webp';
 import avatarYou from '../assets/generated/avatar-you.webp';
 import lobbyInterior from '../assets/generated/lobby/dyor-lobby-interior-clean.webp';
 import dyorClubLogo from '../assets/generated/lobby/dyor-club-logo-transparent.webp';
+import iconPrestigeI from '../assets/generated/ui/prestige_roman_I_square.png';
+import iconFire from '../assets/generated/ui/fire_gold_square.png';
+import iconPaw from '../assets/generated/ui/paw_gold_purple_square.png';
+import iconRoom from '../assets/generated/ui/room_gold_badge_square.png';
 import {
   GENERATED_CHARACTERS,
   resolveCharacterPortrait,
@@ -122,17 +126,17 @@ const ROUND_PRESETS = [
   { id: 25, label: 'Long 25' },
 ] as const;
 
-const LOBBY_REGALIA = [
+const LOBBY_REGALIA: { id: string; icon: string; imgSrc?: string; title: string; subtitle: string }[] = [
   { id: 'top-host', icon: '🏆', title: 'Топ-хост', subtitle: '3 победы подряд' },
-  { id: 'prestige', icon: 'III', title: 'Престиж III', subtitle: '560 / 1000' },
-  { id: 'legend-room', icon: '🦊', title: 'Легендарная', subtitle: 'комната' },
-] as const;
+  { id: 'prestige', icon: 'I', imgSrc: iconPrestigeI, title: 'Престиж I', subtitle: '560 / 1000' },
+  { id: 'legend-room', icon: '🔥', imgSrc: iconFire, title: 'Легендарная', subtitle: 'комната' },
+];
 
-const HOST_BADGES = [
+const HOST_BADGES: { id: string; icon: string; imgSrc?: string; title: string; subtitle: string }[] = [
   { id: 'host', icon: '👑', title: 'Топ-хост', subtitle: 'в этом месяце' },
   { id: 'collector', icon: '🎁', title: 'Редкий', subtitle: 'коллекционер' },
-  { id: 'interior', icon: '🏠', title: 'Интерьер', subtitle: 'премиум-зала' },
-] as const;
+  { id: 'interior', icon: '🏠', imgSrc: iconRoom, title: 'Интерьер', subtitle: 'премиум-зала' },
+];
 
 /** Renders a pet video with its black background keyed to true transparency.
  *  iOS WebKit (Telegram) ignores mix-blend-mode on <video>, so we draw each
@@ -947,7 +951,10 @@ export const LobbyScreen: React.FC = () => {
                 </button>
                 {LOBBY_REGALIA.slice(1).map((badge) => (
                   <span key={badge.id} className="lobby-hook-regalia-chip">
-                    <b>{badge.icon}</b>
+                    {badge.imgSrc
+                      ? <img src={badge.imgSrc} alt="" draggable={false} style={{ width: 32, height: 32, objectFit: 'contain', flexShrink: 0 }} />
+                      : <b>{badge.icon}</b>
+                    }
                     <span>{badge.title}<small>{badge.subtitle}</small></span>
                   </span>
                 ))}
@@ -957,11 +964,14 @@ export const LobbyScreen: React.FC = () => {
             <div className="lobby-hook-lower">
               <section className="lobby-hook-carousel" aria-label="Коллекции лобби">
                 <button className="lobby-feature-tile" onClick={() => setIsPetSheetOpen(true)}>
-                  {activeLobbyPet ? <img src={activeLobbyPet.image} alt="" draggable={false} /> : <IconPawBadge size={28} />}
+                  {activeLobbyPet
+                    ? <img src={activeLobbyPet.image} alt="" draggable={false} />
+                    : <img src={iconPaw} alt="" draggable={false} style={{ width: 40, height: 40, objectFit: 'contain' }} />
+                  }
                   <span><b>Питомцы</b><small>Собери свою коллекцию</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => players[0] && openVisit(players[0], undefined, 'home')}>
-                  {hostHome?.image && <img src={hostHome.image} alt="" draggable={false} />}
+                  <img src={hostHome?.image ?? iconRoom} alt="" draggable={false} style={hostHome?.image ? undefined : { width: 40, height: 40, objectFit: 'contain' }} />
                   <span><b>Интерьеры</b><small>Прокачай комнату</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => setIsCharSelectOpen(true)}>
@@ -1015,7 +1025,10 @@ export const LobbyScreen: React.FC = () => {
                   Комната #4F2A · <span className="room-players">{players.length}/6</span>
                 </span>
                 <span className="lobby-room-sub">в гостях у хоста</span>
-                <span className="lobby-prestige-chip">III · Престиж III</span>
+                <span className="lobby-prestige-chip" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <img src={iconPrestigeI} alt="" draggable={false} style={{ width: 18, height: 18, objectFit: 'contain' }} />
+                  Престиж I
+                </span>
               </div>
               <button
                 className="lobby-room-interior-mini"
@@ -1089,7 +1102,10 @@ export const LobbyScreen: React.FC = () => {
             <div className="lobby-achievement-strip">
               {HOST_BADGES.map((badge) => (
                 <button key={badge.id} className="lobby-achievement-card" onClick={() => players[0] && openVisit(players[0])}>
-                  <span>{badge.icon}</span>
+                  {badge.imgSrc
+                    ? <img src={badge.imgSrc} alt="" draggable={false} style={{ width: 32, height: 32, objectFit: 'contain' }} />
+                    : <span>{badge.icon}</span>
+                  }
                   <b>{badge.title}</b>
                   <small>{badge.subtitle}</small>
                 </button>
