@@ -62,6 +62,17 @@ function drainBotTurns(roomCode: string): void {
       break;
     }
   }
+  // After the cascade, un-bot any connected human who was only temporarily
+  // bot-controlled by the turn timer (disconnected players keep their flag).
+  const roomAfterDrain = getRoom(roomCode);
+  if (roomAfterDrain) {
+    for (const m of roomAfterDrain.members) {
+      if (!m.isBot && m.connected && m.botControlled) {
+        m.botControlled = false;
+      }
+    }
+  }
+
   // Schedule human-turn timeout (cancel any previous one first)
   const room = getRoom(roomCode);
   if (room && room.status === 'playing') {
