@@ -1384,6 +1384,7 @@ export const MainTurnTableScreen: React.FC = () => {
             cardTitle={card?.title ?? 'Инвестиция'}
             cardCost={(() => { const v = choicePreviews.filter(p => p && p.now < 0).map(p => Math.abs(p!.now)); return v.length ? Math.max(...v) : undefined; })()}
             cardMonthlyIncome={(() => { const v = choicePreviews.filter(p => p && p.monthlyNet > 0).map(p => p!.monthlyNet); return v.length ? Math.max(...v) : undefined; })()}
+            cardMonthlyExpense={(() => { const v = choicePreviews.filter(p => p && p.now < 0).map(p => p!.monthlyUpkeep ?? 0); return v.length && Math.max(...v) > 0 ? Math.max(...v) : undefined; })()}
             cardSourceId={card?.id}
             onAccept={(offer) => {
               const outcome = submitDealOffer(partner.id, offer);

@@ -1497,6 +1497,8 @@ export interface ChoicePreview {
   now: number;
   /** Net monthly cashflow change (activeIncome + passive − expenses). */
   monthlyNet: number;
+  /** Monthly asset upkeep added by this choice (positive = new expense). */
+  monthlyUpkeep: number;
   lines: PreviewLine[];
   hint?: string;
 }
@@ -1507,6 +1509,7 @@ function previewSnapshot(p: PlayerState) {
     passive: Math.round(p.passiveIncome),
     expenses: Math.round(p.expenses),
     cashflow: Math.round(effectiveActiveIncome(p) + p.passiveIncome - p.expenses),
+    assetUpkeep: Math.round(p.assets.reduce((s, a) => s + a.upkeepPerRound, 0)),
     stress: Math.round(p.stress),
     debt: Math.round(p.debt),
   };
@@ -1543,6 +1546,7 @@ export function previewChoice(
     label: choice.label,
     now: after.cash - before.cash,
     monthlyNet: after.cashflow - before.cashflow,
+    monthlyUpkeep: after.assetUpkeep - before.assetUpkeep,
     lines,
     hint: choice.hint,
   };

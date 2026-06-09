@@ -38,6 +38,8 @@ interface Props {
   cardCost?: number;
   /** Monthly income the active card generates. */
   cardMonthlyIncome?: number;
+  /** Monthly upkeep/expense the active card adds. */
+  cardMonthlyExpense?: number;
   /** ID of the active card — included in offer so acceptDeal can run co-investment. */
   cardSourceId?: string;
   onAccept: (offer: OfferPayload) => void;
@@ -76,7 +78,7 @@ export const FocusTokenEvent: React.FC<{ playerName: string }> = ({ playerName }
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export const OfferBuilderModal: React.FC<Props> = ({
-  me, partner, cardTitle, cardCost, cardMonthlyIncome, cardSourceId, onAccept, onCounter, onPass,
+  me, partner, cardTitle, cardCost, cardMonthlyIncome, cardMonthlyExpense, cardSourceId, onAccept, onCounter, onPass,
 }) => {
   const { computeFairness } = useStore();
   const [presetId, setPresetId] = useState<OfferPayload['preset']>('split_50_50');
@@ -131,6 +133,7 @@ export const OfferBuilderModal: React.FC<Props> = ({
                 ? <span className="negot-player-cash" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <span>−${Math.round(cardCost * preset.myShare / 100).toLocaleString('ru-RU')}</span>
                     {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}>+${Math.round(cardMonthlyIncome * preset.myShare / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                    {cardMonthlyExpense ? <span style={{ fontSize: 10, color: '#E84B2A' }}>−${Math.round(cardMonthlyExpense * preset.myShare / 100).toLocaleString('ru-RU')}/мес расход</span> : null}
                   </span>
                 : <span className="negot-player-cash">${me.cash.toLocaleString('ru-RU')}</span>
               }
@@ -146,6 +149,7 @@ export const OfferBuilderModal: React.FC<Props> = ({
                 ? <span className="negot-player-cash" style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                     <span>−${Math.round(cardCost * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}</span>
                     {cardMonthlyIncome ? <span style={{ fontSize: 10, color: '#28C76F' }}>+${Math.round(cardMonthlyIncome * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}/мес</span> : null}
+                    {cardMonthlyExpense ? <span style={{ fontSize: 10, color: '#E84B2A' }}>−${Math.round(cardMonthlyExpense * (100 - preset.myShare) / 100).toLocaleString('ru-RU')}/мес расход</span> : null}
                   </span>
                 : <span className="negot-player-cash">${partner.cash.toLocaleString('ru-RU')}</span>
               }
