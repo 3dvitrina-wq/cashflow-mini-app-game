@@ -928,6 +928,21 @@ export const useStore = create<AppState>((set, get) => ({
             (deal) => deal.status === 'pending' && deal.targetId === me.id && deal.proposerId !== me.id,
           ) ?? null
         : null;
+
+      // Surface futures settlements to the UI.
+      // The engine appends futures.resolve events to eventLog during advanceRound.
+      // In multiplayer we only have the state, not the ephemeral advanceRound events,
+      // so we read the NEW tail of the eventLog (events added since the previous state).
+      const prevLogLen = st.engineMatch?.eventLog?.length ?? 0;
+      const newEvents = serverState.eventLog.slice(prevLogLen);
+      const humanId = me?.id;
+      if (humanId) {
+        const futuresResults = newEvents
+          .filter((e) => e.type === 'futures' && e.effectType === 'futures.resolve' && e.playerId === humanId)
+          .map((e) => ({ pnl: Math.round(e.amount ?? 0), liquidated: /LIQUIDATED/.test(e.message ?? '') }));
+        if (futuresResults.length > 0) nextMatch.lastFuturesResults = futuresResults;
+      }
+
       if (serverState.phase === 'finished') {
         return {
           engineMatch: serverState,

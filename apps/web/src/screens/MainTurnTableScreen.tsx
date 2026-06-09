@@ -1067,20 +1067,24 @@ export const MainTurnTableScreen: React.FC = () => {
                         title={canAfford ? undefined : (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash')}
                       >
                         <span className="survival-choice-icon">{canAfford ? choiceIcon(choice) : '🔒'}</span>
-                        <span className="survival-choice-label">{label}</span>
-                        {inlineDelta && canAfford && (
-                          <span style={{
-                            display: 'block',
-                            fontSize: 10,
-                            fontWeight: 700,
-                            color: preview && preview.now + preview.monthlyNet >= 0 ? '#28C76F' : '#E84B2A',
-                            lineHeight: 1.2,
-                            marginTop: 2,
-                            opacity: 0.85,
-                          }}>
-                            {inlineDelta}
-                          </span>
-                        )}
+                        <span className="survival-choice-body">
+                          <span className="survival-choice-label">{label}</span>
+                          {inlineDelta && canAfford && (
+                            <span style={{
+                              display: 'block',
+                              fontSize: 9,
+                              fontWeight: 700,
+                              color: preview && preview.now + preview.monthlyNet >= 0 ? '#28C76F' : '#E84B2A',
+                              lineHeight: 1.2,
+                              opacity: 0.85,
+                              whiteSpace: 'nowrap',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                            }}>
+                              {inlineDelta}
+                            </span>
+                          )}
+                        </span>
                       </button>
                     );
                   })}
