@@ -1251,7 +1251,7 @@ export const LobbyScreen: React.FC = () => {
       </div>
 
       {/* Pet — fixed on background layer, does not scroll with lobby-content */}
-      {activeLobbyPet && multiMode === 'none' && !isRoomOpen && (
+      {lobbyPetId && activeLobbyPet && multiMode === 'none' && !isRoomOpen && (
         <button
           ref={petRef}
           className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
