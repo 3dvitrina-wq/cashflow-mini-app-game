@@ -36,11 +36,18 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   }
   for (const asset of p.assets) {
     if (asset.incomePerRound <= 0) continue;
-    const partnerNames = (asset.coOwners ?? [])
-      .filter((id) => id !== p.id)
-      .map((id) => allNames[id] ?? id);
-    const sub = partnerNames.length ? `🤝 ${partnerNames.join(', ')}` : undefined;
-    incomeItems.push({ icon: '🏢', label: asset.name, sub, amount: asset.incomePerRound });
+    const coOwnerIds = (asset.coOwners ?? []).filter((id) => id !== p.id);
+    const pt = coOwnerIds.length
+      ? p.partnerships.find((pp) => coOwnerIds.every((id) => pp.players.includes(id)))
+      : undefined;
+    const mySharePct = pt ? Math.round((pt.shareRules[p.id] ?? 0) * 100) : undefined;
+    const partnerNames = coOwnerIds.map((id) => allNames[id] ?? id);
+    const sub = partnerNames.length
+      ? `🤝 ${partnerNames.join(', ')}${mySharePct != null ? ` · ваша доля ${mySharePct}%` : ''}`
+      : undefined;
+    // also show upkeep inline if this asset has both income and upkeep
+    const upkeepNote = asset.upkeepPerRound > 0 ? ` (обслуж. −$${fmt(asset.upkeepPerRound)})` : '';
+    incomeItems.push({ icon: '🏢', label: asset.name + upkeepNote, sub, amount: asset.incomePerRound });
   }
   const totalIncome = incomeItems.reduce((s, i) => s + i.amount, 0);
 
@@ -52,7 +59,16 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   }
   for (const asset of p.assets) {
     if (asset.upkeepPerRound <= 0) continue;
-    expenseItems.push({ icon: '🔧', label: `${asset.name} (обслуживание)`, amount: asset.upkeepPerRound });
+    const coOwnerIds = (asset.coOwners ?? []).filter((id) => id !== p.id);
+    const pt = coOwnerIds.length
+      ? p.partnerships.find((pp) => coOwnerIds.every((id) => pp.players.includes(id)))
+      : undefined;
+    const mySharePct = pt ? Math.round((pt.shareRules[p.id] ?? 0) * 100) : undefined;
+    const partnerNames = coOwnerIds.map((id) => allNames[id] ?? id);
+    const sub = partnerNames.length
+      ? `🤝 ${partnerNames.join(', ')}${mySharePct != null ? ` · ваша доля ${mySharePct}%` : ''}`
+      : undefined;
+    expenseItems.push({ icon: '🔧', label: `${asset.name} (обслуживание)`, sub, amount: asset.upkeepPerRound });
   }
   for (const lib of p.liabilities) {
     if (lib.remainingPayments <= 0) continue;

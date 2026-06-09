@@ -234,8 +234,20 @@ function toUiPlayer(
   const monthlyExpenses = cf.expense;
   const netCashflow = cf.net;
   const assetValue = p.assets.reduce((sum, asset) => sum + asset.value, 0);
+  // Only count an asset as occupying a business slot when the player is the
+  // sole owner OR the majority (highest-share) co-owner. A 20% minority stake
+  // still earns income but shouldn't block other acquisitions.
   const businesses = [
-    ...p.assets.map((asset) => asset.name),
+    ...p.assets
+      .filter((asset) => {
+        if (!asset.coOwners || asset.coOwners.length <= 1) return true;
+        const pt = p.partnerships.find((pp) => asset.coOwners!.every((id) => pp.players.includes(id)));
+        if (!pt) return true;
+        const myShare = pt.shareRules[p.id] ?? 0;
+        const maxShare = Math.max(...Object.values(pt.shareRules));
+        return myShare >= maxShare; // majority or equal (50/50 both count)
+      })
+      .map((asset) => asset.name),
     ...p.businesses.filter((name) => !p.assets.some((asset) => asset.name === name)),
   ];
 
