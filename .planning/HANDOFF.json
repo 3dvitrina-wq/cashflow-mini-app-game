@@ -1,0 +1,81 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-07-30T08:51:02.845Z",
+  "phase": "1",
+  "phase_name": "engine-contract-hardening-and-market-design",
+  "phase_dir": ".planning/phases/PHASE_1_ENGINE_SPEC.md",
+  "plan": 1,
+  "task": 3,
+  "total_tasks": 6,
+  "status": "paused",
+  "completed_tasks": [
+    {
+      "id": 1,
+      "name": "Six-player Network Lab shell",
+      "status": "done",
+      "commit": "1546410"
+    },
+    {
+      "id": 2,
+      "name": "Deterministic simulation, invariant checks, and honest audit exits",
+      "status": "done",
+      "commit": "75e8ff0"
+    },
+    {
+      "id": 3,
+      "name": "Authoritative economy contracts and multiplayer command boundary",
+      "status": "done",
+      "commit": "75e8ff0"
+    }
+  ],
+  "remaining_tasks": [
+    {
+      "id": 4,
+      "name": "Reframe balance oracle around integrity, starting-role tradeoffs, risk pricing, and decision sensitivity",
+      "status": "not_started"
+    },
+    {
+      "id": 5,
+      "name": "Implement visible player marketplace with arbitrary asks, bids, counteroffers, and atomic settlement",
+      "status": "not_started"
+    },
+    {
+      "id": 6,
+      "name": "Upgrade Network Lab to six strategic profiles with individual legal choices",
+      "status": "not_started"
+    }
+  ],
+  "blockers": [],
+  "human_actions_pending": [],
+  "decisions": [
+    {
+      "decision": "Do not target equal win rates or symmetrical outcomes.",
+      "rationale": "Leverage, partnerships, timing, negotiation, and deliberate risk are intended sources of advantage.",
+      "phase": "1"
+    },
+    {
+      "decision": "Treat rules integrity as a hard gate and economic dominance metrics as diagnostics unless a strategy strictly dominates across regimes.",
+      "rationale": "Clever legal play is desired; arithmetic duplication, invalid state, payload tampering, and non-determinism are bugs.",
+      "phase": "1"
+    },
+    {
+      "decision": "Allow any mutually accepted player-to-player sale price.",
+      "rationale": "Strategic scarcity can justify a premium above book value; the engine must cap transferred ownership/income rights, not negotiated price.",
+      "phase": "1"
+    },
+    {
+      "decision": "Keep instant system liquidation separate from negotiated sales, targeting a configurable discount around 80 percent.",
+      "rationale": "Instant liquidity has no counterparty or negotiation and should trade convenience for a discount.",
+      "phase": "1"
+    }
+  ],
+  "uncommitted_files": [
+    "apps/web/src/index.css",
+    "apps/web/src/screens/LobbyScreen.tsx",
+    "apps/web/.env.production",
+    "apps/web/src/assets/generated/ui/crown_gold_square.png",
+    "assets/ui/"
+  ],
+  "next_action": "Resume the dior-club Engine V2 workspace, revise packages/sim/src/balance-oracle.ts so intended asymmetry is diagnostic rather than a hard failure, and add regression tests before implementing marketplace listings.",
+  "context_notes": "Engine contract work is green: 197 tests passed, server and web typechecks passed, and git diff --check passed. Inspector findings were fixed: duplicate hidden coder configuration removed; deal acceptance now checks target slot capacity atomically; WebSocket commands now pass CommandSchema.safeParse. A 20,000 sale of a 3,000 book-value asset is explicitly tested and accepted by mutual consent. Studio is paused, all active agents are stopped, and local ports 3001/4173 are stopped. One balance-engineer task remains queued and must not be allowed to run until the oracle criteria are revised."
+}
