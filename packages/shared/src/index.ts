@@ -233,6 +233,8 @@ export interface Asset {
   upkeepPerRound: number;
   value: number;
   acquiredRound: number;
+  /** Business capacity consumed by this asset. Missing on legacy snapshots means one slot. */
+  slotsUsed?: number;
   /** Co-ownership: all players holding a stake in this asset (set for partnership buys). */
   coOwners?: PlayerId[];
 }
@@ -424,6 +426,8 @@ export interface PlayerState {
   deposits: BankDeposit[];
   /** Phase 2: Pending deals proposed to or received from other players. */
   pendingDeals: PendingDeal[];
+  /** Stable staff identities; optional so pre-registry snapshots remain readable. */
+  hiredStaffIds?: string[];
   expenseTags: string[];
   skillTags: string[];
   recapTags: string[];

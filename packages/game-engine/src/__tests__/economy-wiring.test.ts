@@ -65,7 +65,7 @@ describe('hire_staff economy', () => {
   it('is a self-economy action allowed off-turn (not gated by active player)', () => {
     const match = createMatch(7, [...PLAYERS]); // active player is p1
     // p2 hires while it is NOT their card turn — must not be rejected for "not your turn".
-    const r = resolveCommand(match, { type: 'hire_staff', playerId: 'p2', staffId: 'coder', salary: 500 });
+    const r = resolveCommand(match, { type: 'hire_staff', playerId: 'p2', staffId: 'coder', salary: 1200 });
     expect(r.events.some((e) => e.type === 'command_rejected')).toBe(false);
     expect(r.state.players.find((p) => p.id === 'p2')!.assistantSlotsUsed).toBe(1);
   });

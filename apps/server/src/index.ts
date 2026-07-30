@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import { WebSocketServer } from 'ws';
+import { CommandSchema } from '../../../packages/shared/src/schemas';
 import {
   createRoom,
   listPublicRooms,
@@ -351,20 +352,26 @@ async function main() {
       if (msg.type === 'command' && roomCode) {
         const room = getRoom(roomCode);
         if (!room) return;
+        const parsedCommand = CommandSchema.safeParse(msg.command);
+        if (!parsedCommand.success) {
+          ws.send(JSON.stringify({ type: 'error', error: 'invalid command payload' }));
+          return;
+        }
+        const command = parsedCommand.data;
 
         // Validate sender owns the command they are submitting. Turn/phase rules
         // are enforced by the engine so off-turn economy/deal actions still work.
-        if (msg.command?.playerId !== playerId) {
+        if (command.playerId !== playerId) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot submit a command for another player' }));
           return;
         }
 
         const activePlayerId = room.engineState?.players[room.engineState.activePlayerIndex]?.id;
-        if (activePlayerId === msg.command?.playerId) {
+        if (activePlayerId === command.playerId) {
           clearTurnTimer(room);
         }
 
-        const result = applyCommand(roomCode, msg.command);
+        const result = applyCommand(roomCode, command);
         if (!result.ok || !result.room) {
           ws.send(JSON.stringify({ type: 'error', error: result.error }));
           // If the active player's timer was cleared above but the command errored

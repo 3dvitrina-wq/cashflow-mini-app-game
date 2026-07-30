@@ -3,6 +3,136 @@
 // Content is data — swap entire blocks without touching the engine.
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── Server-authoritative Economy Registry ──────────────────────────────────
+
+export interface StaffConfig {
+  readonly staffId: string;
+  readonly salary: number;
+  readonly bonus: {
+    readonly slots: number;
+    readonly income: number;
+  };
+}
+
+export interface AssetPurchaseConfig {
+  readonly kind: string;
+  readonly name: string;
+  readonly price: number;
+  readonly income: number;
+  readonly upkeep: number;
+  readonly slotsUsed: number;
+  readonly tags: readonly string[];
+  readonly synergyKeys: readonly string[];
+}
+
+const STAFF_CONFIGS: readonly StaffConfig[] = [
+  { staffId: 'junior_dev', salary: 800, bonus: { slots: 0, income: 0 } },
+  { staffId: 'welder', salary: 800, bonus: { slots: 2, income: 0 } },
+  { staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 500 } },
+  { staffId: 'chef', salary: 600, bonus: { slots: 1, income: 0 } },
+  { staffId: 'lawyer', salary: 1500, bonus: { slots: 0, income: 0 } },
+  { staffId: 'accountant', salary: 900, bonus: { slots: 0, income: 0 } },
+  { staffId: 'marketer', salary: 1100, bonus: { slots: 0, income: 300 } },
+];
+
+const ASSET_PURCHASE_CONFIGS: readonly AssetPurchaseConfig[] = [
+  {
+    kind: 'storage_pod',
+    name: 'Storage Pod',
+    price: 3000,
+    income: 400,
+    upkeep: 150,
+    slotsUsed: 1,
+    tags: ['physical'],
+    synergyKeys: ['logistics'],
+  },
+  {
+    kind: 'storage_pod',
+    name: 'Storage Warehouse',
+    price: 3000,
+    income: 400,
+    upkeep: 150,
+    slotsUsed: 3,
+    tags: ['physical'],
+    synergyKeys: ['logistics'],
+  },
+  {
+    kind: 'business',
+    name: 'Coffee',
+    price: 1000,
+    income: 200,
+    upkeep: 10,
+    slotsUsed: 1,
+    tags: [],
+    synergyKeys: [],
+  },
+  {
+    kind: 'business',
+    name: 'Kiosk',
+    price: 1200,
+    income: 250,
+    upkeep: 20,
+    slotsUsed: 1,
+    tags: [],
+    synergyKeys: [],
+  },
+  {
+    kind: 'business',
+    name: 'Studio',
+    price: 3000,
+    income: 600,
+    upkeep: 50,
+    slotsUsed: 1,
+    tags: [],
+    synergyKeys: [],
+  },
+  { kind: 'business', name: 'Офисное здание', price: 24000, income: 2100, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'Кофейня', price: 8500, income: 980, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'Логистика', price: 18000, income: 1350, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'Складские юниты', price: 12000, income: 1100, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'AI Стартап', price: 15000, income: 1800, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'NFT Галерея', price: 10000, income: 1200, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'Прачечная', price: 9000, income: 950, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+  { kind: 'business', name: 'Крипто-майнинг', price: 20000, income: 2200, upkeep: 0, slotsUsed: 1, tags: [], synergyKeys: [] },
+];
+
+export function getCanonicalStaff(
+  staffId: string,
+  salary: number | undefined,
+  bonus: { slots?: number; income?: number } | undefined,
+): StaffConfig | undefined {
+  const normalizedSalary = salary ?? 0;
+  const requestedSlots = bonus?.slots;
+  const requestedIncome = bonus?.income;
+  return STAFF_CONFIGS.find((config) =>
+    config.staffId === staffId
+    && config.salary === normalizedSalary
+    && (requestedSlots === undefined || config.bonus.slots === requestedSlots)
+    && (requestedIncome === undefined || config.bonus.income === requestedIncome)
+  );
+}
+
+export function getCanonicalAssetPurchase(input: {
+  kind?: string;
+  name: string;
+  price: number;
+  income: number;
+  upkeep?: number;
+  slotsUsed?: number;
+}): AssetPurchaseConfig | undefined {
+  const kind = input.kind ?? 'business';
+  const upkeep = input.upkeep ?? 0;
+  const slotsUsed = input.slotsUsed ?? 1;
+  return ASSET_PURCHASE_CONFIGS.find((config) =>
+    config.kind === kind
+    && config.name === input.name
+    && config.price === input.price
+    && config.income === input.income
+    && config.upkeep === upkeep
+    && config.slotsUsed === slotsUsed
+  );
+}
+
 // ─── Character Registry ─────────────────────────────────────────────────────
 
 export interface CharacterConfig {

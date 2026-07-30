@@ -34,7 +34,7 @@ import { createContract, enforceAllContracts } from './contracts';
 import { updateMarketPrices, resolveFutures, settleAllFutures, openFuturesPosition } from './futures';
 import { rngFloat, rngInt, shuffle } from './rng';
 import { advanceTimeline, createTimeline } from './timeline';
-import { getAllLocations } from './registries';
+import { getAllLocations, getCanonicalAssetPurchase, getCanonicalStaff } from './registries';
 import { applyDepositInterest, createDeposit, withdrawDeposit } from './bank';
 import { expireOldDeals, proposeDeal, acceptDeal, rejectDeal } from './deals';
 import { evaluateDeal, maybeProposeDeal } from './bot';
@@ -92,6 +92,34 @@ function helpMultiplier(player: PlayerState): number {
 
 function hasTakenSurvivalJob(player: PlayerState): boolean {
   return player.skillTags.some((tag) => tag.startsWith('survival_job:'));
+}
+
+function assetSlotsUsed(asset: PlayerState['assets'][number]): number {
+  return asset.slotsUsed ?? 1;
+}
+
+function normalizedPartnerShare(partnerShare: number): number {
+  return Math.max(0.1, Math.min(0.9, Number(partnerShare.toFixed(2))));
+}
+
+function activeAssetCommitments(
+  owner: PlayerState,
+  assetId: string,
+): { partnerShares: number; recurringPayments: number } {
+  let partnerShares = 0;
+  let recurringPayments = 0;
+
+  for (const contract of owner.contracts) {
+    if (contract.status !== 'active' || contract.terms.assetId !== assetId) continue;
+    partnerShares += Object.entries(contract.terms.shares ?? {})
+      .filter(([playerId]) => playerId !== owner.id)
+      .reduce((sum, [, share]) => sum + Math.max(0, share), 0);
+    if (contract.terms.payerId === owner.id && contract.terms.paymentInterval !== undefined) {
+      recurringPayments += Math.max(0, contract.terms.paymentAmount ?? 0);
+    }
+  }
+
+  return { partnerShares, recurringPayments };
 }
 
 const TICKER_POOL = [
@@ -172,6 +200,7 @@ export function createPlayer(p: NewPlayer): PlayerState {
     partnerships: [],
     deposits: [],
     pendingDeals: [],
+    hiredStaffIds: [],
     expenseTags: [],
     skillTags: [],
     recapTags: [],
@@ -466,7 +495,23 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       if (cmd.leverage < 1 || cmd.leverage > 3) return 'leverage must be 1-3x (CANON cap)';
       if (cmd.amount > player.cash) return 'insufficient funds for futures';
     }
-    if (cmd.type === 'buy_asset' && cmd.price > player.cash) return 'insufficient cash to buy asset';
+    if (cmd.type === 'hire_staff') {
+      const staff = getCanonicalStaff(cmd.staffId, cmd.salary, cmd.bonus);
+      if (!staff) return 'staff payload does not match canonical registry';
+      if (player.hiredStaffIds?.includes(staff.staffId) || player.businesses.includes(staff.staffId)) {
+        return 'staff already hired';
+      }
+      if (player.assistantSlotsUsed >= player.assistantSlotsMax) return 'no free assistant slots';
+      if (staff.salary > player.cash) return 'insufficient cash to hire';
+    }
+    if (cmd.type === 'buy_asset') {
+      const asset = getCanonicalAssetPurchase(cmd);
+      if (!asset) return 'asset payload does not match canonical registry';
+      if (asset.price > player.cash) return 'insufficient cash to buy asset';
+      if (player.businessSlotsUsed + asset.slotsUsed > player.businessSlotsMax) {
+        return 'no free business slots';
+      }
+    }
     if (cmd.type === 'buy_pet' && cmd.price > player.cash) return 'insufficient cash to buy pet';
     if (cmd.type === 'sell_asset' && !player.assets.some((asset) => asset.id === cmd.assetId)) return 'asset not found';
     if (cmd.type === 'transfer_asset') {
@@ -476,7 +521,7 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       if (!target) return 'target player not found';
       if (!target.alive) return 'target player is eliminated';
       if (target.id === player.id) return 'cannot transfer asset to self';
-      if (target.businessSlotsUsed + 1 > target.businessSlotsMax) return 'target has no free business slots';
+      if (target.businessSlotsUsed + assetSlotsUsed(asset) > target.businessSlotsMax) return 'target has no free business slots';
       if ((asset.coOwners?.length ?? 0) > 1) return 'shared asset cannot be transferred outright';
     }
     if (cmd.type === 'share_asset') {
@@ -488,6 +533,17 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       if (target.id === player.id) return 'cannot share asset with self';
       if (cmd.partnerShare <= 0 || cmd.partnerShare >= 1) return 'partner share must be between 0 and 1';
       if (asset.coOwners?.includes(target.id)) return 'player already has a share in this asset';
+      const partnerShare = normalizedPartnerShare(cmd.partnerShare);
+      const commitments = activeAssetCommitments(player, asset.id);
+      if (commitments.partnerShares + partnerShare > 1 + 1e-9) {
+        return 'asset income share exceeds 100%';
+      }
+      const recurringPayment = asset.incomePerRound > 0
+        ? Math.max(0, Math.round(asset.incomePerRound * partnerShare))
+        : 0;
+      if (commitments.recurringPayments + recurringPayment > asset.incomePerRound) {
+        return 'asset recurring payments exceed income';
+      }
     }
     if (cmd.type === 'restructure_debt' && !player.liabilities.some((liability) => liability.id === cmd.liabilityId)) return 'liability not found';
     if (cmd.type === 'take_survival_job' && hasTakenSurvivalJob(player)) return 'survival job already taken';
@@ -665,36 +721,31 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
 
     case 'hire_staff': {
       const player = state.players.find((p) => p.id === cmd.playerId);
-      const salary = cmd.salary ?? 0;
-      if (player && player.assistantSlotsUsed >= player.assistantSlotsMax) {
-        events.push({ type: 'command_rejected', playerId: player.id, message: 'no free assistant slots' });
-        break;
-      }
-      if (player && player.cash < salary) {
-        events.push({ type: 'command_rejected', playerId: player.id, message: 'insufficient cash to hire' });
-        break;
-      }
-      if (player) {
+      const staff = getCanonicalStaff(cmd.staffId, cmd.salary, cmd.bonus);
+      if (player && staff) {
+        const salary = staff.salary;
         player.assistantSlotsUsed += 1;
-        events.push({ type: 'effect', playerId: player.id, effectType: 'assistant.hire', message: cmd.staffId });
+        player.hiredStaffIds ??= [];
+        player.hiredStaffIds.push(staff.staffId);
+        events.push({ type: 'effect', playerId: player.id, effectType: 'assistant.hire', message: staff.staffId });
         // First month paid now (immediate, visible cash hit) + salary becomes a
         // recurring monthly expense (flows into settlement via p.expenses).
         if (salary > 0) {
           player.cash -= salary;
           player.expenses = Math.max(0, player.expenses + salary);
-          events.push({ type: 'money', playerId: player.id, amount: -salary, message: `hired ${cmd.staffId}` });
-          events.push({ type: 'effect', playerId: player.id, effectType: 'expense.add', amount: salary, message: `salary ${cmd.staffId}` });
+          events.push({ type: 'money', playerId: player.id, amount: -salary, message: `hired ${staff.staffId}` });
+          events.push({ type: 'effect', playerId: player.id, effectType: 'expense.add', amount: salary, message: `salary ${staff.staffId}` });
         }
         // Worker bonus: extra business slots and/or passive income, applied immediately.
-        const slotBonus = cmd.bonus?.slots ?? 0;
+        const slotBonus = staff.bonus.slots;
         if (slotBonus !== 0) {
           player.businessSlotsMax = Math.max(0, Math.min(10, player.businessSlotsMax + slotBonus));
-          events.push({ type: 'effect', playerId: player.id, effectType: 'business.slot.modify', amount: slotBonus, message: cmd.staffId });
+          events.push({ type: 'effect', playerId: player.id, effectType: 'business.slot.modify', amount: slotBonus, message: staff.staffId });
         }
-        const incomeBonus = cmd.bonus?.income ?? 0;
+        const incomeBonus = staff.bonus.income;
         if (incomeBonus !== 0) {
           player.passiveIncome = Math.max(0, player.passiveIncome + incomeBonus);
-          events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: incomeBonus, message: cmd.staffId });
+          events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: incomeBonus, message: staff.staffId });
         }
       }
       break;
@@ -702,34 +753,27 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
 
     case 'buy_asset': {
       const player = state.players.find((p) => p.id === cmd.playerId);
-      if (!player) break;
-      const slotsUsed = Math.max(1, cmd.slotsUsed ?? 1);
-      if (player.cash < cmd.price) {
-        events.push({ type: 'command_rejected', playerId: player.id, message: 'insufficient cash to buy asset' });
-        break;
-      }
-      if (player.businessSlotsUsed + slotsUsed > player.businessSlotsMax) {
-        events.push({ type: 'command_rejected', playerId: player.id, message: 'no free business slots' });
-        break;
-      }
-      player.cash -= cmd.price;
+      const assetConfig = getCanonicalAssetPurchase(cmd);
+      if (!player || !assetConfig) break;
+      player.cash -= assetConfig.price;
       player.assets.push({
         id: `asset_${state.round}_${state.rngCounter}_${player.assets.length}`,
-        kind: cmd.kind ?? 'business',
-        name: cmd.name,
-        tags: [],
-        synergyKeys: [],
-        incomePerRound: Math.max(0, Math.round(cmd.income)),
-        upkeepPerRound: Math.max(0, Math.round(cmd.upkeep ?? 0)),
-        value: Math.round(cmd.price),
+        kind: assetConfig.kind,
+        name: assetConfig.name,
+        tags: [...assetConfig.tags],
+        synergyKeys: [...assetConfig.synergyKeys],
+        incomePerRound: assetConfig.income,
+        upkeepPerRound: assetConfig.upkeep,
+        value: assetConfig.price,
         acquiredRound: state.round,
+        slotsUsed: assetConfig.slotsUsed,
       });
-      player.businessSlotsUsed += slotsUsed;
-      if (!player.businesses.includes(cmd.name)) player.businesses.push(cmd.name);
-      events.push({ type: 'money', playerId: player.id, amount: -cmd.price, message: `bought ${cmd.name}` });
-      events.push({ type: 'effect', playerId: player.id, effectType: 'asset.add', amount: cmd.price, message: cmd.name });
-      if (cmd.income !== 0) {
-        events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: Math.round(cmd.income), message: `${cmd.name} monthly payout` });
+      player.businessSlotsUsed += assetConfig.slotsUsed;
+      if (!player.businesses.includes(assetConfig.name)) player.businesses.push(assetConfig.name);
+      events.push({ type: 'money', playerId: player.id, amount: -assetConfig.price, message: `bought ${assetConfig.name}` });
+      events.push({ type: 'effect', playerId: player.id, effectType: 'asset.add', amount: assetConfig.price, message: assetConfig.name });
+      if (assetConfig.income !== 0) {
+        events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: assetConfig.income, message: `${assetConfig.name} monthly payout` });
       }
       break;
     }
@@ -814,7 +858,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       const salePrice = Math.max(100, Math.min(requestedSalePrice, maxSalePrice));
       player.cash += salePrice;
       player.assets = player.assets.filter((item) => item.id !== cmd.assetId);
-      player.businessSlotsUsed = Math.max(0, player.businessSlotsUsed - 1);
+      player.businessSlotsUsed = Math.max(0, player.businessSlotsUsed - assetSlotsUsed(asset));
       const sameNamedAssetLeft = player.assets.some((item) => item.name === asset.name);
       if (!sameNamedAssetLeft) {
         player.businesses = player.businesses.filter((item) => item !== asset.name);
@@ -830,15 +874,16 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       const target = state.players.find((p) => p.id === cmd.targetPlayerId);
       const asset = player?.assets.find((item) => item.id === cmd.assetId);
       if (!player || !target || !asset) break;
+      const slotsUsed = assetSlotsUsed(asset);
       player.assets = player.assets.filter((item) => item.id !== cmd.assetId);
-      player.businessSlotsUsed = Math.max(0, player.businessSlotsUsed - 1);
+      player.businessSlotsUsed = Math.max(0, player.businessSlotsUsed - slotsUsed);
       const sourceStillHasSameBusiness = player.assets.some((item) => item.name === asset.name);
       if (!sourceStillHasSameBusiness) {
         player.businesses = player.businesses.filter((item) => item !== asset.name);
       }
 
       target.assets.push({ ...asset, coOwners: undefined });
-      target.businessSlotsUsed = Math.min(target.businessSlotsMax, target.businessSlotsUsed + 1);
+      target.businessSlotsUsed += slotsUsed;
       if (!target.businesses.includes(asset.name)) {
         target.businesses.push(asset.name);
       }
@@ -862,8 +907,8 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       const asset = player?.assets.find((item) => item.id === cmd.assetId);
       if (!player || !target || !asset) break;
 
-      const ownerShare = Math.max(0.1, Math.min(0.9, Number((1 - cmd.partnerShare).toFixed(2))));
-      const partnerShare = Math.max(0.1, Math.min(0.9, Number(cmd.partnerShare.toFixed(2))));
+      const partnerShare = normalizedPartnerShare(cmd.partnerShare);
+      const ownerShare = Math.max(0.1, Math.min(0.9, Number((1 - partnerShare).toFixed(2))));
       const contract = createContract(
         state,
         [player.id, target.id],

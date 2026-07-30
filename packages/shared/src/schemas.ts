@@ -83,7 +83,7 @@ export const EffectSchema = z.object({
   value: z.string().optional(),
   scope: z.enum(['active', 'all', 'opponents', 'partners']).optional(),
   cue: z.string().optional(),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ─── Card ───────────────────────────────────────────────────────────────────
@@ -145,6 +145,7 @@ export const AssetSchema = z.object({
   upkeepPerRound: z.number(),
   value: z.number(),
   acquiredRound: z.number(),
+  slotsUsed: z.number().int().min(0).optional(),
   coOwners: z.array(PlayerIdSchema).optional(),
 });
 
@@ -162,7 +163,7 @@ export const LiabilitySchema = z.object({
 export const ContractTermsSchema = z.object({
   kind: z.enum(['co_ownership', 'loan', 'service', 'partnership', 'guarantee']),
   assetId: z.string().optional(),
-  shares: z.record(z.number()).optional(),
+  shares: z.record(z.string(), z.number()).optional(),
   paymentAmount: z.number().optional(),
   paymentInterval: z.number().optional(),
   payerId: PlayerIdSchema.optional(),
@@ -202,7 +203,7 @@ export const PartnershipSchema = z.object({
   id: z.string(),
   players: z.array(PlayerIdSchema),
   scope: z.array(z.string()),
-  shareRules: z.record(z.number()),
+  shareRules: z.record(z.string(), z.number()),
   createdRound: z.number(),
 });
 
@@ -216,12 +217,19 @@ export const MacroProfileSchema = z.object({
   legalProtection: z.number().min(0).max(1),
 });
 
+export const VolatilityConfigSchema = z.object({
+  marketEventFrequency: z.number().min(0).max(1),
+  eventSeverityMultiplier: z.number().min(0.5).max(2.0),
+  crisisProbability: z.number().min(0).max(1),
+  opportunityBonus: z.number().min(0),
+});
+
 export const EpochConfigSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string(),
   cardPool: z.array(z.string()),
-  marketPulseWeights: z.record(z.number()),
+  marketPulseWeights: z.record(z.string(), z.number()),
   volatility: VolatilityConfigSchema.optional(),
 });
 
@@ -246,13 +254,6 @@ export const TimelineCursorSchema = z.object({
 
 export const DealStatusSchema = z.enum(['pending', 'accepted', 'rejected', 'expired']);
 
-export const VolatilityConfigSchema = z.object({
-  marketEventFrequency: z.number().min(0).max(1),
-  eventSeverityMultiplier: z.number().min(0.5).max(2.0),
-  crisisProbability: z.number().min(0).max(1),
-  opportunityBonus: z.number().min(0),
-});
-
 export const BankDepositSchema = z.object({
   id: z.string(),
   amount: z.number().positive(),
@@ -273,7 +274,7 @@ export const PendingDealSchema = z.object({
     assetId: z.string().optional(),
     cashOffer: z.number().optional(),
     cashRequest: z.number().optional(),
-    shareSplit: z.record(z.number()).optional(),
+    shareSplit: z.record(z.string(), z.number()).optional(),
     projectedMonthlyIncome: z.number().optional(),
     projectedAssetValue: z.number().optional(),
     enforcement: EnforcementLevelSchema.optional(),
@@ -312,6 +313,7 @@ export const PlayerStateSchema = z.object({
   partnerships: z.array(PartnershipSchema),
   deposits: z.array(BankDepositSchema),
   pendingDeals: z.array(PendingDealSchema),
+  hiredStaffIds: z.array(z.string()).optional(),
   expenseTags: z.array(z.string()),
   skillTags: z.array(z.string()),
   recapTags: z.array(z.string()),
@@ -361,7 +363,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
       assetId: z.string().optional(),
       cashOffer: z.number().optional(),
       cashRequest: z.number().optional(),
-      shareSplit: z.record(z.number()).optional(),
+      shareSplit: z.record(z.string(), z.number()).optional(),
       projectedMonthlyIncome: z.number().optional(),
       projectedAssetValue: z.number().optional(),
       enforcement: EnforcementLevelSchema.optional(),
@@ -439,7 +441,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
     assetId: z.string().optional(),
     cashOffer: z.number().optional(),
     cashRequest: z.number().optional(),
-    shareSplit: z.record(z.number()).optional(),
+    shareSplit: z.record(z.string(), z.number()).optional(),
     projectedMonthlyIncome: z.number().optional(),
     projectedAssetValue: z.number().optional(),
     enforcement: EnforcementLevelSchema.optional(),
@@ -476,7 +478,7 @@ export const GameEventSchema = z.object({
   cue: z.string().optional(),
   message: z.string().optional(),
   round: z.number().optional(),
-  payload: z.record(z.unknown()).optional(),
+  payload: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ─── Phase 3: Interest Window ───────────────────────────────────────────────
@@ -508,7 +510,7 @@ export const MatchStateSchema = z.object({
   epoch: EpochConfigSchema,
   macro: MacroProfileSchema,
   activePlayerIndex: z.number().int().min(0),
-  pendingIntents: z.record(CommandSchema.nullable()),
+  pendingIntents: z.record(z.string(), CommandSchema.nullable()),
   players: z.array(PlayerStateSchema).min(2).max(6),
   deck: z.array(CardIdSchema),
   deckCursor: z.number().int().min(0),
@@ -516,7 +518,7 @@ export const MatchStateSchema = z.object({
   currentCardId: CardIdSchema.nullable(),
   timeline: TimelineCursorSchema,
   ticker: z.array(z.string()),
-  marketPrices: z.record(z.number()),
+  marketPrices: z.record(z.string(), z.number()),
   eventLog: z.array(GameEventSchema),
   version: z.number().int().min(1),
   // Phase 3: active interest window (optional for backward-compat with serialized states)
@@ -527,13 +529,13 @@ export const MatchStateSchema = z.object({
   autoDeals: z.boolean().optional(),
   draftBoard: z.object({
     cards: z.array(CardIdSchema),
-    claims: z.record(z.array(z.object({
+    claims: z.record(z.string(), z.array(z.object({
       index: z.number().int().min(0),
       blind: z.boolean(),
       contestPref: z.enum(['fight', 'split']),
     }))),
-    wonBy: z.record(PlayerIdSchema.nullable()),
-    picked: z.record(z.boolean()),
+    wonBy: z.record(z.string(), PlayerIdSchema.nullable()),
+    picked: z.record(z.string(), z.boolean()),
     resolved: z.boolean(),
   }).nullable().optional(),
 });

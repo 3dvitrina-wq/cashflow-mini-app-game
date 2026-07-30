@@ -80,9 +80,10 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
         upkeepPerRound: payload.upkeepPerRound ?? 0,
         value: payload.value ?? (e.amount ?? 0),
         acquiredRound: _s.round,
+        slotsUsed: payload.slotsUsed ?? 1,
       };
       p.assets.push(asset);
-      p.businessSlotsUsed = Math.min(p.businessSlotsMax, p.businessSlotsUsed + 1);
+      p.businessSlotsUsed += asset.slotsUsed ?? 1;
     }
     return [{ type: 'effect', playerId: p.id, effectType: 'asset.add', amount: e.amount }];
   },
@@ -122,6 +123,8 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
     if (p.assistantSlotsUsed < p.assistantSlotsMax) {
       p.assistantSlotsUsed += 1;
       const staffId = e.value ?? `staff_${p.assistantSlotsUsed}`;
+      p.hiredStaffIds ??= [];
+      if (!p.hiredStaffIds.includes(staffId)) p.hiredStaffIds.push(staffId);
       if (!p.businesses.includes(staffId)) p.businesses.push(staffId);
     }
     return [{ type: 'effect', playerId: p.id, effectType: 'assistant.hire', amount: e.amount }];
@@ -298,6 +301,7 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
       upkeepPerRound: Math.round((def.upkeepPerRound ?? 0) * stake),
       value: Math.round((def.value ?? fullCost) * stake),
       acquiredRound: _s.round,
+      slotsUsed: 0,
       coOwners: [p.id],
     };
     p.assets.push(asset);

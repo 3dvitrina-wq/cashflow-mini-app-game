@@ -24,6 +24,14 @@ function nextDealId(state: MatchState): string {
   return `deal_${state.round}_${state.rngCounter}_${state.eventLog.length}`;
 }
 
+function setDealStatus(state: MatchState, dealId: string, status: DealStatus): void {
+  for (const player of state.players) {
+    for (const deal of player.pendingDeals) {
+      if (deal.id === dealId) deal.status = status;
+    }
+  }
+}
+
 /** Propose a deal to another player. */
 export function proposeDeal(
   state: MatchState,
@@ -96,7 +104,7 @@ export function acceptDeal(
     return [{ type: 'command_rejected', playerId: acceptor.id, message: `deal is ${deal.status}` }];
   }
   if (state.round > deal.expiresRound) {
-    deal.status = 'expired';
+    setDealStatus(state, deal.id, 'expired');
     return [{ type: 'command_rejected', playerId: acceptor.id, message: 'deal expired' }];
   }
   if (deal.targetId !== acceptor.id) {
@@ -105,7 +113,7 @@ export function acceptDeal(
 
   const proposer = state.players.find((p) => p.id === deal.proposerId);
   if (!proposer || !proposer.alive) {
-    deal.status = 'expired';
+    setDealStatus(state, deal.id, 'expired');
     return [{ type: 'command_rejected', playerId: acceptor.id, message: 'proposer eliminated' }];
   }
 
@@ -130,14 +138,14 @@ export function acceptDeal(
   // Validate funds first
   if (deal.offer.cashOffer && deal.offer.cashOffer > 0) {
     if (proposer.cash < deal.offer.cashOffer) {
-      deal.status = 'rejected';
+      setDealStatus(state, deal.id, 'rejected');
       return [{ type: 'command_rejected', playerId: acceptor.id, message: 'proposer no longer has funds' }];
     }
   }
 
   if (deal.offer.cashRequest && deal.offer.cashRequest > 0) {
     if (acceptor.cash < deal.offer.cashRequest) {
-      deal.status = 'rejected';
+      setDealStatus(state, deal.id, 'rejected');
       return [{ type: 'command_rejected', playerId: acceptor.id, message: 'insufficient funds for cash request' }];
     }
   }
@@ -146,15 +154,28 @@ export function acceptDeal(
   if (deal.offer.assetId) {
     const assetIdx = proposer.assets.findIndex((a) => a.id === deal.offer.assetId);
     if (assetIdx < 0) {
-      deal.status = 'expired';
+      setDealStatus(state, deal.id, 'expired');
       return [{
         type: 'command_rejected',
         playerId: acceptor.id,
         message: 'promised asset is no longer available',
       }];
     }
+    const promisedAsset = proposer.assets[assetIdx]!;
+    const promisedSlots = promisedAsset.slotsUsed ?? 1;
+    if (acceptor.businessSlotsUsed + promisedSlots > acceptor.businessSlotsMax) {
+      return [{
+        type: 'command_rejected',
+        playerId: acceptor.id,
+        message: 'target has no free business slots',
+      }];
+    }
     const [asset] = proposer.assets.splice(assetIdx, 1);
-    if (asset) acceptor.assets.push(asset);
+    if (asset) {
+      proposer.businessSlotsUsed = Math.max(0, proposer.businessSlotsUsed - promisedSlots);
+      acceptor.businessSlotsUsed += promisedSlots;
+      acceptor.assets.push(asset);
+    }
   }
 
   // Create contract from deal (this also handles cash transfers)
@@ -217,6 +238,7 @@ export function acceptDeal(
         upkeepPerRound: 0,
         value: cost,
         acquiredRound: state.round,
+        slotsUsed: 0,
         coOwners: [proposer.id, acceptor.id],
       };
       player.assets.push(asset);
@@ -248,7 +270,7 @@ export function acceptDeal(
   }
 
   // Mark deal as accepted
-  deal.status = 'accepted';
+  setDealStatus(state, deal.id, 'accepted');
 
   // Trust delta: +1 for both parties on successful deal
   const prevTrustProposer = proposer.trust;
@@ -302,7 +324,7 @@ export function rejectDeal(
     return [{ type: 'command_rejected', playerId: rejector.id, message: `deal is ${deal.status}` }];
   }
 
-  deal.status = 'rejected';
+  setDealStatus(state, deal.id, 'rejected');
 
   const events: GameEvent[] = [];
 
@@ -338,7 +360,7 @@ export function expireOldDeals(state: MatchState): GameEvent[] {
   for (const player of state.players) {
     for (const deal of player.pendingDeals) {
       if (deal.status === 'pending' && state.round > deal.expiresRound) {
-        deal.status = 'expired';
+        setDealStatus(state, deal.id, 'expired');
         events.push({
           type: 'deal',
           playerId: player.id,

@@ -3,7 +3,7 @@
 // Run: npx tsx packages/sim/src/index.ts
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { MatchState, Outfit, PlayerState } from '../../shared/src/index';
+import type { MatchState, Outfit } from '../../shared/src/index';
 import {
   advanceRound,
   botIntent,
@@ -12,6 +12,17 @@ import {
   resolveCommand,
   type NewPlayer,
 } from '../../game-engine/src/index';
+import { getCard } from '../../game-engine/src/cards';
+import {
+  applyOracleExitCode,
+  evaluateBalanceOracle,
+  formatOracleResult,
+  type CohortMeasurement,
+} from './balance-oracle';
+import {
+  collectInvariantViolations,
+  type InvariantViolation,
+} from './invariants';
 
 // ─── Roster ─────────────────────────────────────────────────────────────────
 
@@ -31,18 +42,15 @@ function makeRoster(seed: number): NewPlayer[] {
 
 // ─── Match Runner ───────────────────────────────────────────────────────────
 
-interface MatchResult {
-  seed: number;
-  finished: boolean;
-  rounds: number;
-  winner: string;
-  winnerOutfit: string;
-  scores: { name: string; outfit: string; score: number; bankrupt: boolean }[];
+interface PlayResult {
+  state: MatchState;
+  violations: InvariantViolation[];
 }
 
-function playMatch(seed: number): MatchState {
+function playMatch(seed: number): PlayResult {
   const roster = makeRoster(seed);
   let state = createMatch(seed, roster, { maxRounds: 15 });
+  const violations: InvariantViolation[] = [];
   let guard = 0;
 
   while (state.phase !== 'finished' && guard < 2000) {
@@ -50,70 +58,34 @@ function playMatch(seed: number): MatchState {
     const active = state.players[state.activePlayerIndex];
     if (!active || !active.alive) {
       state = advanceRound(state).state;
+      violations.push(...collectInvariantViolations(state, seed, 'round'));
       continue;
     }
     const cmd = botIntent(state, active);
     state = resolveCommand(state, cmd).state;
+    violations.push(...collectInvariantViolations(state, seed, 'command'));
     state = advanceRound(state).state;
+    violations.push(...collectInvariantViolations(state, seed, 'round'));
   }
 
-  return state;
-}
-
-// ─── Invariant Checks ───────────────────────────────────────────────────────
-
-interface Violation {
-  seed: number;
-  round: number;
-  message: string;
-}
-
-function checkInvariants(state: MatchState, seed: number): Violation[] {
-  const v: Violation[] = [];
-
-  for (const p of state.players) {
-    if (!Number.isFinite(p.cash) || p.cash < 0) {
-      v.push({ seed, round: state.round, message: `${p.id} cash=${p.cash}` });
-    }
-    if (p.stress < 0 || p.stress > 10) {
-      v.push({ seed, round: state.round, message: `${p.id} stress=${p.stress}` });
-    }
-    if (p.trust < 0 || p.trust > 10) {
-      v.push({ seed, round: state.round, message: `${p.id} trust=${p.trust}` });
-    }
-    if (p.debt < 0 || p.debt > 10) {
-      v.push({ seed, round: state.round, message: `${p.id} debt=${p.debt}` });
-    }
-    if (p.reputation < 0 || p.reputation > 10) {
-      v.push({ seed, round: state.round, message: `${p.id} reputation=${p.reputation}` });
-    }
-    if (p.businessSlotsUsed < 0 || p.businessSlotsUsed > p.businessSlotsMax + 5) {
-      v.push({ seed, round: state.round, message: `${p.id} biz slots=${p.businessSlotsUsed}/${p.businessSlotsMax}` });
-    }
-  }
-
-  if (state.round > state.maxRounds + 2) {
-    v.push({ seed, round: state.round, message: 'overran maxRounds by more than 2' });
-  }
-
-  if (state.phase === 'finished') {
-    const alive = state.players.filter((p) => p.alive);
-    if (alive.length === 0 && state.round < state.maxRounds) {
-      v.push({ seed, round: state.round, message: 'all players eliminated before maxRounds' });
-    }
-  }
-
-  return v;
+  return { state, violations };
 }
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
 function main(): void {
   const N = 1000;
-  const violations: Violation[] = [];
+  const violations: InvariantViolation[] = [];
   let finished = 0;
   let totalRounds = 0;
   let totalBankruptcies = 0;
+  let stressEvents = 0;
+  let crisisDraws = 0;
+  const impacts = {
+    cash: [] as number[],
+    passive: [] as number[],
+    stress: [] as number[],
+  };
 
   // Strategy tracking
   const outfitWins: Record<string, number> = {};
@@ -128,12 +100,26 @@ function main(): void {
   console.log(`Running ${N} matches...`);
 
   for (let seed = 1; seed <= N; seed++) {
-    const state = playMatch(seed);
-    violations.push(...checkInvariants(state, seed));
+    const result = playMatch(seed);
+    const state = result.state;
+    violations.push(...result.violations);
 
     if (state.phase === 'finished') {
       finished += 1;
       totalRounds += state.round;
+      for (const event of state.eventLog) {
+        if (typeof event.amount !== 'number') continue;
+        if (event.type === 'money') impacts.cash.push(event.amount);
+        if (event.effectType === 'passive.add') impacts.passive.push(event.amount);
+        if (event.effectType === 'stress.delta') impacts.stress.push(event.amount);
+      }
+      stressEvents += state.eventLog.filter(
+        (event) => event.effectType === 'stress.delta' && (event.amount ?? 0) !== 0,
+      ).length;
+      crisisDraws += [...state.discardPile, state.currentCardId]
+        .filter((cardId): cardId is string => cardId !== null)
+        .filter((cardId) => getCard(cardId)?.type === 'crisis')
+        .length;
 
       // Score all players
       const scores = state.players.map((p) => ({
@@ -173,8 +159,11 @@ function main(): void {
   }
 
   // ─── Determinism check ─────────────────────────────────────────────────
-  const a = JSON.stringify(playMatch(42));
-  const b = JSON.stringify(playMatch(42));
+  const determinismA = playMatch(42);
+  const determinismB = playMatch(42);
+  violations.push(...determinismA.violations, ...determinismB.violations);
+  const a = JSON.stringify(determinismA.state);
+  const b = JSON.stringify(determinismB.state);
   const deterministic = a === b;
 
   // ─── Report ───────────────────────────────────────────────────────────
@@ -189,12 +178,14 @@ function main(): void {
   console.log(`Deterministic    : ${deterministic ? 'YES ✓' : 'NO ✗'}`);
 
   // Strategy balance
+  const balanceFlags: string[] = [];
   console.log('\n── Outfit Win Rates ──────────────────────');
   for (const outfit of Object.keys(outfitGames).sort()) {
     const wins = outfitWins[outfit] ?? 0;
     const games = outfitGames[outfit] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
     const flag = parseFloat(rate) > 35 ? ' ⚠️' : '';
+    if (flag) balanceFlags.push(`${outfit} win rate ${rate}% > 35%`);
     console.log(`  ${outfit.padEnd(12)} ${wins}/${games} (${rate}%)${flag}`);
   }
 
@@ -204,6 +195,7 @@ function main(): void {
     const games = personaGames[persona] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
     const flag = parseFloat(rate) > 35 ? ' ⚠️' : '';
+    if (flag) balanceFlags.push(`${persona} win rate ${rate}% > 35%`);
     console.log(`  ${persona.padEnd(14)} ${wins}/${games} (${rate}%)${flag}`);
   }
 
@@ -213,6 +205,8 @@ function main(): void {
     const games = strategyGames[strat] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
     const flag = parseFloat(rate) > 35 ? ' ⚠️ OVER' : parseFloat(rate) < 15 ? ' ⚠️ UNDER' : ' ✓';
+    if (parseFloat(rate) > 35) balanceFlags.push(`${strat} win rate ${rate}% > 35%`);
+    if (parseFloat(rate) < 15) balanceFlags.push(`${strat} win rate ${rate}% < 15%`);
     console.log(`  ${strat.padEnd(22)} ${wins}/${games} (${rate}%)${flag}`);
   }
 
@@ -230,6 +224,9 @@ function main(): void {
   const specSigma = calcSigma(strategyScoreArrays['high_risk_speculator'] ?? []);
   const sigmaRatio = safeSigma > 0 ? (specSigma / safeSigma).toFixed(2) : 'N/A';
   const sigmaFlag = specSigma >= safeSigma * 2 ? ' ✓ bimodal' : ' ⚠️ not bimodal yet';
+  if (specSigma < safeSigma * 2) {
+    balanceFlags.push(`speculator/safe sigma ratio ${sigmaRatio}x is below 2x`);
+  }
 
   for (const [label, sigma] of [
     ['safe_cashflow', safeSigma],
@@ -247,21 +244,42 @@ function main(): void {
   if (violations.length) {
     console.log('\n── First 10 Violations ───────────────────');
     for (const v of violations.slice(0, 10)) {
-      console.log(`  seed ${v.seed} r${v.round}: ${v.message}`);
+      console.log(`  seed ${v.seed} r${v.round} after ${v.stage}: ${v.message}`);
     }
   }
 
-  const ok = finished === N && violations.length === 0 && deterministic;
-  const noDominantStrategy = Object.values(outfitWins).every(
-    (w) => (w / finished) < 0.35,
-  );
+  const requiredCohorts: CohortMeasurement[] = [
+    ...OUTFITS.map((name) => ({ name: `outfit:${name}`, wins: outfitWins[name] ?? 0, games: outfitGames[name] ?? 0 })),
+    ...['conservative', 'balanced', 'aggressive'].map((name) => ({
+      name: `persona:${name}`,
+      wins: personaWins[name] ?? 0,
+      games: personaGames[name] ?? 0,
+    })),
+    ...STRATEGIES.map((name) => ({
+      name: `strategy:${name}`,
+      wins: strategyWins[name] ?? 0,
+      games: strategyGames[name] ?? 0,
+    })),
+  ];
+  const oracle = evaluateBalanceOracle({
+    expectedMatches: N,
+    finishedMatches: finished,
+    deterministic,
+    invariantBreaks: violations.length,
+    balanceFlags,
+    requiredCohorts,
+    impacts,
+    bankruptcies: totalBankruptcies,
+    stressEvents,
+    crisisDraws,
+  });
 
   console.log('\n═══════════════════════════════════════════');
-  console.log(`  Result: ${ok && noDominantStrategy ? '✓ ALL PASS' : ok ? '✓ PASS (check balance)' : '✗ FAIL'}`);
+  for (const line of formatOracleResult(oracle)) console.log(`  ${line}`);
   console.log('═══════════════════════════════════════════');
 
   const g = globalThis as { process?: { exitCode?: number } };
-  if (!ok && g.process) g.process.exitCode = 1;
+  if (g.process) applyOracleExitCode(oracle, g.process);
 }
 
 main();

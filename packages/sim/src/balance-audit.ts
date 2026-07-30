@@ -14,6 +14,16 @@ import {
   type NewPlayer,
 } from '../../game-engine/src/index';
 import { CARDS, getCard } from '../../game-engine/src/cards';
+import {
+  applyOracleExitCode,
+  evaluateBalanceOracle,
+  formatOracleResult,
+  type CohortMeasurement,
+} from './balance-oracle';
+import {
+  collectInvariantViolations,
+  type InvariantViolation,
+} from './invariants';
 
 const OUTFITS: Outfit[] = ['hustler', 'trader', 'operator', 'nomad', 'creator', 'office'];
 const PERSONAS: BotPersona[] = ['conservative', 'balanced', 'aggressive'];
@@ -49,6 +59,7 @@ interface MatchDetail {
   // Phase 3 audit
   fairnessChecks: number;
   trustDeltaEvents: number;
+  stressEvents: number;
 }
 
 function makeRoster(seed: number): NewPlayer[] {
@@ -83,12 +94,14 @@ function makeProfessionRoster(seed: number): NewPlayer[] {
 interface PlayResult {
   state: MatchState;
   cardUsage: Map<string, CardUsageStats>;
+  violations: InvariantViolation[];
 }
 
 function playMatchDetailed(seed: number): PlayResult {
   const roster = makeRoster(seed);
   let state = createMatch(seed, roster, { maxRounds: 15 });
   const cardUsage = new Map<string, CardUsageStats>();
+  const violations: InvariantViolation[] = [];
   let guard = 0;
 
   // Initialize card usage stats
@@ -111,12 +124,15 @@ function playMatchDetailed(seed: number): PlayResult {
     const active = state.players[state.activePlayerIndex];
     if (!active || !active.alive) {
       state = advanceRound(state).state;
+      violations.push(...collectInvariantViolations(state, seed, 'round'));
       continue;
     }
 
+    const resolvedCardId = state.currentCardId;
+
     // Track card draw
-    if (state.currentCardId) {
-      const usage = cardUsage.get(state.currentCardId);
+    if (resolvedCardId) {
+      const usage = cardUsage.get(resolvedCardId);
       if (usage) usage.timesDrawn += 1;
     }
 
@@ -127,16 +143,19 @@ function playMatchDetailed(seed: number): PlayResult {
 
     const cmd = botIntent(state, active);
     const result = resolveCommand(state, cmd);
+    const activeAfterCommand = result.state.players.find((player) => player.id === active.id);
+    violations.push(...collectInvariantViolations(result.state, seed, 'command'));
     state = advanceRound(result.state).state;
+    violations.push(...collectInvariantViolations(state, seed, 'round'));
 
     // Track post-command impact
-    if (state.currentCardId) {
-      const usage = cardUsage.get(state.currentCardId);
-      if (usage) {
+    if (resolvedCardId) {
+      const usage = cardUsage.get(resolvedCardId);
+      if (usage && activeAfterCommand) {
         usage.totalMatches += 1;
-        const cashDelta = active.cash - cashBefore;
-        const passiveDelta = active.passiveIncome - passiveBefore;
-        const stressDelta = active.stress - stressBefore;
+        const cashDelta = activeAfterCommand.cash - cashBefore;
+        const passiveDelta = activeAfterCommand.passiveIncome - passiveBefore;
+        const stressDelta = activeAfterCommand.stress - stressBefore;
 
         // Running average
         const n = usage.totalMatches;
@@ -146,7 +165,7 @@ function playMatchDetailed(seed: number): PlayResult {
 
         // Track choice
         if (cmd.type === 'choose_option') {
-          const card = getCard(state.currentCardId);
+          const card = getCard(resolvedCardId);
           if (card?.choices?.[cmd.choiceIndex]) {
             const label = card.choices[cmd.choiceIndex].label;
             usage.timesChosen[label] = (usage.timesChosen[label] ?? 0) + 1;
@@ -156,7 +175,7 @@ function playMatchDetailed(seed: number): PlayResult {
     }
   }
 
-  return { state, cardUsage };
+  return { state, cardUsage, violations };
 }
 
 function main(): void {
@@ -167,6 +186,7 @@ function main(): void {
 
   // Accumulate stats
   const matchDetails: MatchDetail[] = [];
+  const invariantViolations: InvariantViolation[] = [];
   const globalCardUsage = new Map<string, CardUsageStats>();
 
   // Init global card usage
@@ -191,9 +211,11 @@ function main(): void {
   const personaGames: Record<string, number> = {};
   const strategyWins: Record<string, number> = {};
   const strategyGames: Record<string, number> = {};
+  const balanceFlags: string[] = [];
 
   for (let seed = 1; seed <= N; seed++) {
-    const { state, cardUsage } = playMatchDetailed(seed);
+    const { state, cardUsage, violations } = playMatchDetailed(seed);
+    invariantViolations.push(...violations);
 
     // Merge card usage
     for (const [id, usage] of cardUsage) {
@@ -259,6 +281,7 @@ function main(): void {
         allScores: scores.map((s) => s.score),
         fairnessChecks: state.eventLog.filter((e) => e.effectType === 'deal.fairness_check').length,
         trustDeltaEvents: state.eventLog.filter((e) => e.effectType === 'trust.delta').length,
+        stressEvents: state.eventLog.filter((e) => e.effectType === 'stress.delta' && (e.amount ?? 0) !== 0).length,
       });
     }
 
@@ -266,9 +289,11 @@ function main(): void {
   }
 
   // ─── Determinism check ─────────────────────────────────────────────────
-  const roster = makeRoster(42);
-  const a = JSON.stringify(playMatchDetailed(42).state);
-  const b = JSON.stringify(playMatchDetailed(42).state);
+  const determinismA = playMatchDetailed(42);
+  const determinismB = playMatchDetailed(42);
+  invariantViolations.push(...determinismA.violations, ...determinismB.violations);
+  const a = JSON.stringify(determinismA.state);
+  const b = JSON.stringify(determinismB.state);
   const deterministic = a === b;
 
   // ─── Report ─────────────────────────────────────────────────────────────
@@ -280,13 +305,17 @@ function main(): void {
   console.log(`  Avg rounds    : ${finished > 0 ? (matchDetails.reduce((s, m) => s + m.avgRounds, 0) / finished).toFixed(1) : 'N/A'}`);
   console.log(`  Bankruptcies  : ${matchDetails.reduce((s, m) => s + m.bankruptcies, 0)}`);
   console.log(`  Deterministic : ${deterministic ? 'YES ✓' : 'NO ✗'}`);
+  if (!deterministic) balanceFlags.push('Non-deterministic');
 
   console.log(`\n── Win Rates by Outfit ────────────────────────────`);
   for (const outfit of OUTFITS) {
     const wins = outfitWins[outfit] ?? 0;
     const games = outfitGames[outfit] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
-    const flag = parseFloat(rate) > 35 ? ' ⚠️ OVER' : parseFloat(rate) < 15 ? ' ⚠️ UNDER' : ' ✓';
+    const rateNum = parseFloat(rate);
+    const flag = rateNum > 35 ? ' ⚠️ OVER' : rateNum < 15 ? ' ⚠️ UNDER' : ' ✓';
+    if (rateNum > 35) balanceFlags.push(`${outfit} win rate ${rate}% > 35%`);
+    if (rateNum < 15) balanceFlags.push(`${outfit} win rate ${rate}% < 15%`);
     console.log(`  ${outfit.padEnd(12)} ${wins}/${games} (${rate}%)\t${flag}`);
   }
 
@@ -295,7 +324,10 @@ function main(): void {
     const wins = personaWins[persona] ?? 0;
     const games = personaGames[persona] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
-    const flag = parseFloat(rate) > 35 ? ' ⚠️ OVER' : parseFloat(rate) < 15 ? ' ⚠️ UNDER' : ' ✓';
+    const rateNum = parseFloat(rate);
+    const flag = rateNum > 35 ? ' ⚠️ OVER' : rateNum < 15 ? ' ⚠️ UNDER' : ' ✓';
+    if (rateNum > 35) balanceFlags.push(`${persona} win rate ${rate}% > 35%`);
+    if (rateNum < 15) balanceFlags.push(`${persona} win rate ${rate}% < 15%`);
     console.log(`  ${persona.padEnd(14)} ${wins}/${games} (${rate}%)\t${flag}`);
   }
 
@@ -304,7 +336,10 @@ function main(): void {
     const wins = strategyWins[strat] ?? 0;
     const games = strategyGames[strat] ?? 0;
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
-    const flag = parseFloat(rate) > 35 ? ' ⚠️ OVER' : parseFloat(rate) < 15 ? ' ⚠️ UNDER' : ' ✓';
+    const rateNum = parseFloat(rate);
+    const flag = rateNum > 35 ? ' ⚠️ OVER' : rateNum < 15 ? ' ⚠️ UNDER' : ' ✓';
+    if (rateNum > 35) balanceFlags.push(`${strat} win rate ${rate}% > 35%`);
+    if (rateNum < 15) balanceFlags.push(`${strat} win rate ${rate}% < 15%`);
     console.log(`  ${strat.padEnd(22)} ${wins}/${games} (${rate}%)\t${flag}`);
   }
 
@@ -353,6 +388,7 @@ function main(): void {
 
   console.log(`\n── Never Drawn Cards ──────────────────────────────`);
   const neverDrawn = sortedByDraws.filter((c) => c.timesDrawn === 0);
+  if (neverDrawn.length > 0) balanceFlags.push(`${neverDrawn.length} cards never drawn`);
   if (neverDrawn.length === 0) {
     console.log(`  (none — all cards drawn at least once) ✓`);
   } else {
@@ -368,12 +404,14 @@ function main(): void {
     { name: 'Active Dealmaker', check: (s: PlayerState) => s.contracts.length > 0 || s.partnerships.length > 0 },
     { name: 'High-Risk Speculator', check: (s: PlayerState) => s.futuresPositions.length > 0 || s.debt > 5 },
   ];
+  const viabilityCohorts: CohortMeasurement[] = [];
 
   for (const strat of strategies) {
     let count = 0;
     let wins = 0;
     for (const m of matchDetails) {
-      const { state } = playMatchDetailed(m.seed);
+      const { state, violations } = playMatchDetailed(m.seed);
+      invariantViolations.push(...violations);
       for (const p of state.players) {
         if (strat.check(p)) {
           count++;
@@ -383,6 +421,7 @@ function main(): void {
       }
     }
     const rate = count > 0 ? (wins / count * 100).toFixed(1) : '0.0';
+    viabilityCohorts.push({ name: `viability:${strat.name}`, wins, games: count });
     console.log(`  ${strat.name.padEnd(22)} ${wins}/${count} wins (${rate}%)`);
   }
 
@@ -401,9 +440,16 @@ function main(): void {
     while (state.phase !== 'finished' && guard < 2000) {
       guard += 1;
       const active = state.players[state.activePlayerIndex];
-      if (!active || !active.alive) { state = advanceRound(state).state; continue; }
+      if (!active || !active.alive) {
+        state = advanceRound(state).state;
+        invariantViolations.push(...collectInvariantViolations(state, seed + 100000, 'round'));
+        continue;
+      }
       const cmd = botIntent(state, active);
-      state = advanceRound(resolveCommand(state, cmd).state).state;
+      state = resolveCommand(state, cmd).state;
+      invariantViolations.push(...collectInvariantViolations(state, seed + 100000, 'command'));
+      state = advanceRound(state).state;
+      invariantViolations.push(...collectInvariantViolations(state, seed + 100000, 'round'));
     }
     if (state.phase === 'finished') {
       const sorted = [...state.players].sort((a, b) => freedomScore(b) - freedomScore(a));
@@ -430,7 +476,10 @@ function main(): void {
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
     const rateNum = parseFloat(rate);
     const flag = rateNum > 40 ? ' ⚠️ OVER' : rateNum < 10 ? ' ⚠️ UNDER' : ' ✓';
-    if (rateNum > 40 || rateNum < 10) profFlags++;
+    if (rateNum > 40 || rateNum < 10) {
+      profFlags++;
+      balanceFlags.push(`${prof.id} win rate ${rate}% outside 10-40% corridor`);
+    }
     console.log(`  ${prof.id.padEnd(22)} [${prof.tier.padEnd(6)}] ${wins}/${games} (${rate}%)${flag}`);
   }
 
@@ -441,6 +490,12 @@ function main(): void {
     const rate = games > 0 ? (wins / games * 100).toFixed(1) : '0.0';
     const rateNum = parseFloat(rate);
     const flag = rateNum > 35 ? ' ⚠️ OVER' : rateNum < 15 ? ' ⚠️ UNDER' : ' ✓';
+    if (rateNum > 35) {
+      balanceFlags.push(`profession strategy ${strat} win rate ${rate}% > 35%`);
+    }
+    if (rateNum < 15) {
+      balanceFlags.push(`profession strategy ${strat} win rate ${rate}% < 15%`);
+    }
     console.log(`  ${strat.padEnd(24)} ${wins}/${games} (${rate}%)${flag}`);
   }
 
@@ -452,42 +507,67 @@ function main(): void {
 
   // ─── Balance Flags ──────────────────────────────────────────────────────
   console.log(`\n── Balance Flags ──────────────────────────────────`);
-  let flags = profFlags; // include profession flags
-
-  // Check no strategy > 35%
-  for (const outfit of OUTFITS) {
-    const rate = (outfitWins[outfit] ?? 0) / (outfitGames[outfit] ?? 1);
-    if (rate > 0.35) { console.log(`  ⚠️ ${outfit} win rate ${(rate * 100).toFixed(1)}% > 35%`); flags++; }
-    if (rate < 0.15) { console.log(`  ⚠️ ${outfit} win rate ${(rate * 100).toFixed(1)}% < 15%`); flags++; }
+  console.log(`  Invariant breaks: ${invariantViolations.length}`);
+  for (const violation of invariantViolations.slice(0, 10)) {
+    console.log(`    seed ${violation.seed} r${violation.round} after ${violation.stage}: ${violation.message}`);
   }
-  for (const persona of PERSONAS) {
-    const rate = (personaWins[persona] ?? 0) / (personaGames[persona] ?? 1);
-    if (rate > 0.35) { console.log(`  ⚠️ ${persona} win rate ${(rate * 100).toFixed(1)}% > 35%`); flags++; }
-    if (rate < 0.15) { console.log(`  ⚠️ ${persona} win rate ${(rate * 100).toFixed(1)}% < 15%`); flags++; }
+  const allZeroImpactCards = [...globalCardUsage.values()].filter(
+    (usage) => usage.totalMatches > 0
+      && usage.avgCashImpact === 0
+      && usage.avgPassiveImpact === 0
+      && usage.avgStressImpact === 0,
+  );
+  for (const usage of allZeroImpactCards) {
+    balanceFlags.push(`card ${usage.id} has all-zero cash/passive/stress impact`);
   }
-  for (const strat of STRATEGIES) {
-    const rate = (strategyWins[strat] ?? 0) / (strategyGames[strat] ?? 1);
-    if (rate > 0.35) { console.log(`  ⚠️ ${strat} win rate ${(rate * 100).toFixed(1)}% > 35%`); flags++; }
-    if (rate < 0.15) { console.log(`  ⚠️ ${strat} win rate ${(rate * 100).toFixed(1)}% < 15%`); flags++; }
-  }
-
-  if (neverDrawn.length > 0) {
-    console.log(`  ⚠️ ${neverDrawn.length} cards never drawn`);
-    flags++;
+  for (const flag of balanceFlags) console.log(`  ⚠️ ${flag}`);
+  if (balanceFlags.length === 0) {
+    console.log(`  No corridor flags detected; measurement gate still pending`);
   }
 
-  if (!deterministic) {
-    console.log(`  ⚠️ Non-deterministic!`);
-    flags++;
-  }
-
-  if (flags === 0) {
-    console.log(`  ✓ No balance issues detected`);
-  }
+  const requiredCohorts: CohortMeasurement[] = [
+    ...OUTFITS.map((name) => ({ name: `outfit:${name}`, wins: outfitWins[name] ?? 0, games: outfitGames[name] ?? 0 })),
+    ...PERSONAS.map((name) => ({ name: `persona:${name}`, wins: personaWins[name] ?? 0, games: personaGames[name] ?? 0 })),
+    ...STRATEGIES.map((name) => ({ name: `strategy:${name}`, wins: strategyWins[name] ?? 0, games: strategyGames[name] ?? 0 })),
+    ...allProfs.map((profession) => ({
+      name: `profession:${profession.id}`,
+      wins: profWins[profession.id] ?? 0,
+      games: profGames[profession.id] ?? 0,
+    })),
+    ...viabilityCohorts,
+  ];
+  const measuredCardUsage = [...globalCardUsage.values()]
+    .filter((usage) => usage.totalMatches > 0);
+  const impacts = {
+    cash: measuredCardUsage.map((usage) => usage.avgCashImpact),
+    passive: measuredCardUsage.map((usage) => usage.avgPassiveImpact),
+    stress: measuredCardUsage.map((usage) => usage.avgStressImpact),
+  };
+  const bankruptcies = matchDetails.reduce((sum, match) => sum + match.bankruptcies, 0);
+  const stressEvents = matchDetails.reduce((sum, match) => sum + match.stressEvents, 0);
+  const crisisDraws = [...globalCardUsage.values()]
+    .filter((usage) => usage.type === 'crisis')
+    .reduce((sum, usage) => sum + usage.timesDrawn, 0);
+  const oracle = evaluateBalanceOracle({
+    expectedMatches: N,
+    finishedMatches: finished,
+    deterministic,
+    invariantBreaks: invariantViolations.length,
+    balanceFlags,
+    requiredCohorts,
+    impacts,
+    bankruptcies,
+    stressEvents,
+    crisisDraws,
+  });
 
   console.log(`\n═══════════════════════════════════════════════════`);
-  console.log(`  Result: ${flags === 0 ? '✓ ALL BALANCE CHECKS PASS' : `⚠️ ${flags} FLAGS`}`);
+  console.log(`  Result: ${oracle.ok ? '✓ ALL BALANCE CHECKS PASS' : `✗ MEASUREMENT GATE FAILED (${balanceFlags.length} balance flag(s))`}`);
+  for (const line of formatOracleResult(oracle)) console.log(`  ${line}`);
   console.log(`═══════════════════════════════════════════════════\n`);
+
+  const globalProcess = globalThis as { process?: { exitCode?: number } };
+  if (globalProcess.process) applyOracleExitCode(oracle, globalProcess.process);
 }
 
 main();
