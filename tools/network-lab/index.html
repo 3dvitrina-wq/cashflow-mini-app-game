@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DIOR Club · Network Lab</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">DIOR CLUB · LOCAL QA</p>
+        <h1>Network Lab</h1>
+        <p class="subtitle">6 независимых игроков · реальный server authority</p>
+      </div>
+      <div id="lab-health" class="health neutral">готов к подключению</div>
+    </header>
+
+    <main>
+      <section class="control-panel" aria-labelledby="connection-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">CONNECTION</p>
+            <h2 id="connection-title">Локальный сервер</h2>
+          </div>
+          <div class="room-pill">ROOM <strong id="room-code-display">—</strong></div>
+        </div>
+
+        <div class="endpoint-grid">
+          <label>
+            REST
+            <input id="rest-url" type="url" value="http://127.0.0.1:3001" spellcheck="false">
+          </label>
+          <label>
+            WebSocket
+            <input id="ws-url" type="url" value="ws://127.0.0.1:3001/ws" spellcheck="false">
+          </label>
+          <label>
+            Room code
+            <input id="room-code-input" maxlength="8" placeholder="ABCDE" spellcheck="false">
+          </label>
+        </div>
+
+        <div class="button-row">
+          <button id="create-room" class="primary" type="button">Создать комнату</button>
+          <button id="connect-all" type="button">Подключить всех</button>
+          <button id="disconnect-all" class="danger ghost" type="button">Отключить всех</button>
+        </div>
+
+        <div class="match-controls">
+          <label>
+            Режим карт
+            <select id="card-mode">
+              <option value="shared">shared</option>
+              <option value="individual">individual</option>
+            </select>
+          </label>
+          <label>
+            Max rounds
+            <input id="max-rounds" type="number" min="1" max="100" value="15">
+          </label>
+          <button id="start-match" class="primary" type="button">Старт матча</button>
+          <button id="global-run" type="button">Auto: до конца</button>
+          <button id="global-pause" class="warning" type="button" disabled>Пауза</button>
+          <span id="global-run-status" class="run-status">остановлен</span>
+        </div>
+
+        <p id="global-message" class="global-message" aria-live="polite">Создайте комнату или вставьте её код.</p>
+        <div id="divergence-banner" class="divergence-banner neutral">State hash: пока нет snapshot</div>
+      </section>
+
+      <section class="players-section" aria-labelledby="players-title">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">SIX SEATS</p>
+            <h2 id="players-title">Независимые профили</h2>
+          </div>
+          <p>У каждой карточки свой WebSocket, журнал и команда.</p>
+        </div>
+        <div id="player-grid" class="player-grid"></div>
+      </section>
+    </main>
+
+    <template id="player-card-template">
+      <article class="player-card">
+        <div class="card-topline">
+          <span class="seat-label"></span>
+          <span class="socket-status disconnected">DISCONNECTED</span>
+        </div>
+
+        <div class="identity-grid">
+          <label>
+            playerId
+            <input class="player-id" spellcheck="false">
+          </label>
+          <label>
+            Имя
+            <input class="player-name">
+          </label>
+          <label>
+            Outfit
+            <select class="player-outfit">
+              <option value="hustler">hustler</option>
+              <option value="trader">trader</option>
+              <option value="operator">operator</option>
+              <option value="nomad">nomad</option>
+              <option value="creator">creator</option>
+              <option value="office">office</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="profile-actions">
+          <button class="connect-one" type="button">Connect</button>
+          <button class="disconnect-one danger ghost" type="button">Disconnect</button>
+          <button class="reconnect-one" type="button">Reconnect</button>
+          <label class="auto-toggle">
+            <input class="auto-enabled" type="checkbox">
+            Auto
+          </label>
+        </div>
+
+        <dl class="state-summary">
+          <div><dt>Room</dt><dd class="profile-room">—</dd></div>
+          <div><dt>Round</dt><dd class="round-value">—</dd></div>
+          <div><dt>Phase</dt><dd class="phase-value">—</dd></div>
+          <div><dt>Active</dt><dd class="active-value">—</dd></div>
+          <div><dt>Card</dt><dd class="card-value">—</dd></div>
+          <div><dt>Cash</dt><dd class="cash-value">—</dd></div>
+          <div><dt>Stress</dt><dd class="stress-value">—</dd></div>
+          <div><dt>Hash</dt><dd class="hash-value">—</dd></div>
+        </dl>
+
+        <div class="command-panel">
+          <div class="command-heading">
+            <strong>Команда этого профиля</strong>
+            <span class="intent-state">нет state</span>
+          </div>
+          <p class="option-note">Сервер присылает ID карты без списка вариантов. Индексы проверяет server authority.</p>
+          <div class="option-buttons">
+            <button data-choice-index="0" type="button">Option 1</button>
+            <button data-choice-index="1" type="button">Option 2</button>
+            <button data-choice-index="2" type="button">Option 3</button>
+            <button class="pass-command warning" type="button">Pass</button>
+          </div>
+        </div>
+
+        <div class="diagnostics">
+          <p><strong>Last:</strong> <span class="last-message">—</span></p>
+          <p><strong>Error:</strong> <span class="last-error">—</span></p>
+        </div>
+
+        <details>
+          <summary>Серверный журнал</summary>
+          <ol class="server-events"></ol>
+        </details>
+        <details>
+          <summary>Транспортный журнал</summary>
+          <ol class="transport-events"></ol>
+        </details>
+      </article>
+    </template>
+
+    <script src="./app.js" defer></script>
+  </body>
+</html>

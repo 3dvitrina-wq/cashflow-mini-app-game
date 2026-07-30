@@ -2,8 +2,8 @@
 
 ## Session
 
-- Date: 2026-06-08
-- Session log: `docs/agents/sessions/2026-06-08.md`
+- Date: 2026-07-30
+- Session log: `docs/agents/sessions/2026-07-30.md`
 
 ## Task
 
@@ -56,6 +56,13 @@ Ship a "friends-playable" rules slice for the current build:
   through WebSocket and render the broadcast badge over each player's avatar.
 - `crisis_immunity` is an in-match protection token, not investment advice or real-money
   trading logic: one per session, deterministic 50% roll on the next negative crisis choice.
+- Before public infrastructure work, the owner wants a free localhost playtest on one
+  computer with friends; Telegram auth, persistence and deployment are deferred until
+  the game is demonstrably stable and interesting.
+- `tools/network-lab/` is the local six-profile WebSocket harness. Each profile owns a
+  separate socket/player id and can choose independently in individual or shared mode.
+  Connection success requires server room acknowledgement; hash comparison excludes
+  disconnected/stale snapshots instead of reporting false divergence.
 
 ## Next Step
 
@@ -72,6 +79,8 @@ Run targeted local playtests on offline and room flows to verify:
 - shared-card online rooms keep all players on the same card through full 25-round matches;
 - individual-card mode remains available and clearly framed as the alternate branch;
 - reaction badges remain visible above own and peer miniatures in online matches;
+- use `tools/network-lab/` to run repeatable 6-player shared and individual matches,
+  including disconnect/reconnect, and record seeds/choices where fun or state diverges;
 - Run a click-level browser check for the two new fast-start CTAs once Playwright module
   resolution or the in-app Browser JS bridge is available; current verification covers build
   and mobile screenshots.
