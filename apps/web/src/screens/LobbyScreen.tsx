@@ -535,6 +535,7 @@ export const LobbyScreen: React.FC = () => {
   const [gameMode, setGameMode] = useState<'basic' | 'pro'>('basic');
   const [roundPreset, setRoundPreset] = useState<number>(25);
   const [roomCode, setRoomCode] = useState('');
+  const [roomSettingsOpen, setRoomSettingsOpen] = useState(false);
   const [joinInput, setJoinInput] = useState('');
   const [isHost, setIsHost] = useState(false);
   const [wsError, setWsError] = useState<string | null>(null);
@@ -768,7 +769,7 @@ export const LobbyScreen: React.FC = () => {
   }
 
   return (
-    <div className="lobby-shell" onTouchStart={handleBgTouchStart} onTouchMove={handleBgTouchMove} onTouchEnd={handleBgTouchEnd}>
+    <div className={`lobby-shell ${multiMode === 'waiting' ? 'lobby-shell-waiting' : ''}`} onTouchStart={handleBgTouchStart} onTouchMove={handleBgTouchMove} onTouchEnd={handleBgTouchEnd}>
       {/* ── Background art (single PNG) ── */}
       <img ref={bgRef} src={selectedCharacter?.lobbyBg ?? lobbyInterior} alt="" className="lobby-bg-img" draggable={false} />
       <LobbyAmbientFx variant="full" />
@@ -794,162 +795,155 @@ export const LobbyScreen: React.FC = () => {
         </header>
 
         {multiMode === 'waiting' ? (
-          <div className="lobby-entry">
-            <div className="lobby-room-pill">
-              <IconHourglass size={28} />
-              <div className="lobby-room-info">
-                <span className="lobby-room-title">
-                  Room #{roomCode} &middot; <span className="room-players">{serverMembers.length}/6</span>
-                </span>
-                <span className="lobby-room-sub">
-                  {isConnecting ? 'Подключение...' : isHost ? 'Ожидаем игроков' : 'Ожидаем хоста'}
-                </span>
+          <div className="lobby-entry lobby-waiting-entry">
+            <section className="lobby-waiting-status" aria-label="Статус комнаты">
+              <div className="lobby-room-pill">
+                <IconHourglass size={24} />
+                <div className="lobby-room-info">
+                  <span className="lobby-room-title">
+                    Комната {roomCode} <span className="room-players">{serverMembers.length}/6</span>
+                  </span>
+                  <span className="lobby-room-sub">
+                    {isConnecting ? 'Подключаемся к столу…' : isHost ? 'Пригласи игроков или добавь ботов' : 'Хост собирает стол'}
+                  </span>
+                </div>
               </div>
-            </div>
-            {wsError && <div className="lobby-ws-error" style={{color:'#f87171',padding:'8px 0',fontSize:'13px'}}>{wsError}</div>}
-            <button
-              className="lobby-room-copy-btn"
-              onClick={() => {
-                navigator.clipboard.writeText(roomCode).catch(() => {});
-                hapticImpact('light');
-              }}
-              aria-label="Скопировать код комнаты"
-              style={{ marginBottom: 8, background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 10, padding: '8px 16px', color: '#F5C524', fontWeight: 700, fontSize: 14, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, width: '100%', justifyContent: 'center' }}
-            >
-              <IconLink size={14} />
-              Скопировать код: {roomCode}
-            </button>
-            <div className="lobby-player-list">
-              {serverMembers.map((m) => (
-                <div
-                  key={m.playerId}
-                  className="lobby-player-row"
-                  onClick={() => openVisit(memberToPlayer(m), memberToMeta(m))}
-                  style={{ cursor: 'pointer' }}
-                >
-                  <div className="lobby-player-avatar">
-                    {lobbyReactions[m.playerId] && (
-                      <span key={lobbyReactions[m.playerId].id} className="player-reaction-badge">
-                        {lobbyReactions[m.playerId].label}
+              <button
+                className="lobby-room-copy-btn"
+                onClick={() => {
+                  navigator.clipboard.writeText(roomCode).catch(() => {});
+                  hapticImpact('light');
+                }}
+                aria-label="Скопировать код комнаты"
+              >
+                <IconLink size={16} />
+                <span><small>КОД ДЛЯ ДРУЗЕЙ</small>{roomCode}</span>
+              </button>
+            </section>
+
+            {wsError && <div className="lobby-ws-error">{wsError}</div>}
+
+            <section className="lobby-waiting-table" aria-label="Игроки за столом">
+              <div className="lobby-waiting-section-title">
+                <span>ЗА СТОЛОМ</span>
+                <b>{serverMembers.length} из 6</b>
+              </div>
+              <div className="lobby-player-list lobby-player-list-waiting">
+                {serverMembers.map((m) => (
+                  <button
+                    type="button"
+                    key={m.playerId}
+                    className="lobby-player-row"
+                    onClick={() => openVisit(memberToPlayer(m), memberToMeta(m))}
+                  >
+                    <div className="lobby-player-avatar">
+                      {lobbyReactions[m.playerId] && (
+                        <span key={lobbyReactions[m.playerId].id} className="player-reaction-badge">
+                          {lobbyReactions[m.playerId].label}
+                        </span>
+                      )}
+                      <img src={avatarSrc(m.name, m.characterId)} alt="" />
+                    </div>
+                    <div className="lobby-player-info">
+                      <span className="lobby-player-name">{m.name}</span>
+                      <span className="lobby-player-role">
+                        {resolveGeneratedCharacter(m.characterId)?.displayNameRu
+                          ?? (m.playerId === myPlayerId ? 'это вы' : 'игрок')}
                       </span>
-                    )}
-                    <img src={avatarSrc(m.name, m.characterId)} alt={m.name} />
-                  </div>
-                  <div className="lobby-player-info">
-                    <span className="lobby-player-name">{m.name}</span>
-                    <span className="lobby-player-role">
-                      {resolveGeneratedCharacter(m.characterId)?.displayNameRu
-                        ?? (m.playerId === myPlayerId ? 'вы' : 'игрок')}
-                    </span>
+                    </div>
                     <span className="lobby-player-status">
                       <IconReadyDot size={8} />
-                      {m.playerId === myPlayerId ? 'you' : 'ready'}
+                      {m.playerId === myPlayerId && isHost ? 'хост' : 'готов'}
                     </span>
-                  </div>
-                  {m.playerId === myPlayerId && isHost && (
-                    <div className="lobby-host-badge">
-                      <span className="lobby-host-crown"><IconCrown size={20} /></span>
-                    </div>
-                  )}
-                </div>
-              ))}
-              {serverMembers.length === 0 && !isConnecting && (
-                <div className="lobby-player-row" style={{opacity:0.5}}>
-                  <span className="lobby-invite-text">Поделитесь кодом: <b>{roomCode}</b></span>
-                </div>
-              )}
-            </div>
-            {isHost && (
-              <button
-                type="button"
-                onClick={() => { const next = !roomPrivate; setRoomPrivate(next); wsClient.send({ type: 'set_privacy', isPrivate: next }); hapticImpact('light'); }}
-                aria-pressed={roomPrivate}
-                style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '10px 14px', margin: '0 0 8px', borderRadius: 12, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer', textAlign: 'left' }}
-              >
-                <span style={{ width: 40, height: 22, borderRadius: 999, background: roomPrivate ? 'rgba(255,255,255,0.15)' : '#34D399', position: 'relative', flexShrink: 0, transition: 'background .15s' }}>
-                  <span style={{ position: 'absolute', top: 2, left: roomPrivate ? 2 : 20, width: 18, height: 18, borderRadius: '50%', background: '#0B0B0C', transition: 'left .15s' }} />
-                </span>
-                <span style={{ flex: 1 }}>
-                  <b style={{ color: '#F5F4ED', display: 'block', fontSize: 13 }}>{roomPrivate ? '🔒 Приватная' : '🌐 Публичная'}</b>
-                  <small style={{ color: '#8D8B7E', fontSize: 11 }}>{roomPrivate ? 'только по коду' : 'видна в списке «Комнаты»'}</small>
-                </span>
-              </button>
-            )}
-            {isHost && (
-              <>
-                <div style={{ display: 'flex', gap: 8, margin: '4px 0 8px' }}>
-                  {([['basic', 'ОБЫЧНЫЙ'], ['pro', 'PRO']] as const).map(([mode, label]) => (
-                    <button
-                      key={mode}
-                      onClick={() => setGameMode(mode)}
-                      style={{
-                        flex: 1, height: 42, borderRadius: 12, fontSize: 13, fontWeight: 900,
-                        background: gameMode === mode ? '#F5C524' : 'rgba(255,255,255,0.05)',
-                        color: gameMode === mode ? '#0B0B0C' : '#B8B6A9',
-                        border: gameMode === mode ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-                <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-2px 0 8px' }}>
-                  {gameMode === 'basic'
-                    ? 'У каждого своя карта · решения одновременно · без сложных договоров'
-                    : 'Общая карта · сделки, проценты и полный финансовый стол'}
-                </p>
-              </>
-            )}
-            {isHost && (
-              <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
-                {ROUND_PRESETS.map((preset) => (
-                  <button
-                    key={preset.id}
-                    onClick={() => setRoundPreset(preset.id)}
-                    style={{
-                      flex: 1,
-                      height: 42,
-                      borderRadius: 12,
-                      fontSize: 13,
-                      fontWeight: 800,
-                      background: roundPreset === preset.id ? '#5BD7E0' : 'rgba(255,255,255,0.05)',
-                      color: roundPreset === preset.id ? '#0B0B0C' : '#B8B6A9',
-                      border: roundPreset === preset.id ? 'none' : '1px solid rgba(255,255,255,0.1)',
-                    }}
-                  >
-                    {preset.label}
                   </button>
                 ))}
+                {serverMembers.length === 0 && !isConnecting && (
+                  <div className="lobby-waiting-empty">Комната готова. Отправь код друзьям.</div>
+                )}
               </div>
-            )}
+            </section>
+
             {isHost && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 10px' }}>
-                <span style={{ flex: 1, fontSize: 13, color: '#B8B6A9' }}>
-                  Боты: <b style={{ color: '#F5F4ED' }}>{serverMembers.filter((m) => m.isBot).length}</b> · добавь, чтобы играть одному
-                </span>
+              <section className="lobby-host-controls" aria-label="Управление матчем">
+                <div className="lobby-bot-control">
+                  <span>
+                    <b>Боты</b>
+                    <small>{serverMembers.filter((m) => m.isBot).length} за столом · можно начать вдвоём</small>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => wsClient.send({ type: 'remove_bot' })}
+                    disabled={serverMembers.filter((m) => m.isBot).length === 0}
+                    aria-label="Убрать бота"
+                  >−</button>
+                  <button
+                    type="button"
+                    onClick={() => wsClient.send({ type: 'add_bot' })}
+                    disabled={serverMembers.length >= 6}
+                    aria-label="Добавить бота"
+                  >
+                    <IconBot size={16} /> Добавить
+                  </button>
+                </div>
+
                 <button
-                  onClick={() => wsClient.send({ type: 'remove_bot' })}
-                  disabled={serverMembers.filter((m) => m.isBot).length === 0}
-                  aria-label="убрать бота"
-                  style={{ width: 40, height: 40, borderRadius: 10, background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#F5F4ED', fontSize: 22, fontWeight: 800, cursor: 'pointer', lineHeight: 1 }}
-                >−</button>
-                <button
-                  onClick={() => wsClient.send({ type: 'add_bot' })}
-                  disabled={serverMembers.length >= 6}
-                  aria-label="добавить бота"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '0 14px', height: 40, borderRadius: 10, background: 'rgba(91,215,224,0.15)', border: '1px solid rgba(91,215,224,0.4)', color: '#5BD7E0', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
+                  type="button"
+                  className="lobby-settings-disclosure"
+                  aria-expanded={roomSettingsOpen}
+                  onClick={() => setRoomSettingsOpen((open) => !open)}
                 >
-                  <IconBot size={16} /> Бот
+                  <span>
+                    <b>Настройки матча</b>
+                    <small>{gameMode === 'basic' ? 'Обычный' : 'PRO'} · {ROUND_PRESETS.find((preset) => preset.id === roundPreset)?.label} · {roomPrivate ? 'по коду' : 'публичная'}</small>
+                  </span>
+                  <IconChevronRight size={18} />
                 </button>
-              </div>
+
+                {roomSettingsOpen && (
+                  <div className="lobby-match-settings">
+                    <div className="lobby-match-setting-group">
+                      <span>Режим</span>
+                      <div className="lobby-match-segments">
+                        {([['basic', 'ОБЫЧНЫЙ'], ['pro', 'PRO']] as const).map(([mode, label]) => (
+                          <button type="button" key={mode} className={gameMode === mode ? 'active' : ''} onClick={() => setGameMode(mode)}>{label}</button>
+                        ))}
+                      </div>
+                      <small>{gameMode === 'basic' ? 'Личные карты и быстрые решения' : 'Общий стол, проценты и переговоры'}</small>
+                    </div>
+                    <div className="lobby-match-setting-group">
+                      <span>Длина</span>
+                      <div className="lobby-match-segments">
+                        {ROUND_PRESETS.map((preset) => (
+                          <button type="button" key={preset.id} className={roundPreset === preset.id ? 'active cyan' : ''} onClick={() => setRoundPreset(preset.id)}>{preset.label}</button>
+                        ))}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      className="lobby-privacy-toggle"
+                      onClick={() => {
+                        const next = !roomPrivate;
+                        setRoomPrivate(next);
+                        wsClient.send({ type: 'set_privacy', isPrivate: next });
+                        hapticImpact('light');
+                      }}
+                      aria-pressed={roomPrivate}
+                    >
+                      <span className={`lobby-toggle-track ${roomPrivate ? 'private' : ''}`}><i /></span>
+                      <span><b>{roomPrivate ? 'Только по коду' : 'Публичная комната'}</b><small>{roomPrivate ? 'не показывается в списке' : 'видна другим игрокам'}</small></span>
+                    </button>
+                  </div>
+                )}
+              </section>
             )}
-            <div className="lobby-actions">
+
+            <div className="lobby-actions lobby-waiting-actions">
               <button className="lobby-btn lobby-btn-invite" onClick={() => { wsClient.disconnect(); setMultiMode('none'); setRoomCode(''); setServerMembers([]); setIsConnecting(false); }}>
                 Выйти
               </button>
               {isHost && (
                 <button className="lobby-btn lobby-btn-start" disabled={serverMembers.length < 2} onClick={handleMultiStart}>
-                  Начать
+                  Начать матч
                   <IconPlay size={13} />
                 </button>
               )}

@@ -41,20 +41,28 @@ night survival job. Do not “fix” this by removing losses.
   to the match and destructive actions are visually separate.
 - WebSocket sessions reconnect with a stable resume token, restore the server
   snapshot and display transport status instead of silently dropping messages.
+- The active-turn mobile layout gives the private card the visual stage, keeps
+  the compact money HUD and decisions visible, and never scrolls card copy inside
+  the phone viewport. Deal/meaning/action motion is staged and reduced-motion safe.
+- The waiting room now separates room status, seats, bot controls, match settings
+  and sticky start/exit actions instead of presenting one undifferentiated stack.
 - Asset recurring income/upkeep has one ledger representation; duplicate passive
   effects were removed.
 - PRO-only partnership choices are visibly gated in BASIC.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
 - Verification: engine 150/150; server 6/6; web/server typecheck; production
-  build; Network Lab and reconnect smoke; browser tutorial/profile/settings run.
+  build; Network Lab and reconnect smoke; 25-card mobile geometry run; iPhone
+  16 Pro, 375×812 and landscape browser inspection; a complete six-socket,
+  15-round BASIC match with 54 commands and `SYNC 6/6`.
 
 ## Next Step
 
-1. Publish server and web to the canonical old addresses.
+1. Publish the new web build to the canonical old address; the server behavior
+   is unchanged by this UI pass.
 2. Run production reconnect smoke, a short six-seat room check and
    `?autostart=1&tour=1` after deployment.
-3. Play a longer human-facing BASIC match and record where decisions feel flat,
+3. Play a human-facing BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
 4. Audit the remaining content defects separately from engine correctness:
    `prot-accountant:later`, P2P transfer/liability truth, market cards that only

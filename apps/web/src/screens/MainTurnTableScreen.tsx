@@ -119,9 +119,29 @@ function cardTypeLabel(type: string, ru: boolean): string {
     social: 'СОЦИАЛЬНОЕ',
     protection: 'ЗАЩИТА',
     modern_earning: 'ЗАРАБОТОК',
+    staff: 'ПЕРСОНАЛ',
+    expense_to_asset: 'РАСХОД В АКТИВ',
+    life_event: 'СОБЫТИЕ',
     economy: 'ЭКОНОМИКА',
   };
   return labels[type] ?? type.replace(/_/g, ' ').toUpperCase();
+}
+
+function cardSignal(type: string, ru: boolean): { label: string; tone: string } {
+  const signals: Record<string, [string, string, string]> = {
+    opportunity: ['НАВОДКА: МОЖНО ЗАРАБОТАТЬ', 'OPPORTUNITY DETECTED', 'gold'],
+    modern_earning: ['НОВЫЙ ИСТОЧНИК ДОХОДА', 'NEW INCOME SOURCE', 'green'],
+    crisis: ['УДАР ПО БЮДЖЕТУ', 'BUDGET HIT', 'red'],
+    market_pulse: ['РЫНОК СДВИНУЛСЯ', 'MARKET MOVED', 'cyan'],
+    social: ['СИГНАЛ ОТ СТОЛА', 'TABLE SIGNAL', 'violet'],
+    protection: ['МОЖНО ПОСТАВИТЬ ЩИТ', 'DEFENCE AVAILABLE', 'cyan'],
+    staff: ['КАНДИДАТ НА СВЯЗИ', 'CANDIDATE AVAILABLE', 'violet'],
+    expense_to_asset: ['РАСХОД МОЖНО ПЕРЕВЕРНУТЬ', 'TURN EXPENSE INTO AN ASSET', 'gold'],
+    life_event: ['ЖИЗНЬ ВМЕШАЛАСЬ', 'LIFE INTERRUPTED', 'orange'],
+    economy: ['ЭКОНОМИКА МЕНЯЕТ ПРАВИЛА', 'ECONOMY SHIFT', 'orange'],
+  };
+  const [ruLabel, enLabel, tone] = signals[type] ?? ['НОВАЯ СИТУАЦИЯ', 'NEW SITUATION', 'gold'];
+  return { label: ru ? ruLabel : enLabel, tone };
 }
 
 // ─────────────────────────────────────────────────────────
@@ -373,6 +393,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [fabExpanded, setFabExpanded] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [isConfirmPreviewOpen, setIsConfirmPreviewOpen] = useState(false);
+  const [cardRevealPhase, setCardRevealPhase] = useState<'dealing' | 'ready'>('dealing');
   const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
@@ -518,6 +539,19 @@ export const MainTurnTableScreen: React.FC = () => {
     || (engineMatch?.phase === 'intent_window' && !hasSubmittedSharedIntent)
     || activePlayer.id === me?.id;
   const isProMode = match.experienceMode === 'pro';
+  useEffect(() => {
+    if (!card || !canActNow) {
+      setCardRevealPhase('ready');
+      return;
+    }
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setCardRevealPhase('ready');
+      return;
+    }
+    setCardRevealPhase('dealing');
+    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 620);
+    return () => window.clearTimeout(revealTimer);
+  }, [card?.id, match.round, canActNow]);
   const incomingPersonalOffers = !isProMode && me?.id
     ? (engineMatch?.personalCardOffers ?? []).filter((offer) =>
         offer.status === 'pending'
@@ -814,8 +848,13 @@ export const MainTurnTableScreen: React.FC = () => {
     { icon: <IconCogSpark size={17} />, label: locale === 'ru' ? 'Настройки' : 'Settings', tone: 'slate', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
 
+  const activeCardSignal = cardSignal(card.type, locale === 'ru');
+  const visibleConsequences = (card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3);
+  const cardCopyLength = `${card.title} ${card.text} ${card.hostCue ?? ''} ${visibleConsequences.join(' ')}`.length;
+  const cardDensity = cardCopyLength > 360 ? 'long' : cardCopyLength > 250 ? 'medium' : 'regular';
+
   return (
-    <div className="game-phone-shell">
+    <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
       <div className="game-bg-noise" />
       {isMultiplayer && networkStatus !== 'connected' && (
         <button
@@ -895,11 +934,7 @@ export const MainTurnTableScreen: React.FC = () => {
       </section>
 
       {!isProMode && globalCard && (
-        <section data-tour="market" style={{
-          position: 'relative', zIndex: 18, margin: '2px 12px 5px', padding: '7px 10px',
-          borderRadius: 11, border: '1px solid rgba(245,197,36,0.28)',
-          background: 'rgba(245,197,36,0.07)', display: 'flex', alignItems: 'center', gap: 8,
-        }}>
+        <section className="global-market-strip" data-tour="market">
           <span style={{ fontSize: 10, fontWeight: 950, color: '#F5C524', whiteSpace: 'nowrap' }}>
             {locale === 'ru' ? 'РЫНОК · ВСЕМ' : 'MARKET · ALL'}
           </span>
@@ -986,15 +1021,21 @@ export const MainTurnTableScreen: React.FC = () => {
             <main className="relative flex min-h-0 flex-1 items-stretch px-3 py-1">
               <article
                 data-tour="card"
-                className={`dyor-card dyor-card-poster flex-1 ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'}`}
+                className={`dyor-card dyor-card-poster flex-1 card-density-${cardDensity} card-reveal-${cardRevealPhase} ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'}`}
+                aria-busy={cardRevealPhase === 'dealing'}
+                onPointerDown={() => cardRevealPhase === 'dealing' && setCardRevealPhase('ready')}
                 style={{
                   '--card-art-image': cardArtwork?.src ? `url(${cardArtwork.src})` : 'none',
                   '--card-art-bg': cardArtwork?.background ?? 'transparent',
                   '--card-art-size': cardArtwork?.fit === 'contain' ? '58% auto' : 'cover',
                 } as React.CSSProperties}
               >
-                {/* Scrollable content area */}
+                {/* One readable stage: gameplay cards never create a nested scroll. */}
                 <div className="card-scroll-area card-poster-content">
+                  <div className={`card-event-signal card-event-signal-${activeCardSignal.tone}`}>
+                    <span>{activeCardSignal.label}</span>
+                    {card.hostCue && <p>{card.hostCue}</p>}
+                  </div>
                   <div className="card-poster-kicker">
                     <span className="card-type-badge">
                       <IconAlert size={11} />
@@ -1016,7 +1057,7 @@ export const MainTurnTableScreen: React.FC = () => {
                   </div>
 
                   <div className="card-poster-consequences">
-                    {(card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3).map((c, i) => {
+                    {visibleConsequences.map((c, i) => {
                       const cleaned = stripFirstEmoji(c);
                       return (
                         <div key={i} className="consequence-row">
@@ -1174,7 +1215,7 @@ export const MainTurnTableScreen: React.FC = () => {
 
           {/* ========== TURN ACTION DOCK ========== */}
           {/* Hidden while waiting for another player's turn — the card isn't yours to act on. */}
-          {match.matchMode !== 'draft' && canActNow && (
+          {match.matchMode !== 'draft' && canActNow && cardRevealPhase === 'ready' && (
             <section className="turn-action-dock">
               <div className="decision-choice-panel">
                 {canOfferPersonalCard && (
