@@ -4,6 +4,7 @@ import {
   createRoom,
   expireSharedIntentWindow,
   joinRoom,
+  setTutorialPaused,
   startRoom,
 } from './rooms';
 
@@ -27,5 +28,24 @@ describe('shared room intent deadline', () => {
         && event.playerId === 'p2'
         && event.message === 'intent:pass',
     )).toBe(true);
+  });
+});
+
+describe('first-run tutorial pause', () => {
+  it('freezes commands until every learning player resumes', () => {
+    const room = createRoom(true);
+    joinRoom(room.code, { playerId: 'p1', name: 'A', outfit: 'trader', ws: null });
+    joinRoom(room.code, { playerId: 'p2', name: 'B', outfit: 'office', ws: null });
+    startRoom(room.code, { cardMode: 'shared' });
+
+    setTutorialPaused(room.code, 'p1', true);
+    setTutorialPaused(room.code, 'p2', true);
+    expect(applyCommand(room.code, { type: 'pass', playerId: 'p1' }).error).toContain('tutorial');
+
+    setTutorialPaused(room.code, 'p1', false);
+    expect(applyCommand(room.code, { type: 'pass', playerId: 'p1' }).error).toContain('tutorial');
+
+    setTutorialPaused(room.code, 'p2', false);
+    expect(applyCommand(room.code, { type: 'pass', playerId: 'p1' }).rejected).toBe(false);
   });
 });

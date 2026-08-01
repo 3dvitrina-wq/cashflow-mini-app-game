@@ -11,6 +11,7 @@ import {
   allIntentsSubmitted,
   dealDraftBoard,
   cardIdForPlayer,
+  shouldAcceptPersonalCardOffer,
 } from '../../../packages/game-engine/src/index';
 import { botIntent } from '../../../packages/game-engine/src/bot';
 import type { MatchState, Command } from '../../../packages/shared/src/index';
@@ -31,6 +32,8 @@ export interface RoomMember {
   connected: boolean;
   /** Timestamp of last pong received; used for heartbeat timeout. */
   lastPong: number;
+  /** Stable per-WebView secret used to distinguish reconnect from slot hijacking. */
+  resumeToken?: string;
   /** Lightweight lobby meta so peers can "visit" this player's profile. */
   meta?: {
     characterId?: string;
@@ -54,6 +57,8 @@ export interface Room {
   turnTimer: ReturnType<typeof setTimeout> | null;
   /** Timestamp when the current turn started; for external inspection. */
   turnStartedAt: number;
+  /** Humans currently reading the first-run tour; the whole table is frozen. */
+  tutorialPausedPlayerIds: Set<string>;
   /** Shared = everyone resolves one visible card together. Individual = old per-turn card flow. */
   cardMode: CardMode;
   /** BASIC = private simultaneous cards. PRO = shared table and advanced deals. */
@@ -153,6 +158,7 @@ export function createRoom(isPrivate = false): Room {
     seed: Date.now(),
     turnTimer: null,
     turnStartedAt: 0,
+    tutorialPausedPlayerIds: new Set(),
     cardMode: 'individual',
     experienceMode: 'basic',
   };
@@ -174,6 +180,14 @@ export function listPublicRooms(): { code: string; host: string; players: number
 
 export function getRoom(code: string): Room | undefined {
   return rooms.get(code);
+}
+
+export function setTutorialPaused(code: string, playerId: string, active: boolean): Room | null {
+  const room = rooms.get(code);
+  if (!room || !room.members.some((member) => member.playerId === playerId)) return null;
+  if (active) room.tutorialPausedPlayerIds.add(playerId);
+  else room.tutorialPausedPlayerIds.delete(playerId);
+  return room;
 }
 
 export function joinRoom(
@@ -204,6 +218,7 @@ export function reconnectPlayer(
   code: string,
   playerId: string,
   ws: any,
+  resumeToken?: string,
 ): Room | null {
   const room = rooms.get(code);
   if (!room) return null;
@@ -213,6 +228,7 @@ export function reconnectPlayer(
   member.connected = true;
   member.lastPong = Date.now();
   member.botControlled = false;
+  if (resumeToken) member.resumeToken = resumeToken;
   return room;
 }
 
@@ -250,6 +266,9 @@ export function runBotTurn(code: string): { ok: boolean; error?: string; room?: 
   const room = rooms.get(code);
   if (!room || room.status !== 'playing' || !room.engineState) {
     return { ok: false, error: 'room not in playing state' };
+  }
+  if (room.tutorialPausedPlayerIds.size > 0) {
+    return { ok: false, error: 'match paused while a player finishes the tutorial' };
   }
   const player = activePlayer(room.engineState);
   if (!player) return { ok: false, error: 'no active player' };
@@ -333,22 +352,43 @@ export function applyCommand(
   if (!room || room.status !== 'playing' || !room.engineState) {
     return { ok: false, error: 'room not in playing state' };
   }
+  if (room.tutorialPausedPlayerIds.size > 0) {
+    return { ok: false, error: 'match paused while a player finishes the tutorial' };
+  }
   try {
     const phaseBefore = room.engineState.phase;
     let cmdResult = resolveCommand(room.engineState, command);
     if (command.type === 'offer_personal_card' && !wasRejected(cmdResult.events)) {
-      const targetMember = room.members.find((member) => member.playerId === command.targetPlayerId);
       const offer = cmdResult.state.personalCardOffers?.find((candidate) =>
         candidate.status === 'pending'
         && candidate.fromPlayerId === command.playerId
-        && candidate.toPlayerId === command.targetPlayerId);
-      if (offer && (targetMember?.isBot || targetMember?.botControlled)) {
-        const accepted = resolveCommand(cmdResult.state, {
-          type: 'accept_personal_card',
-          playerId: command.targetPlayerId,
-          offerId: offer.id,
+        && candidate.audience === command.audience);
+      if (offer) {
+        const botBuyers = room.members.filter((member) => {
+          if (!member.isBot && !member.botControlled) return false;
+          if (member.playerId === command.playerId) return false;
+          if (offer.audience === 'direct' && member.playerId !== offer.toPlayerId) return false;
+          return shouldAcceptPersonalCardOffer(cmdResult.state, offer, member.playerId);
         });
-        cmdResult = { state: accepted.state, events: [...cmdResult.events, ...accepted.events] };
+        const buyer = botBuyers[0];
+        if (buyer) {
+          const accepted = resolveCommand(cmdResult.state, {
+            type: 'accept_personal_card',
+            playerId: buyer.playerId,
+            offerId: offer.id,
+          });
+          cmdResult = { state: accepted.state, events: [...cmdResult.events, ...accepted.events] };
+        } else if (offer.audience === 'direct') {
+          const targetMember = room.members.find((member) => member.playerId === offer.toPlayerId);
+          if (targetMember?.isBot || targetMember?.botControlled) {
+            const declined = resolveCommand(cmdResult.state, {
+              type: 'decline_personal_card',
+              playerId: targetMember.playerId,
+              offerId: offer.id,
+            });
+            cmdResult = { state: declined.state, events: [...cmdResult.events, ...declined.events] };
+          }
+        }
       }
     }
     room.engineState = cmdResult.state;

@@ -17,6 +17,7 @@ import {
   runBotTurn,
   clearTurnTimer,
   expireSharedIntentWindow,
+  setTutorialPaused,
 } from './rooms';
 import type { RoomMember } from './rooms';
 import { toClientState } from './client-state';
@@ -64,6 +65,11 @@ function broadcastState(room: NonNullable<ReturnType<typeof getRoom>>, type: 'st
  * Schedules a human turn-timer after cascade ends.
  */
 function drainBotTurns(roomCode: string): void {
+  const roomAtEntry = getRoom(roomCode);
+  if (roomAtEntry?.tutorialPausedPlayerIds.size) {
+    clearTurnTimer(roomAtEntry);
+    return;
+  }
   let iterations = 0;
   while (iterations < MAX_BOT_TURNS) {
     const room = getRoom(roomCode);
@@ -96,14 +102,14 @@ function drainBotTurns(roomCode: string): void {
 
   // Schedule human-turn timeout (cancel any previous one first)
   const room = getRoom(roomCode);
-  if (room && room.status === 'playing') {
+  if (room && room.status === 'playing' && room.tutorialPausedPlayerIds.size === 0) {
     clearTurnTimer(room);
     const timeoutMs = room.engineState?.phase === 'intent_window'
       ? INTENT_TIMEOUT_MS
       : TURN_TIMEOUT_MS;
     room.turnTimer = setTimeout(() => {
       const r = getRoom(roomCode);
-      if (!r || r.status !== 'playing') return;
+      if (!r || r.status !== 'playing' || r.tutorialPausedPlayerIds.size > 0) return;
       if (r.engineState?.phase === 'intent_window') {
         const expired = expireSharedIntentWindow(roomCode);
         if (expired) {
@@ -250,6 +256,7 @@ async function main() {
       if (msg.type === 'join') {
         const code = (msg.roomCode as string).toUpperCase();
         const pid  = msg.playerId as string;
+        const resumeToken = typeof msg.resumeToken === 'string' ? msg.resumeToken : undefined;
 
         // Try reconnect first (player already in room)
         const existing = getRoom(code);
@@ -262,11 +269,15 @@ async function main() {
             // not a genuine reconnect. Reject instead of silently hijacking the
             // slot — otherwise the joiner takes over the host and nobody sees two
             // players in the lobby.
+            const sameSession = !!resumeToken
+              && !!alreadyMember.resumeToken
+              && resumeToken === alreadyMember.resumeToken;
             if (
               alreadyMember.connected &&
               alreadyMember.ws &&
               alreadyMember.ws !== ws &&
-              alreadyMember.ws.readyState === 1
+              alreadyMember.ws.readyState === 1 &&
+              !sameSession
             ) {
               ws.send(JSON.stringify({
                 type: 'error',
@@ -274,7 +285,11 @@ async function main() {
               }));
               return;
             }
-            const room = reconnectPlayer(code, pid, ws);
+            if (sameSession && alreadyMember.ws && alreadyMember.ws !== ws) {
+              alreadyMember.ws._dyorSuperseded = true;
+              alreadyMember.ws.terminate?.();
+            }
+            const room = reconnectPlayer(code, pid, ws, resumeToken);
             if (room) {
               roomCode = code;
               playerId = pid;
@@ -297,6 +312,7 @@ async function main() {
           outfit: msg.outfit ?? 'hustler',
           ws,
           meta: msg.meta,
+          resumeToken,
         });
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot join room' }));
@@ -312,10 +328,32 @@ async function main() {
       }
 
       // ── reaction (lobby + in-match) ──────────────────────────────────────────
+      if (msg.type === 'tutorial_state' && roomCode && playerId) {
+        const room = setTutorialPaused(roomCode, playerId, msg.active === true);
+        if (!room) return;
+        clearTurnTimer(room);
+        broadcast(room, {
+          type: 'tutorial_pause',
+          active: room.tutorialPausedPlayerIds.size > 0,
+          playerIds: [...room.tutorialPausedPlayerIds],
+        });
+        if (room.status === 'playing' && room.tutorialPausedPlayerIds.size === 0) {
+          room.turnStartedAt = Date.now();
+          drainBotTurns(roomCode);
+        }
+        return;
+      }
+
+      // ── reaction (lobby + in-match) ──────────────────────────────────────────
       if (msg.type === 'reaction' && roomCode) {
         const room = getRoom(roomCode);
         if (!room) return;
-        broadcast(room, { type: 'reaction', playerId: msg.playerId ?? playerId, label: msg.label });
+        broadcast(room, {
+          type: 'reaction',
+          playerId: msg.playerId ?? playerId,
+          targetPlayerId: msg.targetPlayerId,
+          label: msg.label,
+        });
         return;
       }
 
@@ -441,8 +479,29 @@ async function main() {
     });
 
     ws.on('close', () => {
+      if (ws._dyorSuperseded) return;
       if (roomCode && playerId) {
+        const roomBeforeClose = getRoom(roomCode);
+        const disconnectedDuringTutorial = roomBeforeClose?.tutorialPausedPlayerIds.has(playerId) === true;
         markDisconnected(roomCode, playerId);
+        if (disconnectedDuringTutorial) {
+          const pausedCode = roomCode;
+          const pausedPlayerId = playerId;
+          setTimeout(() => {
+            const pausedRoom = getRoom(pausedCode);
+            const member = pausedRoom?.members.find((candidate) => candidate.playerId === pausedPlayerId);
+            if (!pausedRoom || member?.connected) return;
+            setTutorialPaused(pausedCode, pausedPlayerId, false);
+            broadcast(pausedRoom, {
+              type: 'tutorial_pause',
+              active: pausedRoom.tutorialPausedPlayerIds.size > 0,
+              playerIds: [...pausedRoom.tutorialPausedPlayerIds],
+            });
+            if (pausedRoom.status === 'playing' && pausedRoom.tutorialPausedPlayerIds.size === 0) {
+              drainBotTurns(pausedCode);
+            }
+          }, 30_000);
+        }
         console.log(`[disconnect] ${playerId} left ${roomCode}`);
         const room = getRoom(roomCode);
         if (room) {
@@ -453,7 +512,7 @@ async function main() {
             playerId,
             botControlled: room.status === 'playing',
           });
-          if (room.status === 'playing') {
+          if (room.status === 'playing' && room.tutorialPausedPlayerIds.size === 0) {
             drainBotTurns(roomCode);
           }
         }

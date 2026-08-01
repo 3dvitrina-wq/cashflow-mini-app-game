@@ -50,4 +50,33 @@ describe('client state card copy', () => {
     expect(snapshot.pendingIntents.p1).toBeNull();
     expect(snapshot.pendingIntents.p2).toBeNull();
   });
+
+  it('shows table listings to everyone but keeps direct offers private', () => {
+    let state = createMatch(52, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+      { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
+    ], { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state = openIntentWindow(state);
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 1800,
+    }).state;
+
+    expect(toClientState(state, 'p3')?.personalCardOffers).toHaveLength(1);
+
+    state = createMatch(53, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+      { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
+    ], { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state = openIntentWindow(state);
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'direct', targetPlayerId: 'p2', askingPrice: 900,
+    }).state;
+
+    expect(toClientState(state, 'p2')?.personalCardOffers).toHaveLength(1);
+    expect(toClientState(state, 'p3')?.personalCardOffers).toHaveLength(0);
+  });
 });

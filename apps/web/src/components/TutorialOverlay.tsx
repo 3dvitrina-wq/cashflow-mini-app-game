@@ -16,6 +16,8 @@ interface Step {
   selector: string;
   title: string;
   copy: string;
+  /** Allow the highlighted real control to be used while the coach mark is open. */
+  interactive?: boolean;
 }
 
 const BASIC_STEPS: Step[] = [
@@ -29,7 +31,8 @@ const BASIC_STEPS: Step[] = [
     id: 'players',
     selector: '[data-tour="players"]',
     title: 'Люди за столом',
-    copy: 'Нажмите портрет, чтобы открыть профиль или реакцию. Предложения игроков появятся отдельной плашкой с понятными кнопками «Принять» и «Нет».',
+    copy: 'Нажмите любой подсвеченный портрет прямо сейчас: откроется настоящий профиль, откуда можно отправить реакцию. Закройте профиль — обучение продолжится здесь же.',
+    interactive: true,
   },
   {
     id: 'market',
@@ -41,7 +44,7 @@ const BASIC_STEPS: Step[] = [
     id: 'card',
     selector: '[data-tour="card"]',
     title: 'Эта возможность — только ваша',
-    copy: 'У остальных сейчас свои карты. С третьего раунда выгодную возможность можно передать одному игроку и получить 5% комиссии, если он купит.',
+    copy: 'У остальных сейчас свои карты. Эту можно купить самому, сбросить, продать выбранному игроку за вашу цену или выставить всему столу — заберёт первый согласившийся.',
   },
   {
     id: 'choices',
@@ -127,25 +130,52 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
 
-export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = 'basic' }) => {
+export function isFirstRunTourPending(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (new URLSearchParams(window.location.search).get('tour') === '1') return true;
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== '1';
+  } catch {
+    return true;
+  }
+}
+
+function telegramContentTop(): number {
+  if (typeof window === 'undefined') return 0;
+  const webApp = window.Telegram?.WebApp;
+  return Math.max(
+    webApp?.safeAreaInset?.top ?? 0,
+    webApp?.contentSafeAreaInset?.top ?? 0,
+    webApp?.isFullscreen ? 104 : 0,
+  );
+}
+
+interface TutorialOverlayProps {
+  mode?: 'basic' | 'pro';
+  /** Temporarily hide the coach mark while an interactive child sheet is open. */
+  suspended?: boolean;
+  onActiveChange?: (active: boolean) => void;
+}
+
+export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
+  mode = 'basic',
+  suspended = false,
+  onActiveChange,
+}) => {
   const steps = mode === 'pro' ? PRO_STEPS : BASIC_STEPS;
-  const forceTour = typeof window !== 'undefined'
-    && new URLSearchParams(window.location.search).get('tour') === '1';
   const [step, setStep] = useState(0);
-  const [done, setDone] = useState(() => {
-    if (forceTour) return false;
-    try {
-      return localStorage.getItem(STORAGE_KEY) === '1';
-    } catch {
-      return false;
-    }
-  });
+  const [done, setDone] = useState(() => !isFirstRunTourPending());
   const [rect, setRect] = useState<SpotlightRect | null>(null);
   const [tooltipHeight, setTooltipHeight] = useState(210);
   const tooltipRef = useRef<HTMLDivElement>(null);
   const nextRef = useRef<HTMLButtonElement>(null);
   const maskId = useId().replace(/:/g, '');
   const current = steps[step];
+
+  useEffect(() => {
+    onActiveChange?.(!done);
+    return () => onActiveChange?.(false);
+  }, [done, onActiveChange]);
 
   const dismiss = useCallback(() => {
     try {
@@ -174,7 +204,7 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
   }, []);
 
   useLayoutEffect(() => {
-    if (done) return;
+    if (done || suspended) return;
     const target = document.querySelector<HTMLElement>(current.selector);
     let frame = 0;
     const update = () => {
@@ -196,10 +226,10 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
       window.removeEventListener('scroll', update, true);
       observer?.disconnect();
     };
-  }, [current.selector, done]);
+  }, [current.selector, done, suspended]);
 
   useLayoutEffect(() => {
-    if (done || !tooltipRef.current) return;
+    if (done || suspended || !tooltipRef.current) return;
     const update = () => setTooltipHeight(tooltipRef.current?.getBoundingClientRect().height ?? 210);
     update();
     const observer = typeof ResizeObserver !== 'undefined'
@@ -207,16 +237,16 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
       : null;
     if (observer) observer.observe(tooltipRef.current);
     return () => observer?.disconnect();
-  }, [step, done]);
+  }, [step, done, suspended]);
 
   useEffect(() => {
-    if (done) return;
-    nextRef.current?.focus({ preventScroll: true });
+    if (done || suspended) return;
+    if (!current.interactive) nextRef.current?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') dismiss();
       if (event.key === 'ArrowRight') advance();
       if (event.key === 'ArrowLeft') goBack();
-      if (event.key === 'Tab' && tooltipRef.current) {
+      if (event.key === 'Tab' && !current.interactive && tooltipRef.current) {
         const focusable = Array.from(
           tooltipRef.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
         );
@@ -231,14 +261,15 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [step, done, advance, dismiss, goBack]);
+  }, [step, done, suspended, current.interactive, advance, dismiss, goBack]);
 
-  if (done) return null;
+  if (done || suspended) return null;
 
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 390;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 700;
   const tooltipWidth = Math.min(324, viewportWidth - EDGE * 2);
-  const spotTop = rect ? Math.max(4, rect.top - PAD) : 0;
+  const contentTop = telegramContentTop() + 8;
+  const spotTop = rect ? Math.max(contentTop, rect.top - PAD) : 0;
   const spotLeft = rect ? Math.max(4, rect.left - PAD) : 0;
   const spotWidth = rect ? Math.min(viewportWidth - spotLeft - 4, rect.width + PAD * 2) : 0;
   const spotHeight = rect ? Math.min(viewportHeight - spotTop - 4, rect.height + PAD * 2) : 0;
@@ -248,9 +279,9 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
   const tooltipLeft = clamp(targetCenter - tooltipWidth / 2, EDGE, viewportWidth - tooltipWidth - EDGE);
   const tooltipTop = rect
     ? placement === 'below'
-      ? clamp(spotTop + spotHeight + 16, EDGE, viewportHeight - tooltipHeight - EDGE)
-      : clamp(spotTop - tooltipHeight - 16, EDGE, viewportHeight - tooltipHeight - EDGE)
-    : clamp((viewportHeight - tooltipHeight) / 2, EDGE, viewportHeight - tooltipHeight - EDGE);
+      ? clamp(spotTop + spotHeight + 16, contentTop, viewportHeight - tooltipHeight - EDGE)
+      : clamp(spotTop - tooltipHeight - 16, contentTop, viewportHeight - tooltipHeight - EDGE)
+    : clamp((viewportHeight - tooltipHeight) / 2, contentTop, viewportHeight - tooltipHeight - EDGE);
   const arrowLeft = clamp(targetCenter - tooltipLeft - 9, 22, tooltipWidth - 40);
   const isLast = step === steps.length - 1;
 
@@ -276,6 +307,17 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
         <rect width="100%" height="100%" fill="rgba(2,4,8,0.82)" mask={`url(#${maskId})`} />
       </svg>
 
+      {current.interactive && rect ? (
+        <>
+          <div className="tutorial-blocker" style={{ top: 0, left: 0, right: 0, height: spotTop }} />
+          <div className="tutorial-blocker" style={{ top: spotTop, left: 0, width: spotLeft, height: spotHeight }} />
+          <div className="tutorial-blocker" style={{ top: spotTop, left: spotLeft + spotWidth, right: 0, height: spotHeight }} />
+          <div className="tutorial-blocker" style={{ top: spotTop + spotHeight, left: 0, right: 0, bottom: 0 }} />
+        </>
+      ) : (
+        <div className="tutorial-blocker tutorial-blocker-full" />
+      )}
+
       {rect && (
         <div
           className="tutorial-spotlight"
@@ -288,7 +330,7 @@ export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = '
         ref={tooltipRef}
         className="tutorial-tooltip"
         role="dialog"
-        aria-modal="true"
+        aria-modal={!current.interactive}
         aria-labelledby="tutorial-title"
         aria-describedby="tutorial-copy"
         style={{ top: tooltipTop, left: tooltipLeft, width: tooltipWidth }}

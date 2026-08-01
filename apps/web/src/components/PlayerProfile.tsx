@@ -2,33 +2,15 @@ import React from 'react';
 import { BottomSheet } from './BottomSheet';
 import type { PlayerState } from '../store/types';
 import { useI18n } from '../i18n';
-import avatarAnton from '../assets/generated/avatar-anton.webp';
-import avatarLena from '../assets/generated/avatar-lena.webp';
-import avatarMax from '../assets/generated/avatar-max.webp';
-import avatarMira from '../assets/generated/avatar-mira.webp';
-import avatarSasha from '../assets/generated/avatar-sasha.webp';
-import avatarYou from '../assets/generated/avatar-you.webp';
+import { resolveCharacterImage } from '../assets/characterRenderer';
+import { REACTIONS } from '../assets/reactions';
 
 interface PlayerProfileProps {
   isOpen: boolean;
   onClose: () => void;
   player: PlayerState | null;
   onProposeDeal?: (playerId: string) => void;
-  onSendReaction?: (playerId: string) => void;
-}
-
-const AVATAR_MAP: Record<string, string> = {
-  anton: avatarAnton,
-  lena: avatarLena,
-  max: avatarMax,
-  mira: avatarMira,
-  sasha: avatarSasha,
-  you: avatarYou,
-};
-
-function getAvatar(name: string): string {
-  const key = name.replace(/^@/, '').toLowerCase();
-  return AVATAR_MAP[key] || avatarYou;
+  onSendReaction?: (playerId: string, label: string) => void;
 }
 
 export const PlayerProfile: React.FC<PlayerProfileProps> = ({
@@ -38,7 +20,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
   onProposeDeal,
   onSendReaction,
 }) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   if (!player) return null;
 
   const outfitLabel = t(`outfit.${player.outfit}`);
@@ -59,7 +41,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
           }}
         >
           <img
-            src={getAvatar(player.name)}
+            src={resolveCharacterImage(player.name, player.outfit, player.mood, player.characterId)}
             alt={player.name}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
@@ -108,7 +90,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
           >
             <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>CASHFLOW</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#5BD7E0' }}>
-              +${player.cashflowPerMonth.toLocaleString()}/мес
+              {player.cashflowPerMonth >= 0 ? '+' : '-'}${Math.abs(player.cashflowPerMonth).toLocaleString()}/мес
             </div>
           </div>
 
@@ -211,10 +193,40 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
           </div>
         )}
 
-        {/* Actions */}
+        {/* Reactions are real actions during the interactive tutorial step too. */}
+        {onSendReaction && (
+          <div style={{ width: '100%' }}>
+            <div style={{ marginBottom: 8, color: '#A39F92', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em' }}>
+              {locale === 'ru' ? 'ОТПРАВИТЬ РЕАКЦИЮ' : 'SEND A REACTION'}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+              {[REACTIONS[0], REACTIONS[2], REACTIONS[3], REACTIONS[5]].map((reaction) => (
+                <button
+                  key={reaction.label}
+                  type="button"
+                  onClick={() => onSendReaction(player.id, reaction.label)}
+                  aria-label={`${locale === 'ru' ? 'Отправить реакцию' : 'Send reaction'} ${reaction.label}`}
+                  style={{
+                    display: 'grid',
+                    minHeight: 56,
+                    placeItems: 'center',
+                    borderRadius: 12,
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    background: 'rgba(255, 255, 255, 0.06)',
+                  }}
+                >
+                  <img src={reaction.image} alt="" draggable={false} style={{ width: 38, height: 38, objectFit: 'contain' }} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* PRO-only structured deal action */}
         <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
           {onProposeDeal && (
             <button
+              type="button"
               onClick={() => onProposeDeal(player.id)}
               style={{
                 flex: 1,
@@ -231,22 +243,6 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
               🤝 Сделка
             </button>
           )}
-          <button
-            onClick={() => onSendReaction?.(player.id)}
-            style={{
-              flex: 1,
-              padding: '14px',
-              borderRadius: 12,
-              background: 'rgba(255, 255, 255, 0.06)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              color: '#F5F4ED',
-              fontSize: 14,
-              fontWeight: 900,
-              textTransform: 'uppercase',
-            }}
-          >
-            💬 Реакция
-          </button>
         </div>
       </div>
     </BottomSheet>

@@ -10,8 +10,8 @@
 Ship and observe the new two-level game:
 
 - **ОБЫЧНЫЙ / BASIC** is the default: every player receives one private card,
-  answers simultaneously, sees one compact shared market effect, and can offer a
-  personal opportunity from round 3 for a 5% finder fee.
+  answers simultaneously, sees one compact shared market effect, and owns the
+  right to keep, burn or sell that opportunity at a self-chosen price.
 - **PRO** keeps the shared table, percentages, partnerships and advanced deal
   controls for players who intentionally opt in.
 
@@ -34,18 +34,26 @@ night survival job. Do not “fix” this by removing losses.
   used by authoritative resolution.
 - First active match opens a nine-step, skippable, mode-aware guided tour. The
   `?tour=1` QA route forces a replay for browser inspection.
+- Tutorial time is authoritative pause time: local countdown, server deadline and
+  bot cascade stay frozen until all first-run humans finish or skip.
+- Tutorial player portraits are interactive and open the real profile/reactions.
+- Telegram content safe area protects the top HUD; settings has an explicit return
+  to the match and destructive actions are visually separate.
+- WebSocket sessions reconnect with a stable resume token, restore the server
+  snapshot and display transport status instead of silently dropping messages.
 - Asset recurring income/upkeep has one ledger representation; duplicate passive
   effects were removed.
 - PRO-only partnership choices are visibly gated in BASIC.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 149/149; client-state 3/3; web/server typecheck; production
-  build; Network Lab smoke; browser run with 6/6 clients and hidden early intent.
+- Verification: engine 150/150; server 6/6; web/server typecheck; production
+  build; Network Lab and reconnect smoke; browser tutorial/profile/settings run.
 
 ## Next Step
 
 1. Publish server and web to the canonical old addresses.
-2. Run a short production room check and replay `?autostart=1&tour=1` after deployment.
+2. Run production reconnect smoke, a short six-seat room check and
+   `?autostart=1&tour=1` after deployment.
 3. Play a longer human-facing BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
 4. Audit the remaining content defects separately from engine correctness:

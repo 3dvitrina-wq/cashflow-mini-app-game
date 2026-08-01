@@ -14,6 +14,7 @@ import type {
   MatchState,
   Outfit,
   Partnership,
+  PersonalCardOffer,
   PlayerState,
   Seed,
   TimerSettings,
@@ -498,23 +499,15 @@ function pendingPersonalOfferFor(state: MatchState, playerId: string) {
   return state.personalCardOffers?.find((offer) =>
     offer.round === state.round
     && offer.status === 'pending'
-    && (offer.fromPlayerId === playerId || offer.toPlayerId === playerId));
+    && (offer.fromPlayerId === playerId
+      || (offer.audience === 'direct' && offer.toPlayerId === playerId)));
 }
 
-function acceptedReferralFor(state: MatchState, playerId: string, cardId: string) {
+function acceptedPersonalOfferFor(state: MatchState, playerId: string) {
   return state.personalCardOffers?.find((offer) =>
     offer.round === state.round
     && offer.status === 'accepted'
-    && offer.toPlayerId === playerId
-    && offer.cardId === cardId);
-}
-
-function referralFeeForChoice(state: MatchState, playerId: string, choiceIndex: number): number {
-  const cardId = cardIdForPlayer(state, playerId);
-  const offer = cardId ? acceptedReferralFor(state, playerId, cardId) : undefined;
-  const choice = cardId ? getCard(cardId)?.choices?.[choiceIndex] : undefined;
-  if (!offer || !choice) return 0;
-  return Math.round(choiceUpfrontCost(choice) * 0.05);
+    && offer.toPlayerId === playerId);
 }
 
 export function validateCommand(state: MatchState, cmd: Command): string | null {
@@ -532,13 +525,26 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
   if (cmd.type === 'offer_personal_card') {
     if (state.experienceMode !== 'basic') return 'personal card offers are BASIC only';
     if (state.phase !== 'intent_window') return 'personal card can only be offered during choice time';
-    if (state.round < 3) return 'personal card offers unlock in round 3';
     const player = state.players.find((candidate) => candidate.id === cmd.playerId);
-    const target = state.players.find((candidate) => candidate.id === cmd.targetPlayerId);
-    if (!player?.alive || !target?.alive) return 'player not available';
-    if (player.id === target.id) return 'cannot offer a card to yourself';
-    if (state.pendingIntents[player.id] || state.pendingIntents[target.id]) return 'player already locked a choice';
-    if (pendingPersonalOfferFor(state, player.id) || pendingPersonalOfferFor(state, target.id)) return 'player already has a card offer';
+    const target = cmd.targetPlayerId
+      ? state.players.find((candidate) => candidate.id === cmd.targetPlayerId)
+      : undefined;
+    if (!player?.alive) return 'player not available';
+    if (!Number.isInteger(cmd.askingPrice) || cmd.askingPrice < 0 || cmd.askingPrice > 1_000_000) {
+      return 'asking price must be an integer from 0 to 1000000';
+    }
+    if (cmd.audience === 'direct') {
+      if (!target?.alive) return 'target player not available';
+      if (player.id === target.id) return 'cannot offer a card to yourself';
+      if (state.pendingIntents[target.id]) return 'target already locked a choice';
+      if (pendingPersonalOfferFor(state, target.id) || acceptedPersonalOfferFor(state, target.id)) {
+        return 'target already has a card offer';
+      }
+    } else if (cmd.targetPlayerId) {
+      return 'table listing cannot name one target';
+    }
+    if (state.pendingIntents[player.id]) return 'player already locked a choice';
+    if (pendingPersonalOfferFor(state, player.id)) return 'player already has a card offer';
     const card = getCard(cardIdForPlayer(state, player.id));
     if (!card || (card.type !== 'opportunity' && card.type !== 'modern_earning')) {
       return 'this personal card cannot be offered';
@@ -551,8 +557,14 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (state.phase !== 'intent_window') return 'personal card offer is closed';
     const offer = state.personalCardOffers?.find((candidate) => candidate.id === cmd.offerId);
     if (!offer || offer.status !== 'pending') return 'personal card offer not found';
-    if (offer.toPlayerId !== cmd.playerId) return 'personal card offer belongs to another player';
+    if (offer.fromPlayerId === cmd.playerId) return 'cannot accept your own card offer';
+    if (cmd.type === 'decline_personal_card' && offer.audience === 'table') return 'table listings do not require a decline';
+    if (offer.audience === 'direct' && offer.toPlayerId !== cmd.playerId) return 'personal card offer belongs to another player';
     if (state.pendingIntents[cmd.playerId]) return 'player already locked a choice';
+    if (acceptedPersonalOfferFor(state, cmd.playerId)) return 'player already accepted a card this round';
+    const buyer = state.players.find((candidate) => candidate.id === cmd.playerId);
+    if (!buyer?.alive) return 'player not available';
+    if (cmd.type === 'accept_personal_card' && buyer.cash < offer.askingPrice) return 'insufficient cash for asking price';
     return null;
   }
 
@@ -709,9 +721,8 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     // You can't pick an option you can't pay for (blocks "free" over-budget buys on
     // opportunity/protection/staff cards). Forced crises with no affordable option
     // still resolve via the clamp-to-zero damage model. See canAffordChoice.
-    const referralFee = referralFeeForChoice(state, cmd.playerId, cmd.choiceIndex);
     const actor = state.players.find((p) => p.id === cmd.playerId);
-    if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex) || (actor && choiceUpfrontCost(choices[cmd.choiceIndex]) + referralFee > actor.cash)) {
+    if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex)) {
       return 'insufficient cash for this option';
     }
 
@@ -785,14 +796,24 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       if (cardId) {
         state.personalCardOffers ??= [];
         state.personalCardOffers.push({
-          id: `personal_${state.round}_${actor.id}_${cmd.targetPlayerId}`,
+          id: `personal_${state.round}_${actor.id}_${cmd.audience === 'table' ? 'table' : cmd.targetPlayerId}`,
           cardId,
           fromPlayerId: actor.id,
-          toPlayerId: cmd.targetPlayerId,
+          audience: cmd.audience,
+          toPlayerId: cmd.audience === 'direct' ? cmd.targetPlayerId : undefined,
+          askingPrice: cmd.askingPrice,
           round: state.round,
           status: 'pending',
         });
-        events.push({ type: 'deal', playerId: actor.id, message: `personal card offered to ${cmd.targetPlayerId}`, payload: { targetPlayerId: cmd.targetPlayerId } });
+        if (cmd.audience === 'table') {
+          state.pendingIntents[actor.id] = { type: 'pass', playerId: actor.id };
+        }
+        events.push({
+          type: 'deal',
+          playerId: actor.id,
+          message: cmd.audience === 'table' ? 'personal card listed for the table' : `personal card offered to ${cmd.targetPlayerId}`,
+          payload: { audience: cmd.audience, targetPlayerId: cmd.targetPlayerId, askingPrice: cmd.askingPrice },
+        });
       }
       break;
     }
@@ -805,8 +826,22 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         state.personalCardIds ??= {};
         state.personalCardIds[actor.id] = offer.cardId;
         state.pendingIntents[offer.fromPlayerId] = { type: 'pass', playerId: offer.fromPlayerId };
+        const seller = state.players.find((player) => player.id === offer.fromPlayerId);
+        if (seller && offer.askingPrice > 0) {
+          actor.cash -= offer.askingPrice;
+          seller.cash += offer.askingPrice;
+          actor.recentTransfers.push({ to: seller.id, amount: offer.askingPrice, round: state.round });
+          events.push({ type: 'money', playerId: actor.id, amount: -offer.askingPrice, message: `bought opportunity from ${seller.name}` });
+          events.push({ type: 'money', playerId: seller.id, amount: offer.askingPrice, message: `sold opportunity to ${actor.name}` });
+        }
+        offer.toPlayerId = actor.id;
         offer.status = 'accepted';
-        events.push({ type: 'deal', playerId: actor.id, message: `personal card accepted from ${offer.fromPlayerId}`, payload: { fromPlayerId: offer.fromPlayerId } });
+        events.push({
+          type: 'deal',
+          playerId: actor.id,
+          message: `personal card bought from ${offer.fromPlayerId}`,
+          payload: { fromPlayerId: offer.fromPlayerId, askingPrice: offer.askingPrice, audience: offer.audience },
+        });
       }
       break;
     }
@@ -831,15 +866,6 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
             if (blocked) break;
           }
           events.push(...applyEffects(state, actor, choice.effects));
-          const referral = acceptedReferralFor(state, actor.id, card.id);
-          const fee = referralFeeForChoice(state, actor.id, cmd.choiceIndex);
-          const finder = referral ? state.players.find((player) => player.id === referral.fromPlayerId) : undefined;
-          if (finder && fee > 0) {
-            actor.cash = Math.max(0, actor.cash - fee);
-            finder.cash += fee;
-            events.push({ type: 'money', playerId: actor.id, amount: -fee, message: `finder fee to ${finder.name}` });
-            events.push({ type: 'money', playerId: finder.id, amount: fee, message: `finder fee from ${actor.name}` });
-          }
         }
       }
       break;
@@ -1812,6 +1838,38 @@ export function previewChoice(
     lines,
     hint: choice.hint,
   };
+}
+
+/**
+ * A deterministic bot check for buying access to another player's card.
+ * Humans may name any non-negative price; bots consent only when one affordable
+ * choice can plausibly earn the access price back during the remaining match.
+ */
+export function shouldAcceptPersonalCardOffer(
+  prev: MatchState,
+  offer: PersonalCardOffer,
+  buyerId: string,
+): boolean {
+  const buyer = prev.players.find((player) => player.id === buyerId);
+  const card = getCard(offer.cardId);
+  if (!buyer?.alive || !card?.choices || buyer.cash < offer.askingPrice) return false;
+
+  const state = clone(prev);
+  const stateBuyer = state.players.find((player) => player.id === buyerId);
+  if (!stateBuyer) return false;
+  stateBuyer.cash -= offer.askingPrice;
+  state.personalCardIds ??= {};
+  state.personalCardIds[buyerId] = offer.cardId;
+
+  const horizon = Math.max(1, Math.min(12, state.maxRounds - state.round + 1));
+  const bestValue = card.choices.reduce((best, _choice, choiceIndex) => {
+    if (!canAffordChoice(state, buyerId, choiceIndex)) return best;
+    const preview = previewChoice(state, buyerId, choiceIndex);
+    if (!preview) return best;
+    return Math.max(best, preview.now + preview.monthlyNet * horizon);
+  }, Number.NEGATIVE_INFINITY);
+
+  return Number.isFinite(bestValue) && bestValue >= offer.askingPrice;
 }
 
 // ─── Freedom Score (victory condition) ──────────────────────────────────────

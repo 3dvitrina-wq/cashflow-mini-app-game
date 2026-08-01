@@ -469,7 +469,13 @@ export type Command =
   | { type: 'choose_option'; playerId: PlayerId; choiceIndex: number }
   | { type: 'pass'; playerId: PlayerId }
   | { type: 'draw_card'; playerId: PlayerId }
-  | { type: 'offer_personal_card'; playerId: PlayerId; targetPlayerId: PlayerId }
+  | {
+      type: 'offer_personal_card';
+      playerId: PlayerId;
+      audience: 'direct' | 'table';
+      targetPlayerId?: PlayerId;
+      askingPrice: number;
+    }
   | { type: 'accept_personal_card'; playerId: PlayerId; offerId: string }
   | { type: 'decline_personal_card'; playerId: PlayerId; offerId: string }
   | { type: 'express_interest'; playerId: PlayerId; targetPlayerId: PlayerId }
@@ -627,7 +633,11 @@ export interface PersonalCardOffer {
   id: string;
   cardId: CardId;
   fromPlayerId: PlayerId;
-  toPlayerId: PlayerId;
+  /** Direct offers name one buyer. Table listings are visible to every player. */
+  audience: 'direct' | 'table';
+  toPlayerId?: PlayerId;
+  /** Price for access to the opportunity, paid immediately on acceptance. */
+  askingPrice: number;
   round: number;
   status: 'pending' | 'accepted' | 'declined';
 }

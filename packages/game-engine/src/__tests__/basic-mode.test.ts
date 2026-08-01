@@ -60,26 +60,62 @@ describe('BASIC private simultaneous cards', () => {
     expect(resolved.players[1].expenses).toBe(before[1] + 200);
   });
 
-  it('transfers one opportunity with one invite and pays a 5% finder fee', () => {
+  it('lets the owner name an arbitrary direct sale price and transfers it on acceptance', () => {
     let state = createMatch(19, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
-    state.round = 3;
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route' };
     state.currentCardId = 'opp-vending';
     state = openIntentWindow(state);
+    const sellerCashBefore = state.players[0].cash;
+    const buyerCashBefore = state.players[1].cash;
 
-    state = resolveCommand(state, { type: 'offer_personal_card', playerId: 'p1', targetPlayerId: 'p2' }).state;
+    state = resolveCommand(state, {
+      type: 'offer_personal_card',
+      playerId: 'p1',
+      audience: 'direct',
+      targetPlayerId: 'p2',
+      askingPrice: 1200,
+    }).state;
     const offer = state.personalCardOffers?.[0];
     expect(offer?.status).toBe('pending');
+    expect(offer?.askingPrice).toBe(1200);
 
     state = resolveCommand(state, { type: 'accept_personal_card', playerId: 'p2', offerId: offer!.id }).state;
     expect(state.pendingIntents.p1).toEqual({ type: 'pass', playerId: 'p1' });
     expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
+    expect(state.players[0].cash).toBe(sellerCashBefore + 1200);
+    expect(state.players[1].cash).toBe(buyerCashBefore - 1200);
 
     state = resolveCommand(state, { type: 'choose_option', playerId: 'p2', choiceIndex: 1 }).state;
     const resolved = resolveAllIntents(state).state;
-    expect(resolved.players[0].cash).toBe(3530);
-    expect(resolved.players[1].cash).toBe(2870);
+    expect(resolved.players[0].cash).toBe(sellerCashBefore + 1200);
+    expect(resolved.players[1].cash).toBe(buyerCashBefore - 1200 - 600);
     expect(resolved.players[1].passiveIncome).toBe(120);
+  });
+
+  it('lists a card to the whole table without waiting and sells it to the first consenting buyer', () => {
+    let state = createMatch(23, PLAYERS, { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state.players.forEach((player) => { player.cash = 10_000; });
+    state = openIntentWindow(state);
+
+    state = resolveCommand(state, {
+      type: 'offer_personal_card',
+      playerId: 'p1',
+      audience: 'table',
+      askingPrice: 3600,
+    }).state;
+    const offer = state.personalCardOffers?.[0];
+    expect(state.pendingIntents.p1).toEqual({ type: 'pass', playerId: 'p1' });
+    expect(offer?.audience).toBe('table');
+
+    state = resolveCommand(state, { type: 'accept_personal_card', playerId: 'p2', offerId: offer!.id }).state;
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
+    expect(state.players[0].cash).toBe(13_600);
+    expect(state.players[1].cash).toBe(6_400);
+
+    const secondBuyer = resolveCommand(state, { type: 'accept_personal_card', playerId: 'p3', offerId: offer!.id });
+    expect(secondBuyer.events.some((event) => event.type === 'command_rejected')).toBe(true);
+    expect(cardIdForPlayer(secondBuyer.state, 'p3')).toBe('opp-ai-shop');
   });
 });
 

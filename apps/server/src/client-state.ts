@@ -35,7 +35,9 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
       : state.personalCardIds,
     personalCardOffers: viewerPlayerId && state.experienceMode === 'basic'
       ? (state.personalCardOffers ?? []).filter((offer) =>
-          offer.fromPlayerId === viewerPlayerId || offer.toPlayerId === viewerPlayerId)
+          offer.fromPlayerId === viewerPlayerId
+          || offer.toPlayerId === viewerPlayerId
+          || (offer.audience === 'table' && offer.status === 'pending'))
       : state.personalCardOffers,
     currentCard: visibleCardId
       ? getLocalizedCard(visibleCardId, 'ru')

@@ -20,6 +20,7 @@ import {
   previewChoice as enginePreviewChoice,
   canAffordChoice,
   cardIdForPlayer,
+  shouldAcceptPersonalCardOffer,
   type NewPlayer,
   type FairnessResult,
   type ChoicePreview,
@@ -72,7 +73,11 @@ interface AppState {
   receiveServerState: (serverState: EngineMatchState) => void;
   nextRound: () => void;
   submitIntent: (choiceIdx: number) => void;
-  offerPersonalCard: (targetPlayerId: string) => boolean;
+  offerPersonalCard: (offer: {
+    audience: 'direct' | 'table';
+    targetPlayerId?: string;
+    askingPrice: number;
+  }) => 'accepted' | 'declined' | 'listed' | 'pending' | 'failed';
   acceptPersonalCard: (offerId: string) => void;
   declinePersonalCard: (offerId: string) => void;
   submitDraftIntent: (claims: DraftClaim[]) => void;
@@ -1052,25 +1057,54 @@ export const useStore = create<AppState>((set, get) => ({
       return { engineMatch: state, match: toUiMatch(state, st.negotiatingPlayerIds) };
     }),
 
-  offerPersonalCard: (targetPlayerId) => {
+  offerPersonalCard: ({ audience, targetPlayerId, askingPrice }) => {
     const st = get();
     const state = st.engineMatch;
     const human = state ? getLocalPlayer(st) ?? state.players[0] : null;
-    if (!state || !human || state.experienceMode !== 'basic') return false;
-    const command: Command = { type: 'offer_personal_card', playerId: human.id, targetPlayerId };
+    if (!state || !human || state.experienceMode !== 'basic') return 'failed';
+    const command: Command = {
+      type: 'offer_personal_card',
+      playerId: human.id,
+      audience,
+      targetPlayerId,
+      askingPrice,
+    };
     if (st.isMultiplayer) {
       wsClient.send({ type: 'command', command });
-      return true;
+      return audience === 'table' ? 'listed' : 'pending';
     }
 
     const cashBefore = human.cash;
-    let next = resolveCommand(state, command).state;
+    const offered = resolveCommand(state, command);
+    if (offered.events.some((event) => event.type === 'command_rejected')) return 'failed';
+    let next = offered.state;
     const offer = next.personalCardOffers?.find((candidate) =>
       candidate.status === 'pending'
       && candidate.fromPlayerId === human.id
-      && candidate.toPlayerId === targetPlayerId);
-    if (!offer) return false;
-    next = resolveCommand(next, { type: 'accept_personal_card', playerId: targetPlayerId, offerId: offer.id }).state;
+      && candidate.audience === audience);
+    if (!offer) return 'failed';
+
+    let outcome: 'accepted' | 'declined' | 'listed' = audience === 'table' ? 'listed' : 'declined';
+    const eligibleBuyers = next.players.filter((candidate) =>
+      candidate.alive
+      && candidate.id !== human.id
+      && (audience === 'table' || candidate.id === targetPlayerId));
+    const buyer = eligibleBuyers.find((candidate) => shouldAcceptPersonalCardOffer(next, offer, candidate.id));
+    if (buyer) {
+      next = resolveCommand(next, {
+        type: 'accept_personal_card',
+        playerId: buyer.id,
+        offerId: offer.id,
+      }).state;
+      outcome = 'accepted';
+    } else if (audience === 'direct' && targetPlayerId) {
+      next = resolveCommand(next, {
+        type: 'decline_personal_card',
+        playerId: targetPlayerId,
+        offerId: offer.id,
+      }).state;
+    }
+
     for (const player of next.players.filter((candidate) => candidate.alive && candidate.id !== human.id)) {
       if (next.pendingIntents[player.id]) continue;
       next = queueOfflineIntentWithFallback(next, player, botChoiceIntent(next, player));
@@ -1081,7 +1115,7 @@ export const useStore = create<AppState>((set, get) => ({
     } else {
       set({ engineMatch: next, match: toUiMatch(next, st.negotiatingPlayerIds) });
     }
-    return true;
+    return outcome;
   },
 
   acceptPersonalCard: (offerId) =>

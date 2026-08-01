@@ -101,8 +101,12 @@ Snapshot сервера содержит `currentCard` с русским опи�
 ```bash
 node --check tools/network-lab/app.js
 node tools/network-lab/smoke.mjs
+node tools/network-lab/reconnect-smoke.mjs
 npm run typecheck:server
 ```
 
 Smoke не требует новых npm-зависимостей и проверяет шесть профилей, отдельное
 создание WebSocket, controls, hash и отсутствие клиентской room/engine authority.
+`reconnect-smoke.mjs` проверяет повторную привязку того же мобильного сеанса к
+комнате, серверную паузу обучения и адресную реакцию. Для другого стенда задайте
+`DYOR_TEST_HTTP_URL` и `DYOR_TEST_WS_URL`.

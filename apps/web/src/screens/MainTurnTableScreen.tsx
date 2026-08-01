@@ -24,7 +24,7 @@ import { showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { playSound } from '../lib/sound';
 import { HostInterjection, type HostMoment } from '../components/HostInterjection';
-import { TutorialOverlay } from '../components/TutorialOverlay';
+import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
@@ -56,7 +56,6 @@ import {
   IconCogSpark,
   IconCoin,
   IconDebt,
-  IconDots,
   IconExclaim,
   IconGiftBurst,
   IconGlobe,
@@ -195,7 +194,12 @@ const PlayerTile: React.FC<{
   ) : null;
 
   return (
-    <div className="player-tile" onClick={() => onTap?.(player)} style={{ cursor: 'pointer' }}>
+    <button
+      type="button"
+      className="player-tile"
+      onClick={() => onTap?.(player)}
+      aria-label={`Открыть профиль ${player.name}`}
+    >
       <div className="player-avatar-stage">
         <PlayerReactionBadge reaction={reaction} />
         {player.isActive && <span className="player-active-glow" />}
@@ -234,7 +238,7 @@ const PlayerTile: React.FC<{
         {badge}
       </div>
       <span className="player-name-block">{player.name}</span>
-    </div>
+    </button>
   );
 };
 
@@ -349,6 +353,9 @@ export const MainTurnTableScreen: React.FC = () => {
   } = useStore();
   const { locale, t, tCard } = useI18n();
   const [timer, setTimer] = useState(90);
+  const [networkStatus, setNetworkStatus] = useState(() => wsClient.getStatus());
+  const [isTutorialActive, setIsTutorialActive] = useState(() => isFirstRunTourPending());
+  const [isRoomTutorialPaused, setIsRoomTutorialPaused] = useState(false);
   const [playerReactions, setPlayerReactions] = useState<Record<string, FloatingReaction>>({});
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerState | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -371,6 +378,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   const [isPersonalOfferPickerOpen, setIsPersonalOfferPickerOpen] = useState(false);
+  const [personalOfferPrice, setPersonalOfferPrice] = useState(0);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
@@ -403,14 +411,22 @@ export const MainTurnTableScreen: React.FC = () => {
   const activeTurnPlayerId = match.players.find((p) => p.isActive)?.id;
   useEffect(() => {
     setTimer(match.timer);
+    if (isTutorialActive || isRoomTutorialPaused) return;
     const iv = setInterval(() => setTimer((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(iv);
-  }, [activeTurnPlayerId, match.round, match.timer]);
+  }, [activeTurnPlayerId, match.round, match.timer, isTutorialActive, isRoomTutorialPaused]);
+
+  useEffect(() => {
+    if (!isMultiplayer || networkStatus !== 'connected') return;
+    wsClient.send({ type: 'tutorial_state', active: isTutorialActive });
+  }, [isMultiplayer, localPlayerId, isTutorialActive, networkStatus]);
 
   useEffect(() => () => {
     Object.values(reactionTimers.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
     reactionTimers.current = {};
   }, []);
+
+  useEffect(() => wsClient.addStatusListener(setNetworkStatus), []);
 
   useEffect(() => {
     if (devOpenBank) setIsBankOpen(true);
@@ -449,12 +465,15 @@ export const MainTurnTableScreen: React.FC = () => {
       if (m.type === 'state_update' || m.type === 'match_started') {
         receiveServerState(m.state as import('../../../../packages/shared/src').MatchState);
       } else if (m.type === 'reaction') {
-        showPlayerReaction(String(m.playerId ?? ''), String(m.label ?? 'OK'));
+        showPlayerReaction(String(m.targetPlayerId ?? m.playerId ?? ''), String(m.label ?? 'OK'));
+      } else if (m.type === 'tutorial_pause') {
+        setIsRoomTutorialPaused(Boolean(m.active));
       } else if (m.type === 'error') {
         showToast(String(m.error ?? (locale === 'ru' ? 'Команда отклонена' : 'Command rejected')), 'warning');
       } else if (m.type === 'player_disconnected') {
         showToast(locale === 'ru' ? 'Игрок отключился, слот подхватил бот' : 'A bot took over a disconnected player', 'info');
       } else if (m.type === 'reconnected') {
+        if (m.state) receiveServerState(m.state as import('../../../../packages/shared/src').MatchState);
         showToast(locale === 'ru' ? 'Вы вернулись за стол' : 'You rejoined the table', 'success');
       }
     });
@@ -499,12 +518,12 @@ export const MainTurnTableScreen: React.FC = () => {
     || (engineMatch?.phase === 'intent_window' && !hasSubmittedSharedIntent)
     || activePlayer.id === me?.id;
   const isProMode = match.experienceMode === 'pro';
-  const incomingPersonalOffer = !isProMode && me?.id
-    ? engineMatch?.personalCardOffers?.find((offer) => offer.status === 'pending' && offer.toPlayerId === me.id)
-    : undefined;
-  const incomingPersonalCard = incomingPersonalOffer
-    ? getLocalizedCard(incomingPersonalOffer.cardId, locale)
-    : null;
+  const incomingPersonalOffers = !isProMode && me?.id
+    ? (engineMatch?.personalCardOffers ?? []).filter((offer) =>
+        offer.status === 'pending'
+        && offer.fromPlayerId !== me.id
+        && (offer.audience === 'table' || offer.toPlayerId === me.id))
+    : [];
   const outgoingPersonalOffer = !isProMode && me?.id
     ? engineMatch?.personalCardOffers?.find((offer) => offer.status === 'pending' && offer.fromPlayerId === me.id)
     : undefined;
@@ -517,13 +536,13 @@ export const MainTurnTableScreen: React.FC = () => {
           && (offer.fromPlayerId === player.id || offer.toPlayerId === player.id)))
     : [];
   const canOfferPersonalCard = !isProMode
-    && match.round >= 3
     && (card?.type === 'opportunity' || card?.type === 'modern_earning')
     && !hasSubmittedSharedIntent
-    && !incomingPersonalOffer
     && !outgoingPersonalOffer
     && personalOfferTargets.length > 0;
-  const phaseLabel = isProMode && interestWindow?.status === 'open'
+  const phaseLabel = (isTutorialActive || isRoomTutorialPaused)
+    ? (locale === 'ru' ? 'Пауза · обучение' : 'Paused · tutorial')
+    : isProMode && interestWindow?.status === 'open'
     ? (locale === 'ru' ? 'Окно сделки открыто' : 'Deal interest open')
     : isAdvancingTime
     ? (locale === 'ru' ? 'Месяц считается' : 'Resolving month')
@@ -613,6 +632,7 @@ export const MainTurnTableScreen: React.FC = () => {
   };
 
   useEffect(() => {
+    if (isTutorialActive || isRoomTutorialPaused) return;
     if (timer > 7 || timer <= 0) return;
     if (botReactionRound.current === match.round) return;
     const bots = match.players.filter((player) => player.isBot && player.id !== me?.id);
@@ -625,7 +645,7 @@ export const MainTurnTableScreen: React.FC = () => {
     const label = BOT_REACTION_LABELS[(match.round + bot.id.length + timer) % BOT_REACTION_LABELS.length];
     botReactionRound.current = match.round;
     showPlayerReaction(bot.id, label);
-  }, [me?.id, match.players, match.round, showPlayerReaction, timer]);
+  }, [me?.id, match.players, match.round, showPlayerReaction, timer, isTutorialActive, isRoomTutorialPaused]);
 
   const handlePlayerTap = (player: PlayerState) => {
     setSelectedPlayer(player);
@@ -638,9 +658,16 @@ export const MainTurnTableScreen: React.FC = () => {
     setIsOfferBuilderOpen(true);
   };
 
-  const handleSendReaction = (playerId: string) => {
+  const handleSendReaction = (playerId: string, label: string) => {
     setIsProfileOpen(false);
-    showPlayerReaction(playerId, 'HMM');
+    showPlayerReaction(playerId, label);
+    if (isMultiplayer && me?.id) {
+      wsClient.send({ type: 'reaction', playerId: me.id, targetPlayerId: playerId, label });
+    }
+    showToast(
+      locale === 'ru' ? `Реакция отправлена ${selectedPlayer?.name ?? 'игроку'}` : `Reaction sent to ${selectedPlayer?.name ?? 'player'}`,
+      'success',
+    );
   };
 
   const toggleTableTools = () => {
@@ -714,6 +741,15 @@ export const MainTurnTableScreen: React.FC = () => {
     [card.id, match.round, previewChoice]
   );
   const selectedPreview = choicePreviews[selectedChoiceIdx] ?? null;
+  const opportunityReferencePrice = Math.max(
+    100,
+    ...choicePreviews.filter((preview) => preview && preview.now < 0).map((preview) => Math.abs(preview!.now)),
+  );
+
+  useEffect(() => {
+    setPersonalOfferPrice(opportunityReferencePrice);
+    setIsPersonalOfferPickerOpen(false);
+  }, [card.id, opportunityReferencePrice]);
 
   // Which options the local player can pay for. Unaffordable ones are blocked by the
   // engine (the command would be rejected and the round would hang), so disable them.
@@ -732,6 +768,15 @@ export const MainTurnTableScreen: React.FC = () => {
   }, [card.id, selectedChoiceIdx]);
 
   const tableToolItems = [
+    {
+      icon: <IconMenu size={18} />,
+      label: locale === 'ru' ? 'Правила' : 'Rules',
+      tone: 'paper',
+      onClick: () => {
+        openRules('main');
+        setFabExpanded(false);
+      },
+    },
     ...(isProMode ? [{
       icon: <IconHandshake size={18} />,
       label: locale === 'ru' ? 'Сделка' : 'Deal',
@@ -772,6 +817,20 @@ export const MainTurnTableScreen: React.FC = () => {
   return (
     <div className="game-phone-shell">
       <div className="game-bg-noise" />
+      {isMultiplayer && networkStatus !== 'connected' && (
+        <button
+          type="button"
+          className="network-reconnect-banner"
+          onClick={() => wsClient.reconnectNow()}
+        >
+          <IconNoWifi size={16} />
+          <span>
+            {networkStatus === 'reconnecting' || networkStatus === 'connecting'
+              ? (locale === 'ru' ? 'Переподключаемся к столу…' : 'Reconnecting to the table…')
+              : (locale === 'ru' ? 'Связь потеряна · повторить' : 'Connection lost · retry')}
+          </span>
+        </button>
+      )}
       {isAdvancingTime && (
         <div className="time-advance-overlay">
           <div className="time-advance-card">
@@ -787,27 +846,30 @@ export const MainTurnTableScreen: React.FC = () => {
       )}
 
       {/* ========== TOP BAR ========== */}
-      <header className="relative z-10 flex shrink-0 items-center gap-1.5 px-3 pt-2 pb-1">
-        <button className="topbar-icon-btn" aria-label="menu" onClick={() => openRules('main')}>
-          <IconMenu size={18} />
-        </button>
+      <header className="game-topbar">
+        <div className="game-topbar-main">
+          <div className="topbar-pill timeline-pill">
+            <span style={{ fontSize: 11, fontWeight: 800 }}>{match.epochIcon} {match.timelineLabel}</span>
+          </div>
 
-        <div className="topbar-pill ml-1" data-tour="time" style={{ color: timerColor }}>
-          <IconTimer size={13} />
-          <span className="font-mono" style={{ fontSize: 13, fontWeight: 900 }}>
-            00:{String(timer).padStart(2, '0')}
-          </span>
-          <span style={{ opacity: 0.3, fontSize: 13 }}>|</span>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#B8B6A9' }}>
-            {t('ui.round')} {match.round}/{match.maxRounds}
-          </span>
+          <div className="topbar-pill" data-tour="time" style={{ color: timerColor }}>
+            <IconTimer size={13} />
+            <span className="font-mono" style={{ fontSize: 13, fontWeight: 900 }}>
+              00:{String(timer).padStart(2, '0')}
+            </span>
+            <span style={{ opacity: 0.3, fontSize: 13 }}>|</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#B8B6A9' }}>
+              {t('ui.round')} {match.round}/{match.maxRounds}
+            </span>
+          </div>
+
+          <div className="topbar-pill topbar-player-count">
+            <IconUsers size={13} />
+            <span style={{ fontSize: 11.5, fontWeight: 900 }}>{match.players.length}/6</span>
+          </div>
         </div>
 
-        <div className="topbar-pill timeline-pill">
-          <span style={{ fontSize: 11, fontWeight: 800 }}>{match.epochIcon} {match.timelineLabel}</span>
-        </div>
-
-        <div className="topbar-pill" data-tour="phase" style={{ maxWidth: 132 }}>
+        <div className="topbar-pill game-phase-pill" data-tour="phase">
           <span
             style={{
               fontSize: 10.5,
@@ -821,15 +883,6 @@ export const MainTurnTableScreen: React.FC = () => {
             {phaseLabel}
           </span>
         </div>
-
-        <div className="topbar-pill ml-auto">
-          <IconUsers size={13} />
-          <span style={{ fontSize: 11.5, fontWeight: 900 }}>{match.players.length}/6</span>
-        </div>
-
-        <button className="topbar-icon-btn" aria-label="settings" onClick={() => openSettings('main')}>
-          <IconDots size={18} />
-        </button>
       </header>
 
       {/* ========== PLAYER RAIL ========== */}
@@ -1130,7 +1183,7 @@ export const MainTurnTableScreen: React.FC = () => {
                       type="button"
                       onClick={() => setIsPersonalOfferPickerOpen((open) => !open)}
                       style={{
-                        minHeight: 34,
+                        minHeight: 44,
                         borderRadius: 11,
                         border: '1px solid rgba(91,215,224,0.35)',
                         background: 'rgba(91,215,224,0.09)',
@@ -1139,23 +1192,67 @@ export const MainTurnTableScreen: React.FC = () => {
                         fontWeight: 900,
                       }}
                     >
-                      {locale === 'ru' ? '↗ ПРЕДЛОЖИТЬ ЭТУ ВОЗМОЖНОСТЬ' : '↗ OFFER THIS OPPORTUNITY'}
+                      {locale === 'ru' ? '↗ ПРОДАТЬ ПРАВО НА ЭТУ КАРТУ' : '↗ SELL ACCESS TO THIS CARD'}
                     </button>
                     {isPersonalOfferPickerOpen && (
-                      <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '2px 1px 4px' }}>
-                        {personalOfferTargets.map((player) => (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '9px', borderRadius: 12, border: '1px solid rgba(91,215,224,.22)', background: 'rgba(5,10,14,.92)' }}>
+                        <span style={{ color: '#D8D4C8', fontSize: 11, lineHeight: 1.35 }}>
+                          {locale === 'ru'
+                            ? 'Цена — ваша. Покупатель платит сейчас за право решить, брать актив или нет.'
+                            : 'You set the price. The buyer pays now for the right to decide.'}
+                        </span>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
+                          {[0, opportunityReferencePrice, opportunityReferencePrice * 2, opportunityReferencePrice * 3].map((price, index) => (
+                            <button
+                              key={`${price}-${index}`}
+                              type="button"
+                              onClick={() => setPersonalOfferPrice(price)}
+                              style={{
+                                minHeight: 44, borderRadius: 10,
+                                border: personalOfferPrice === price ? '1px solid #5BD7E0' : '1px solid rgba(255,255,255,.1)',
+                                background: personalOfferPrice === price ? 'rgba(91,215,224,.16)' : 'rgba(255,255,255,.05)',
+                                color: '#F5F4ED', fontSize: 11, fontWeight: 900,
+                              }}
+                            >
+                              {price === 0 ? (locale === 'ru' ? 'Даром' : 'Free') : `$${moneyShort(price)}`}
+                            </button>
+                          ))}
+                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#A39F92', fontSize: 11, fontWeight: 800 }}>
+                          {locale === 'ru' ? 'Своя цена' : 'Custom price'}
+                          <input
+                            type="number"
+                            min={0}
+                            max={1_000_000}
+                            step={100}
+                            inputMode="numeric"
+                            value={personalOfferPrice}
+                            onChange={(event) => setPersonalOfferPrice(Math.max(0, Math.min(1_000_000, Math.round(Number(event.target.value) || 0))))}
+                            style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 10, border: '1px solid rgba(255,255,255,.15)', background: '#11151D', color: '#F5F4ED', padding: '0 12px', fontSize: 16, fontWeight: 900 }}
+                          />
+                        </label>
+                        <span style={{ color: '#5BD7E0', fontSize: 10, fontWeight: 900 }}>
+                          {locale === 'ru' ? 'ОДНОМУ ИГРОКУ' : 'DIRECT OFFER'}
+                        </span>
+                        <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
+                          {personalOfferTargets.map((player) => (
                           <button
                             key={player.id}
                             type="button"
                             onClick={() => {
-                              if (offerPersonalCard(player.id)) {
+                              const outcome = offerPersonalCard({ audience: 'direct', targetPlayerId: player.id, askingPrice: personalOfferPrice });
+                              if (outcome !== 'failed') {
                                 setIsPersonalOfferPickerOpen(false);
                                 showToast(
-                                  locale === 'ru'
-                                    ? `Предложение отправлено ${player.name} · ваша комиссия 5% при покупке`
-                                    : `Offer sent to ${player.name} · 5% finder fee if bought`,
-                                  'success',
+                                  outcome === 'accepted'
+                                    ? (locale === 'ru' ? `${player.name} купил право за $${personalOfferPrice.toLocaleString()}` : `${player.name} bought it for $${personalOfferPrice.toLocaleString()}`)
+                                    : outcome === 'declined'
+                                      ? (locale === 'ru' ? `${player.name} отказался — карта остаётся у вас` : `${player.name} declined — you keep the card`)
+                                      : (locale === 'ru' ? `Предложение отправлено ${player.name}` : `Offer sent to ${player.name}`),
+                                  outcome === 'declined' ? 'warning' : 'success',
                                 );
+                              } else {
+                                showToast(locale === 'ru' ? 'Такое предложение сейчас нельзя отправить' : 'This offer cannot be sent now', 'error');
                               }
                             }}
                             style={{
@@ -1166,7 +1263,28 @@ export const MainTurnTableScreen: React.FC = () => {
                           >
                             {player.name}
                           </button>
-                        ))}
+                          ))}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const outcome = offerPersonalCard({ audience: 'table', askingPrice: personalOfferPrice });
+                            if (outcome !== 'failed') {
+                              setIsPersonalOfferPickerOpen(false);
+                              showToast(
+                                outcome === 'accepted'
+                                  ? (locale === 'ru' ? `Кто-то за столом уже купил право за $${personalOfferPrice.toLocaleString()}` : `Someone at the table bought it for $${personalOfferPrice.toLocaleString()}`)
+                                  : (locale === 'ru' ? `Карта выставлена всему столу за $${personalOfferPrice.toLocaleString()}. Ваш ход стал пасом.` : `Listed to the table for $${personalOfferPrice.toLocaleString()}. Your move is now a pass.`),
+                                'success',
+                              );
+                            } else {
+                              showToast(locale === 'ru' ? 'Не удалось выставить карту' : 'Could not list the card', 'error');
+                            }
+                          }}
+                          style={{ minHeight: 48, borderRadius: 11, border: '1px solid rgba(245,197,36,.4)', background: 'rgba(245,197,36,.12)', color: '#F5C524', fontSize: 11, fontWeight: 950 }}
+                        >
+                          {locale === 'ru' ? `📣 ВСЕМУ СТОЛУ · $${personalOfferPrice.toLocaleString()}` : `📣 LIST TO TABLE · $${personalOfferPrice.toLocaleString()}`}
+                        </button>
                       </div>
                     )}
                   </div>
@@ -1338,7 +1456,7 @@ export const MainTurnTableScreen: React.FC = () => {
       {isProMode && !canActNow && (interestWindow?.status === 'open' || (incomingDeal && dealBannerReady)) && (
         <div style={{
           position: 'fixed',
-          top: 12,
+          top: 'max(var(--safe-top), 12px)',
           left: '50%',
           transform: 'translateX(-50%)',
           zIndex: 180,
@@ -1366,49 +1484,59 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
       )}
 
-      {incomingPersonalOffer && (() => {
+      {incomingPersonalOffers.length > 0 && (
+        <div className="negot-banner-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {incomingPersonalOffers.map((incomingPersonalOffer) => {
         const from = match.players.find((player) => player.id === incomingPersonalOffer.fromPlayerId);
+        const incomingPersonalCard = getLocalizedCard(incomingPersonalOffer.cardId, locale);
+        const canPay = (me?.cash ?? 0) >= incomingPersonalOffer.askingPrice;
         return (
-          <div className="negot-banner-wrapper">
-            <div style={{
+          <div key={incomingPersonalOffer.id} style={{
               background: 'rgba(91,215,224,0.12)', border: '1px solid rgba(91,215,224,0.45)',
               borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
             }}>
               <strong style={{ color: '#5BD7E0', fontSize: 14 }}>
-                {locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает возможность` : `${from?.name ?? 'Player'} offers an opportunity`}
+                {incomingPersonalOffer.audience === 'table'
+                  ? (locale === 'ru' ? `${from?.name ?? 'Игрок'} выставил карту столу` : `${from?.name ?? 'Player'} listed a card`)
+                  : (locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает карту лично вам` : `${from?.name ?? 'Player'} offers you a card`)}
               </strong>
-              {incomingPersonalCard && (
-                <span style={{ color: '#F5F4ED', fontSize: 13, fontWeight: 900 }}>
-                  {incomingPersonalCard.title}
-                </span>
-              )}
+              <span style={{ color: '#F5F4ED', fontSize: 13, fontWeight: 900 }}>
+                {incomingPersonalCard?.title ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
+                {' · '}${incomingPersonalOffer.askingPrice.toLocaleString()}
+              </span>
               <span style={{ color: '#B8B6A9', fontSize: 12, lineHeight: 1.35 }}>
                 {incomingPersonalCard?.text ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
                 {' · '}
                 {locale === 'ru'
-                  ? 'Принять вместо своей карты; при покупке автор наводки получит 5%.'
-                  : 'Take it instead of your card; a purchase pays the finder 5%.'}
+                  ? 'Цена платится сейчас за право решить по этой карте вместо своей.'
+                  : 'Pay now for the right to choose on this card instead of yours.'}
               </span>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   type="button"
+                  disabled={!canPay}
                   onClick={() => acceptPersonalCard(incomingPersonalOffer.id)}
-                  style={{ flex: 1, minHeight: 40, borderRadius: 11, border: 0, background: '#28C76F', color: '#0B0B0C', fontWeight: 900 }}
+                  style={{ flex: 1, minHeight: 44, borderRadius: 11, border: 0, background: '#28C76F', color: '#0B0B0C', fontWeight: 900, opacity: canPay ? 1 : .45 }}
                 >
-                  {locale === 'ru' ? 'Принять' : 'Accept'}
+                  {canPay
+                    ? (locale === 'ru' ? `Купить за $${incomingPersonalOffer.askingPrice.toLocaleString()}` : `Buy for $${incomingPersonalOffer.askingPrice.toLocaleString()}`)
+                    : (locale === 'ru' ? 'Не хватает денег' : 'Not enough cash')}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => declinePersonalCard(incomingPersonalOffer.id)}
-                  style={{ flex: 1, minHeight: 40, borderRadius: 11, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#B8B6A9', fontWeight: 800 }}
-                >
-                  {locale === 'ru' ? 'Нет' : 'Decline'}
-                </button>
+                {incomingPersonalOffer.audience === 'direct' && (
+                  <button
+                    type="button"
+                    onClick={() => declinePersonalCard(incomingPersonalOffer.id)}
+                    style={{ flex: 1, minHeight: 44, borderRadius: 11, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#B8B6A9', fontWeight: 800 }}
+                  >
+                    {locale === 'ru' ? 'Отказаться' : 'Decline'}
+                  </button>
+                )}
               </div>
-            </div>
           </div>
         );
-      })()}
+          })}
+        </div>
+      )}
 
       {/* Phase 3: Interest Window Banner */}
       {isProMode && interestWindow?.status === 'open' && (
@@ -1621,7 +1749,13 @@ export const MainTurnTableScreen: React.FC = () => {
       <HostInterjection moment={hostMoment} onDismiss={dismissHost} />
 
       {/* Native tutorial coach-mark: runs once for first-time players during an active match */}
-      {card && canActNow && <TutorialOverlay mode={isProMode ? 'pro' : 'basic'} />}
+      {card && canActNow && (
+        <TutorialOverlay
+          mode={isProMode ? 'pro' : 'basic'}
+          suspended={isProfileOpen}
+          onActiveChange={setIsTutorialActive}
+        />
+      )}
 
       {/* Cashflow breakdown sheet */}
       <CashflowBreakdownSheet

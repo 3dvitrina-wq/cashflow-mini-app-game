@@ -21,7 +21,10 @@ declare global {
         setBackgroundColor?: (c: string) => void;
         requestFullscreen?: () => void;
         version?: string;
+        platform?: string;
         isFullscreen?: boolean;
+        safeAreaInset?: { top: number; right: number; bottom: number; left: number };
+        contentSafeAreaInset?: { top: number; right: number; bottom: number; left: number };
         isVersionAtLeast?: (v: string) => boolean;
         onEvent?: (event: string, cb: (...args: unknown[]) => void) => void;
         viewportHeight?: number;
@@ -40,8 +43,38 @@ declare global {
 }
 
 const tg = window.Telegram?.WebApp;
+
+function syncTelegramInsets(): void {
+  const root = document.documentElement;
+  const safe = tg?.safeAreaInset;
+  const content = tg?.contentSafeAreaInset;
+  // Older fullscreen clients keep floating Close/⋯ controls but expose no content
+  // inset. Reserve the complete floating-control strip (status bar + controls),
+  // not merely the device notch, so the first game row starts below Close/⋯.
+  const fullscreenTopFallback = tg?.isFullscreen ? 104 : 0;
+  const values = {
+    top: Math.max(safe?.top ?? 0, fullscreenTopFallback),
+    right: safe?.right ?? 0,
+    bottom: safe?.bottom ?? 0,
+    left: safe?.left ?? 0,
+    contentTop: Math.max(content?.top ?? 0, safe?.top ?? 0, fullscreenTopFallback),
+    contentRight: Math.max(content?.right ?? 0, safe?.right ?? 0),
+    contentBottom: Math.max(content?.bottom ?? 0, safe?.bottom ?? 0),
+    contentLeft: Math.max(content?.left ?? 0, safe?.left ?? 0),
+  };
+  root.style.setProperty('--tg-safe-area-top-js', `${values.top}px`);
+  root.style.setProperty('--tg-safe-area-right-js', `${values.right}px`);
+  root.style.setProperty('--tg-safe-area-bottom-js', `${values.bottom}px`);
+  root.style.setProperty('--tg-safe-area-left-js', `${values.left}px`);
+  root.style.setProperty('--tg-content-safe-area-top-js', `${values.contentTop}px`);
+  root.style.setProperty('--tg-content-safe-area-right-js', `${values.contentRight}px`);
+  root.style.setProperty('--tg-content-safe-area-bottom-js', `${values.contentBottom}px`);
+  root.style.setProperty('--tg-content-safe-area-left-js', `${values.contentLeft}px`);
+}
+
 try {
   if (tg) {
+    document.documentElement.classList.add('telegram-mini-app');
     tg.ready?.();
     tg.expand?.();
     tg.disableVerticalSwipes?.();
@@ -51,6 +84,9 @@ try {
     // chevron). Telegram's minimal floating close/⋯ controls always stay and can't
     // be removed by design. No-op on older clients.
     tg.onEvent?.('fullscreenFailed', (...a: unknown[]) => console.warn('[tg-fullscreen-failed]', ...a));
+    tg.onEvent?.('safeAreaChanged', syncTelegramInsets);
+    tg.onEvent?.('contentSafeAreaChanged', syncTelegramInsets);
+    tg.onEvent?.('fullscreenChanged', syncTelegramInsets);
     if (tg.requestFullscreen && (tg.isVersionAtLeast?.('8.0') ?? false)) {
       try { tg.requestFullscreen(); } catch (e) { console.warn('[tg-fullscreen]', e); }
     } else {
@@ -64,6 +100,7 @@ try {
 const setVh = () => {
   const h = tg?.viewportStableHeight || window.innerHeight;
   document.documentElement.style.setProperty('--app-h', `${h}px`);
+  syncTelegramInsets();
 };
 setVh();
 window.addEventListener('resize', setVh);

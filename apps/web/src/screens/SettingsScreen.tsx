@@ -35,8 +35,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
         minHeight: '100vh',
         background: '#0B0D11',
         color: '#F5F4ED',
-        padding: '20px',
-        paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 20px)',
+        paddingTop: 'max(var(--safe-top), 20px)',
+        paddingRight: 'max(var(--safe-right), 20px)',
+        paddingBottom: 'max(var(--safe-bottom), 20px)',
+        paddingLeft: 'max(var(--safe-left), 20px)',
       }}
     >
       {/* Header */}
@@ -44,8 +46,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
-          marginBottom: 24,
+          marginBottom: 14,
         }}
       >
         <h1
@@ -59,17 +60,28 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
         >
           ⚙️ {t('ui.settings')}
         </h1>
-        <button
-          onClick={onClose}
-          style={{
-            fontSize: 14,
-            fontWeight: 700,
-            color: '#7D7B6F',
-          }}
-        >
-          {locale === 'ru' ? 'Закрыть' : 'Close'}
-        </button>
       </div>
+
+      <button
+        type="button"
+        onClick={onClose}
+        style={{
+          display: 'flex',
+          width: '100%',
+          minHeight: 52,
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: 24,
+          borderRadius: 14,
+          background: '#5BD7E0',
+          color: '#071013',
+          fontSize: 15,
+          fontWeight: 900,
+          boxShadow: '0 8px 22px rgba(91, 215, 224, 0.2)',
+        }}
+      >
+        ← {locale === 'ru' ? 'Вернуться в игру' : 'Return to game'}
+      </button>
 
       {/* Settings sections */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -415,8 +427,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Exit buttons */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 8 }}>
+        {/* Destructive match actions stay visibly separate from ordinary settings. */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(232, 75, 42, 0.22)' }}>
+          <span style={{ color: '#A39F92', fontSize: 11, fontWeight: 900, letterSpacing: '0.06em' }}>
+            {locale === 'ru' ? 'ОПАСНЫЕ ДЕЙСТВИЯ' : 'DESTRUCTIVE ACTIONS'}
+          </span>
           <button
             style={{
               width: '100%',
