@@ -670,6 +670,10 @@ describe('futures settle each round', () => {
     // Cash is no longer stuck at the post-margin 3000 minus only settlement —
     // either the margin+profit returned, or it was liquidated (margin lost).
     expect(after.cash).not.toBe(3000);
+    expect(Number.isInteger(after.cash * 100)).toBe(true);
+
+    const afterAnotherSettlement = advanceRound(r.state).state.players.find((p) => p.id === 'p1')!;
+    expect(Number.isInteger(afterAnotherSettlement.cash * 100)).toBe(true);
   });
 });
 

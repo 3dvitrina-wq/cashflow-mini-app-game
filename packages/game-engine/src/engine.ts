@@ -44,6 +44,8 @@ import { registerInterest, closeInterestWindow } from './negotiation';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+const roundMoney = (amount: number): number => Math.round(amount * 100) / 100;
+
 function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T;
 }
@@ -1373,7 +1375,7 @@ export function advanceRound(prev: MatchState): CommandResult {
     // Unified monthly flow: cash changes by ONE net figure (income − expense),
     // covering salary/passive/assets/loan-interest/tax together.
     const { net } = monthlyCashflow(state, p);
-    p.cash = Math.max(0, p.cash + net);
+    p.cash = roundMoney(Math.max(0, p.cash + net));
 
     // Age out amortising liabilities (profession debts expire; bank loans run until repaid).
     for (const liab of p.liabilities) {
@@ -1467,6 +1469,13 @@ export function advanceRound(prev: MatchState): CommandResult {
     if (p.alive && p.futuresPositions.length > 0) {
       events.push(...resolveFutures(state, p));
     }
+  }
+
+  // Money is authoritative to cents. Re-canonicalize after every settlement,
+  // contract and futures mutation so repeated integer additions cannot expose
+  // binary floating-point tails in snapshots or deal calculations.
+  for (const p of state.players) {
+    p.cash = roundMoney(p.cash);
   }
 
   // ─── Check match end ──────────────────────────────────────────────────

@@ -45,6 +45,8 @@ assert.match(html, /id="global-pause"/);
 assert.match(app, /command\.playerId !== profile\.playerId/);
 assert.match(app, /diagnosticHash/);
 assert.match(app, /canonicalize/);
+assert.match(app, /state\.currentCard\?\.choices/);
+assert.match(app, /autoChoice\(profile, exposedOptions\)/);
 assert.match(css, /grid-template-columns: repeat\(3,/);
 
 const joinStateBlock = app.slice(

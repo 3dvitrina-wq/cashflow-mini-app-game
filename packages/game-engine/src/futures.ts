@@ -12,6 +12,8 @@ import type {
 } from '../../shared/src/index';
 import { rngFloat } from './rng';
 
+const roundMoney = (amount: number): number => Math.round(amount * 100) / 100;
+
 /** Fictional token price movements — deterministic from seed + round. */
 export function updateMarketPrices(state: MatchState): Record<string, number> {
   const prices = { ...state.marketPrices };
@@ -62,8 +64,8 @@ export function resolveFutures(state: MatchState, player: PlayerState): GameEven
       const priceDelta = pos.direction === 'long'
         ? currentPrice - pos.entryPrice
         : pos.entryPrice - currentPrice;
-      const pnl = priceDelta * pos.quantity;
-      player.cash = Math.max(0, player.cash + pos.margin + pnl);
+      const pnl = roundMoney(priceDelta * pos.quantity);
+      player.cash = roundMoney(Math.max(0, player.cash + pos.margin + pnl));
       if (pnl >= 0) player.recapTags.push('futures_win');
       events.push({
         type: 'futures',
@@ -103,13 +105,13 @@ export function settleAllFutures(state: MatchState, player: PlayerState): GameEv
       const priceDelta = pos.direction === 'long'
         ? finalPrice - pos.entryPrice
         : pos.entryPrice - finalPrice;
-      const pnl = priceDelta * pos.quantity;
-      player.cash = Math.max(0, player.cash + pos.margin + pnl);
+      const pnl = roundMoney(priceDelta * pos.quantity);
+      player.cash = roundMoney(Math.max(0, player.cash + pos.margin + pnl));
       events.push({
         type: 'futures',
         playerId: player.id,
         effectType: 'futures.resolve',
-        amount: pos.margin + pnl,
+        amount: roundMoney(pos.margin + pnl),
         message: `${pos.tokenSymbol} ${pos.direction} ${pos.leverage}x final settle`,
       });
     }
@@ -129,7 +131,7 @@ export function openFuturesPosition(
   amount: number,
 ): GameEvent[] {
   leverage = Math.min(3, Math.max(1, leverage));
-  amount = Math.min(amount, player.cash);
+  amount = roundMoney(Math.min(amount, player.cash));
 
   if (amount <= 0) {
     return [{ type: 'command_rejected', playerId: player.id, message: 'insufficient funds for futures' }];
@@ -155,7 +157,7 @@ export function openFuturesPosition(
   };
 
   player.futuresPositions.push(position);
-  player.cash -= amount;
+  player.cash = roundMoney(player.cash - amount);
 
   return [{
     type: 'futures',

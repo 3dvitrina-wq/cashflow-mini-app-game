@@ -197,6 +197,13 @@ function optionsExposedByState(profile) {
     .filter((index) => Number.isInteger(index) && index >= 0);
 }
 
+function autoChoice(profile, options) {
+  // Two aggressive, two balanced and two conservative seats. This is a
+  // deterministic decision-path stress harness, not a balance oracle.
+  const preferredPosition = [0, 1, Number.POSITIVE_INFINITY][profile.index % 3];
+  return options[Math.min(preferredPosition, options.length - 1)];
+}
+
 function renderServerEvents(profile) {
   const events = Array.isArray(profile.state?.eventLog) ? profile.state.eventLog : [];
   const rendered = events
@@ -233,7 +240,9 @@ function renderProfile(profile) {
   elements.round.textContent = formatValue(state?.round);
   elements.phase.textContent = formatValue(state?.phase);
   elements.active.textContent = activePlayer ? `${activePlayer.name} (${activePlayer.id})` : '—';
-  elements.cardValue.textContent = formatValue(state?.currentCardId);
+  elements.cardValue.textContent = state?.currentCard?.title
+    ? `${state.currentCard.title} (${state.currentCardId})`
+    : formatValue(state?.currentCardId);
   elements.cash.textContent = formatValue(ownPlayer?.cash);
   elements.stress.textContent = formatValue(ownPlayer?.stress);
   elements.hash.textContent = profile.stateHash || '—';
@@ -248,8 +257,17 @@ function renderProfile(profile) {
     elements.intentState.textContent = state.phase === 'finished' ? 'finished' : 'ожидание';
   }
 
+  const choices = Array.isArray(state?.currentCard?.choices) ? state.currentCard.choices : [];
+  const hasCardCopy = Boolean(state?.currentCard);
+  elements.optionNote.textContent = state?.currentCard?.text
+    ?? 'Сервер ещё не прислал описание карты; индексы проверяет server authority.';
   for (const button of elements.choiceButtons) {
-    button.disabled = !mayAct(profile);
+    const choiceIndex = Number.parseInt(button.dataset.choiceIndex, 10);
+    const choice = choices[choiceIndex];
+    button.textContent = choice?.label ?? `Option ${choiceIndex + 1}`;
+    button.title = choice?.hint ?? '';
+    button.hidden = hasCardCopy && !choice;
+    button.disabled = !mayAct(profile) || (hasCardCopy && !choice);
   }
   elements.pass.disabled = !mayAct(profile);
   renderServerEvents(profile);
@@ -610,7 +628,7 @@ function maybeAuto(profile, source) {
     ? sendCommand(profile, {
         type: 'choose_option',
         playerId: profile.playerId,
-        choiceIndex: exposedOptions[0],
+        choiceIndex: autoChoice(profile, exposedOptions),
       }, source)
     : sendPass(profile, source);
 
@@ -754,6 +772,7 @@ function buildProfileCard(profile) {
     stress: fragment.querySelector('.stress-value'),
     hash: fragment.querySelector('.hash-value'),
     intentState: fragment.querySelector('.intent-state'),
+    optionNote: fragment.querySelector('.option-note'),
     choiceButtons: [...fragment.querySelectorAll('[data-choice-index]')],
     pass: fragment.querySelector('.pass-command'),
     lastMessage: fragment.querySelector('.last-message'),

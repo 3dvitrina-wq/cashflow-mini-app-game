@@ -24,6 +24,7 @@ import { openInterestWindow, closeInterestWindow, checkDealFairness, selectByFoc
 import { rngInt } from './rng';
 
 const clamp = (n: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, n));
+const roundMoney = (amount: number): number => Math.round(amount * 100) / 100;
 
 // Id prefix for stake assets minted by 'partnership.invite'. resolveAllIntents finds
 // these after a round to normalize over-funded buys and form the Partnership record.
@@ -210,9 +211,9 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
     const events: GameEvent[] = [];
     for (const pos of p.futuresPositions) {
       const currentPrice = state.marketPrices[pos.tokenSymbol] ?? pos.entryPrice;
-      const pnl = pos.direction === 'long'
+      const pnl = roundMoney(pos.direction === 'long'
         ? (currentPrice - pos.entryPrice) * pos.quantity
-        : (pos.entryPrice - currentPrice) * pos.quantity;
+        : (pos.entryPrice - currentPrice) * pos.quantity);
 
       if (
         (pos.direction === 'long' && currentPrice <= pos.liquidationPrice) ||
@@ -224,7 +225,7 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
         p.recapTags.push('futures_liquidated');
         events.push({ type: 'futures', playerId: p.id, effectType: 'futures.resolve', amount: -pos.margin, message: 'liquidated' });
       } else {
-        p.cash = Math.max(0, p.cash + pos.margin + pnl);
+        p.cash = roundMoney(Math.max(0, p.cash + pos.margin + pnl));
         events.push({ type: 'futures', playerId: p.id, effectType: 'futures.resolve', amount: pnl });
       }
     }

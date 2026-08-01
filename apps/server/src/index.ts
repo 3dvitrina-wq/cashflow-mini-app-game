@@ -19,6 +19,7 @@ import {
   expireSharedIntentWindow,
 } from './rooms';
 import type { RoomMember } from './rooms';
+import { toClientState } from './client-state';
 
 // ─── Lobby member payload (incl. lightweight profile meta) ───────────────────
 function lobbyMember(m: RoomMember) {
@@ -66,7 +67,7 @@ function drainBotTurns(roomCode: string): void {
 
     const result = runBotTurn(roomCode);
     if (!result.ok || !result.room) break;
-    broadcast(result.room, { type: 'state_update', state: result.room.engineState });
+    broadcast(result.room, { type: 'state_update', state: toClientState(result.room.engineState) });
     iterations++;
 
     // Restore control to connected human immediately after their forced pass.
@@ -76,7 +77,7 @@ function drainBotTurns(roomCode: string): void {
     }
 
     if (result.room.status === 'finished') {
-      broadcast(result.room, { type: 'match_finished', state: result.room.engineState });
+      broadcast(result.room, { type: 'match_finished', state: toClientState(result.room.engineState) });
       break;
     }
   }
@@ -94,9 +95,9 @@ function drainBotTurns(roomCode: string): void {
       if (r.engineState?.phase === 'intent_window') {
         const expired = expireSharedIntentWindow(roomCode);
         if (expired) {
-          broadcast(expired, { type: 'state_update', state: expired.engineState });
+          broadcast(expired, { type: 'state_update', state: toClientState(expired.engineState) });
           if (expired.status === 'finished') {
-            broadcast(expired, { type: 'match_finished', state: expired.engineState });
+            broadcast(expired, { type: 'match_finished', state: toClientState(expired.engineState) });
             return;
           }
         }
@@ -266,7 +267,7 @@ async function main() {
               roomCode = code;
               playerId = pid;
               // Send full snapshot + member list
-              ws.send(JSON.stringify({ type: 'reconnected', state: room.engineState }));
+              ws.send(JSON.stringify({ type: 'reconnected', state: toClientState(room.engineState) }));
               broadcast(room, {
                 type: 'room_update',
                 members: room.members.map(lobbyMember),
@@ -359,7 +360,7 @@ async function main() {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot start' }));
           return;
         }
-        broadcast(room, { type: 'match_started', state: room.engineState });
+        broadcast(room, { type: 'match_started', state: toClientState(room.engineState) });
         // If first player is a bot (room of bots + 1 human), drain immediately
         drainBotTurns(roomCode);
         return;
@@ -415,9 +416,9 @@ async function main() {
           }
           return;
         }
-        broadcast(result.room, { type: 'state_update', state: result.room.engineState });
+        broadcast(result.room, { type: 'state_update', state: toClientState(result.room.engineState) });
         if (result.room.status === 'finished') {
-          broadcast(result.room, { type: 'match_finished', state: result.room.engineState });
+          broadcast(result.room, { type: 'match_finished', state: toClientState(result.room.engineState) });
           return;
         }
         // Continue bot cascade if next player is a bot

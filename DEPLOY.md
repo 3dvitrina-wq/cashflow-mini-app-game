@@ -26,6 +26,14 @@ Telegram → бот (кнопка) → Cloudflare Pages (web, HTTPS)
 - `apps/web/.env.production.example` — шаблон URL сервера для веба.
 - `apps/web/public/_redirects` — SPA-фоллбэк для Cloudflare Pages.
 
+Текущий production-контур:
+
+- веб: `https://cashflow-mini-app-game.pages.dev` — канонический Pages-проект,
+  подключённый к GitHub `main`;
+- сервер: `https://cashflow-game-server.fly.dev`;
+- старый direct-upload проект `cashflow-game-6k1.pages.dev` и чужой/устаревший
+  `cashflow-game.pages.dev` не являются адресом DYOR.
+
 ---
 
 ## 1. Сервер на Fly.io
@@ -90,7 +98,7 @@ VITE_WS_URL   = wss://<твой-app>.fly.dev/ws
 ```bash
 npm i -g wrangler
 npm run build --workspace=apps/web   # сначала задай env, см. .env.production.example
-wrangler pages deploy apps/web/dist --project-name cashflow-game
+wrangler pages deploy apps/web/dist --project-name cashflow-mini-app-game
 ```
 
 ---
