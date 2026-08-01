@@ -45,6 +45,18 @@ const TURN_TIMEOUT_MS       = 90_000;  // auto-resolve human turn after 90s
 const INTENT_TIMEOUT_MS     = 25_000;  // shared card: everyone answers concurrently
 const MAX_BOT_TURNS         = 200;     // safety cap against infinite bot loops
 
+/** State snapshots are per-recipient because BASIC cards are private. */
+function broadcastState(room: NonNullable<ReturnType<typeof getRoom>>, type: 'state_update' | 'match_started' | 'match_finished'): void {
+  for (const member of room.members) {
+    if (member.ws && member.ws.readyState === 1) {
+      member.ws.send(JSON.stringify({
+        type,
+        state: toClientState(room.engineState, member.playerId),
+      }));
+    }
+  }
+}
+
 // ─── Bot-turn cascade ────────────────────────────────────────────────────────
 /**
  * Run bot turns until a human's turn arrives or the game ends.
@@ -67,7 +79,7 @@ function drainBotTurns(roomCode: string): void {
 
     const result = runBotTurn(roomCode);
     if (!result.ok || !result.room) break;
-    broadcast(result.room, { type: 'state_update', state: toClientState(result.room.engineState) });
+    broadcastState(result.room, 'state_update');
     iterations++;
 
     // Restore control to connected human immediately after their forced pass.
@@ -77,7 +89,7 @@ function drainBotTurns(roomCode: string): void {
     }
 
     if (result.room.status === 'finished') {
-      broadcast(result.room, { type: 'match_finished', state: toClientState(result.room.engineState) });
+      broadcastState(result.room, 'match_finished');
       break;
     }
   }
@@ -95,9 +107,9 @@ function drainBotTurns(roomCode: string): void {
       if (r.engineState?.phase === 'intent_window') {
         const expired = expireSharedIntentWindow(roomCode);
         if (expired) {
-          broadcast(expired, { type: 'state_update', state: toClientState(expired.engineState) });
+          broadcastState(expired, 'state_update');
           if (expired.status === 'finished') {
-            broadcast(expired, { type: 'match_finished', state: toClientState(expired.engineState) });
+            broadcastState(expired, 'match_finished');
             return;
           }
         }
@@ -267,7 +279,7 @@ async function main() {
               roomCode = code;
               playerId = pid;
               // Send full snapshot + member list
-              ws.send(JSON.stringify({ type: 'reconnected', state: toClientState(room.engineState) }));
+              ws.send(JSON.stringify({ type: 'reconnected', state: toClientState(room.engineState, playerId) }));
               broadcast(room, {
                 type: 'room_update',
                 members: room.members.map(lobbyMember),
@@ -354,13 +366,14 @@ async function main() {
       if (msg.type === 'start' && roomCode) {
         const maxRounds = typeof msg.maxRounds === 'number' ? msg.maxRounds : undefined;
         const mode = msg.mode === 'draft' ? 'draft' : msg.mode === 'classic' ? 'classic' : undefined;
-        const cardMode = msg.cardMode === 'individual' ? 'individual' : 'shared';
-        const room = startRoom(roomCode, { maxRounds, mode, cardMode });
+        const experienceMode = msg.experienceMode === 'pro' ? 'pro' : 'basic';
+        const cardMode = experienceMode === 'pro' ? 'shared' : 'individual';
+        const room = startRoom(roomCode, { maxRounds, mode, cardMode, experienceMode });
         if (!room) {
           ws.send(JSON.stringify({ type: 'error', error: 'cannot start' }));
           return;
         }
-        broadcast(room, { type: 'match_started', state: toClientState(room.engineState) });
+        broadcastState(room, 'match_started');
         // If first player is a bot (room of bots + 1 human), drain immediately
         drainBotTurns(roomCode);
         return;
@@ -416,9 +429,9 @@ async function main() {
           }
           return;
         }
-        broadcast(result.room, { type: 'state_update', state: toClientState(result.room.engineState) });
+        broadcastState(result.room, 'state_update');
         if (result.room.status === 'finished') {
-          broadcast(result.room, { type: 'match_finished', state: toClientState(result.room.engineState) });
+          broadcastState(result.room, 'match_finished');
           return;
         }
         // Continue bot cascade if next player is a bot

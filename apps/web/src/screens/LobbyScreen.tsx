@@ -11,6 +11,7 @@ import iconPrestigeI from '../assets/generated/ui/prestige_roman_I_square.png';
 import iconFire from '../assets/generated/ui/fire_gold_square.png';
 import iconPaw from '../assets/generated/ui/paw_gold_purple_square.png';
 import iconRoom from '../assets/generated/ui/room_gold_badge_square.png';
+import iconCrown from '../assets/generated/ui/crown_gold_square.png';
 import {
   GENERATED_CHARACTERS,
   resolveCharacterPortrait,
@@ -531,7 +532,7 @@ export const LobbyScreen: React.FC = () => {
   }, []);
 
   const [multiMode, setMultiMode] = useState<MultiMode>('none');
-  const [gameMode, setGameMode] = useState<'shared' | 'individual' | 'draft'>('shared');
+  const [gameMode, setGameMode] = useState<'basic' | 'pro'>('basic');
   const [roundPreset, setRoundPreset] = useState<number>(25);
   const [roomCode, setRoomCode] = useState('');
   const [joinInput, setJoinInput] = useState('');
@@ -716,8 +717,8 @@ export const LobbyScreen: React.FC = () => {
     wsClient.send({
       type: 'start',
       maxRounds: roundPreset,
-      mode: gameMode === 'draft' ? 'draft' : 'classic',
-      cardMode: gameMode === 'individual' ? 'individual' : 'shared',
+      mode: 'classic',
+      experienceMode: gameMode,
     });
   }, [roundPreset, gameMode]);
 
@@ -757,7 +758,7 @@ export const LobbyScreen: React.FC = () => {
   };
 
   const handleStart = () => {
-    startMatch(buildStarterRoster(players), { mode: gameMode === 'draft' ? 'draft' : 'classic', maxRounds: roundPreset });
+    startMatch(buildStarterRoster(players), { mode: 'classic', maxRounds: roundPreset, experienceMode: gameMode });
   };
 
   const emptySlots = Math.max(0, 6 - players.length);
@@ -875,6 +876,31 @@ export const LobbyScreen: React.FC = () => {
               </button>
             )}
             {isHost && (
+              <>
+                <div style={{ display: 'flex', gap: 8, margin: '4px 0 8px' }}>
+                  {([['basic', 'ОБЫЧНЫЙ'], ['pro', 'PRO']] as const).map(([mode, label]) => (
+                    <button
+                      key={mode}
+                      onClick={() => setGameMode(mode)}
+                      style={{
+                        flex: 1, height: 42, borderRadius: 12, fontSize: 13, fontWeight: 900,
+                        background: gameMode === mode ? '#F5C524' : 'rgba(255,255,255,0.05)',
+                        color: gameMode === mode ? '#0B0B0C' : '#B8B6A9',
+                        border: gameMode === mode ? 'none' : '1px solid rgba(255,255,255,0.1)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-2px 0 8px' }}>
+                  {gameMode === 'basic'
+                    ? 'У каждого своя карта · решения одновременно · без сложных договоров'
+                    : 'Общая карта · сделки, проценты и полный финансовый стол'}
+                </p>
+              </>
+            )}
+            {isHost && (
               <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
                 {ROUND_PRESETS.map((preset) => (
                   <button
@@ -943,7 +969,7 @@ export const LobbyScreen: React.FC = () => {
                   onClick={() => players[0] && openVisit(players[0])}
                   aria-label="Открыть профиль"
                 >
-                  <img src={selectedCharacter?.profile} alt="" draggable={false} />
+                  <img src={iconCrown} alt="" draggable={false} />
                   <span>
                     <b>LVL {myLevel}</b>
                     <small>{nickname || 'Вы'} · готов</small>
@@ -971,7 +997,7 @@ export const LobbyScreen: React.FC = () => {
                   <span><b>Питомцы</b><small>Собери свою коллекцию</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => players[0] && openVisit(players[0], undefined, 'home')}>
-                  <img src={iconRoom} alt="" draggable={false} style={{ borderRadius: 0 }} />
+                  <img src={hostHome?.image ?? iconRoom} alt="" draggable={false} style={hostHome ? {} : { borderRadius: 0 }} />
                   <span><b>Интерьеры</b><small>Прокачай комнату</small></span>
                 </button>
                 <button className="lobby-feature-tile" onClick={() => setIsCharSelectOpen(true)}>
@@ -1177,9 +1203,8 @@ export const LobbyScreen: React.FC = () => {
             {/* Game mode toggle */}
             <div style={{ display: 'flex', gap: 8, margin: '4px 0 10px' }}>
               {([
-                ['shared', '🎴 Общие'],
-                ['individual', '👤 Личные'],
-                ['draft', '🃏 Драфт'],
+                ['basic', 'ОБЫЧНЫЙ'],
+                ['pro', 'PRO'],
               ] as const).map(([m, label]) => (
                 <button
                   key={m}
@@ -1195,19 +1220,14 @@ export const LobbyScreen: React.FC = () => {
                 </button>
               ))}
             </div>
-            {gameMode === 'shared' && (
+            {gameMode === 'basic' && (
               <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
-                Все игроки видят одну карту и выбирают одновременно.
+                У каждого своя карта · решения одновременно · без сложных договоров
               </p>
             )}
-            {gameMode === 'individual' && (
+            {gameMode === 'pro' && (
               <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
-                Старая ветка: у каждого игрока своя карта по очереди.
-              </p>
-            )}
-            {gameMode === 'draft' && (
-              <p style={{ fontSize: 11, color: '#7D7B6F', textAlign: 'center', margin: '-4px 0 8px' }}>
-                6 карт в центре · подсмотри 2 · зарезервируй 2 · спорь за карты
+                Общая карта · сделки, проценты и полный финансовый стол
               </p>
             )}
 

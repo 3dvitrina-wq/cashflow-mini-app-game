@@ -26,6 +26,7 @@ import { playSound } from '../lib/sound';
 import { HostInterjection, type HostMoment } from '../components/HostInterjection';
 import { TutorialOverlay } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
+import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
 // The host is a guest, not a narrator: it only has something to say when a market
 // event, a stress check, or a risky deal is imminent. Most rounds → null (silent).
@@ -328,6 +329,9 @@ export const MainTurnTableScreen: React.FC = () => {
     openRules,
     nextRound,
     submitIntent,
+    offerPersonalCard,
+    acceptPersonalCard,
+    declinePersonalCard,
     previewChoice,
     affordableChoices,
     requestTableHelp,
@@ -366,11 +370,13 @@ export const MainTurnTableScreen: React.FC = () => {
   const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
+  const [isPersonalOfferPickerOpen, setIsPersonalOfferPickerOpen] = useState(false);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
   const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | null>(null);
   const card = match.currentCard ? tCard(match.currentCard) : null;
+  const globalCard = match.globalCard ? tCard(match.globalCard) : null;
   // Deal banner shown with delay when card is active, hidden while interestWindow is open
   const [dealBannerReady, setDealBannerReady] = useState(false);
   const dealBannerTimer = useRef<number>(0);
@@ -477,23 +483,56 @@ export const MainTurnTableScreen: React.FC = () => {
     : null;
   const me = (isMultiplayer && localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) || match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
   const activePlayer = match.players.find((p) => p.isActive) ?? me;
+  const submittedIntentPlayerIds = new Set(
+    engineMatch?.submittedIntentPlayerIds
+      ?? Object.entries(engineMatch?.pendingIntents ?? {})
+        .filter(([, intent]) => intent !== null)
+        .map(([playerId]) => playerId),
+  );
   const hasSubmittedSharedIntent = !!(
     isMultiplayer
     && engineMatch?.phase === 'intent_window'
     && me?.id
-    && engineMatch.pendingIntents[me.id]
+    && submittedIntentPlayerIds.has(me.id)
   );
   const canActNow = !isMultiplayer
     || (engineMatch?.phase === 'intent_window' && !hasSubmittedSharedIntent)
     || activePlayer.id === me?.id;
-  const phaseLabel = interestWindow?.status === 'open'
+  const isProMode = match.experienceMode === 'pro';
+  const incomingPersonalOffer = !isProMode && me?.id
+    ? engineMatch?.personalCardOffers?.find((offer) => offer.status === 'pending' && offer.toPlayerId === me.id)
+    : undefined;
+  const incomingPersonalCard = incomingPersonalOffer
+    ? getLocalizedCard(incomingPersonalOffer.cardId, locale)
+    : null;
+  const outgoingPersonalOffer = !isProMode && me?.id
+    ? engineMatch?.personalCardOffers?.find((offer) => offer.status === 'pending' && offer.fromPlayerId === me.id)
+    : undefined;
+  const personalOfferTargets = !isProMode && engineMatch
+    ? match.players.filter((player) =>
+        player.id !== me?.id
+        && !submittedIntentPlayerIds.has(player.id)
+        && !engineMatch.personalCardOffers?.some((offer) =>
+          offer.status === 'pending'
+          && (offer.fromPlayerId === player.id || offer.toPlayerId === player.id)))
+    : [];
+  const canOfferPersonalCard = !isProMode
+    && match.round >= 3
+    && (card?.type === 'opportunity' || card?.type === 'modern_earning')
+    && !hasSubmittedSharedIntent
+    && !incomingPersonalOffer
+    && !outgoingPersonalOffer
+    && personalOfferTargets.length > 0;
+  const phaseLabel = isProMode && interestWindow?.status === 'open'
     ? (locale === 'ru' ? 'Окно сделки открыто' : 'Deal interest open')
     : isAdvancingTime
     ? (locale === 'ru' ? 'Месяц считается' : 'Resolving month')
     : hasSubmittedSharedIntent
     ? (locale === 'ru' ? 'Ждём остальных' : 'Waiting for others')
     : canActNow
-    ? (locale === 'ru' ? 'Твой выбор сейчас' : 'Your action now')
+    ? isProMode
+      ? (locale === 'ru' ? 'Общий стол · выбор сейчас' : 'Shared table · choose now')
+      : (locale === 'ru' ? 'Личная карта · только вам' : 'Private card · only you')
     : locale === 'ru'
     ? `Ходит ${activePlayer.name}`
     : `${activePlayer.name} acts now`;
@@ -693,7 +732,7 @@ export const MainTurnTableScreen: React.FC = () => {
   }, [card.id, selectedChoiceIdx]);
 
   const tableToolItems = [
-    {
+    ...(isProMode ? [{
       icon: <IconHandshake size={18} />,
       label: locale === 'ru' ? 'Сделка' : 'Deal',
       tone: 'violet',
@@ -701,7 +740,7 @@ export const MainTurnTableScreen: React.FC = () => {
         setIsOfferBuilderOpen(true);
         setFabExpanded(false);
       },
-    },
+    }] : []),
     {
       icon: <IconMegaphone size={18} />,
       label: locale === 'ru' ? 'Помощь' : 'Help',
@@ -712,7 +751,7 @@ export const MainTurnTableScreen: React.FC = () => {
         setFabExpanded(false);
       },
     },
-    {
+    ...(isProMode ? [{
       icon: <IconChaosMask size={18} />,
       label: locale === 'ru' ? 'Хаос' : 'Chaos',
       tone: 'red',
@@ -720,7 +759,7 @@ export const MainTurnTableScreen: React.FC = () => {
         setScreen('futures');
         setFabExpanded(false);
       },
-    },
+    }] : []),
     { icon: <IconBankVault size={18} />, label: locale === 'ru' ? 'Банк' : 'Bank', tone: 'gold', onClick: () => { setIsBankOpen(true); setFabExpanded(false); } },
     { icon: <IconShop size={18} />, label: locale === 'ru' ? 'Рынок' : 'Market', tone: 'green', onClick: () => { setIsMarketOpen(true); setFabExpanded(false); } },
     { icon: <IconLaborHelmet size={18} />, label: locale === 'ru' ? 'Труд' : 'Labor', tone: 'orange', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
@@ -753,7 +792,7 @@ export const MainTurnTableScreen: React.FC = () => {
           <IconMenu size={18} />
         </button>
 
-        <div className="topbar-pill ml-1" style={{ color: timerColor }}>
+        <div className="topbar-pill ml-1" data-tour="time" style={{ color: timerColor }}>
           <IconTimer size={13} />
           <span className="font-mono" style={{ fontSize: 13, fontWeight: 900 }}>
             00:{String(timer).padStart(2, '0')}
@@ -768,7 +807,7 @@ export const MainTurnTableScreen: React.FC = () => {
           <span style={{ fontSize: 11, fontWeight: 800 }}>{match.epochIcon} {match.timelineLabel}</span>
         </div>
 
-        <div className="topbar-pill" style={{ maxWidth: 132 }}>
+        <div className="topbar-pill" data-tour="phase" style={{ maxWidth: 132 }}>
           <span
             style={{
               fontSize: 10.5,
@@ -794,13 +833,33 @@ export const MainTurnTableScreen: React.FC = () => {
       </header>
 
       {/* ========== PLAYER RAIL ========== */}
-      <section className="relative z-20 shrink-0">
+      <section className="relative z-20 shrink-0" data-tour="players">
         <div className="player-rail">
           {match.players.filter((p) => p.id !== me.id).slice(0, 5).map((p) => (
             <PlayerTile key={p.id} player={p} reaction={playerReactions[p.id]} onTap={handlePlayerTap} />
           ))}
         </div>
       </section>
+
+      {!isProMode && globalCard && (
+        <section data-tour="market" style={{
+          position: 'relative', zIndex: 18, margin: '2px 12px 5px', padding: '7px 10px',
+          borderRadius: 11, border: '1px solid rgba(245,197,36,0.28)',
+          background: 'rgba(245,197,36,0.07)', display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 10, fontWeight: 950, color: '#F5C524', whiteSpace: 'nowrap' }}>
+            {locale === 'ru' ? 'РЫНОК · ВСЕМ' : 'MARKET · ALL'}
+          </span>
+          <span style={{ minWidth: 0, overflow: 'hidden' }}>
+            <b style={{ display: 'block', color: '#F5F4ED', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {globalCard.title}
+            </b>
+            <small style={{ display: 'block', color: '#9D9A8D', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {globalCard.consequences[0]}
+            </small>
+          </span>
+        </section>
+      )}
 
       <section className="game-playfield">
         {/* ========== CARD STAGE (host + card wrapper) ========== */}
@@ -821,10 +880,14 @@ export const MainTurnTableScreen: React.FC = () => {
                   />
                 </div>
                 <span className="turn-wait-kicker">
-                  {locale === 'ru' ? 'ОЖИДАЕМ ЗАВЕРШЕНИЯ ХОДА' : 'WAITING FOR THE TURN'}
+                  {hasSubmittedSharedIntent
+                    ? (locale === 'ru' ? 'ВАШ ВЫБОР ПРИНЯТ' : 'YOUR CHOICE IS LOCKED')
+                    : (locale === 'ru' ? 'ОЖИДАЕМ ЗАВЕРШЕНИЯ ХОДА' : 'WAITING FOR THE TURN')}
                 </span>
                 <h2 className="turn-wait-name">
-                  {locale === 'ru' ? `Ходит ${activePlayer.name}` : `${activePlayer.name} is acting`}
+                  {hasSubmittedSharedIntent
+                    ? (locale === 'ru' ? 'Остальные ещё решают' : 'Others are still choosing')
+                    : (locale === 'ru' ? `Ходит ${activePlayer.name}` : `${activePlayer.name} is acting`)}
                 </h2>
                 {/* A1: live stat line for the active player */}
                 <span style={{ fontSize: 12, color: '#B8B6A9', marginTop: 2 }}>
@@ -869,6 +932,7 @@ export const MainTurnTableScreen: React.FC = () => {
             {/* ========== CARD (frameless) ========== */}
             <main className="relative flex min-h-0 flex-1 items-stretch px-3 py-1">
               <article
+                data-tour="card"
                 className={`dyor-card dyor-card-poster flex-1 ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'}`}
                 style={{
                   '--card-art-image': cardArtwork?.src ? `url(${cardArtwork.src})` : 'none',
@@ -881,7 +945,11 @@ export const MainTurnTableScreen: React.FC = () => {
                   <div className="card-poster-kicker">
                     <span className="card-type-badge">
                       <IconAlert size={11} />
-                      {cardTypeLabel(card.type, locale === 'ru')}
+                      {isProMode
+                        ? cardTypeLabel(card.type, locale === 'ru')
+                        : locale === 'ru'
+                          ? `ЛИЧНАЯ · ${cardTypeLabel(card.type, true)}`
+                          : `PRIVATE · ${cardTypeLabel(card.type, false)}`}
                     </span>
                   </div>
 
@@ -895,7 +963,7 @@ export const MainTurnTableScreen: React.FC = () => {
                   </div>
 
                   <div className="card-poster-consequences">
-                    {card.consequences.slice(0, 3).map((c, i) => {
+                    {(card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3).map((c, i) => {
                       const cleaned = stripFirstEmoji(c);
                       return (
                         <div key={i} className="consequence-row">
@@ -916,7 +984,16 @@ export const MainTurnTableScreen: React.FC = () => {
           <section className="relative z-10 shrink-0 px-3 pt-2.5">
             <div
               className="you-panel"
+              role="button"
+              tabIndex={0}
+              aria-label={locale === 'ru' ? 'Открыть свой профиль; свайп вправо — реакции' : 'Open your profile; swipe right for reactions'}
               onClick={handleYouClick}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  handleYouClick();
+                }
+              }}
               onTouchStart={handleYouTouchStart}
               onTouchMove={handleYouTouchMove}
               onTouchEnd={handleYouTouchEnd}
@@ -925,7 +1002,7 @@ export const MainTurnTableScreen: React.FC = () => {
               <span className="you-tag">{locale === 'ru' ? 'ВЫ' : 'YOU'}</span>
 
               <div className="you-grid">
-                <div className="you-avatar-stage">
+                <div className="you-avatar-stage" data-tour="reactions">
                   <PlayerReactionBadge reaction={me ? playerReactions[me.id] : undefined} />
                   <div className="you-avatar-halo" />
                   <div className="you-avatar-shadow" />
@@ -943,7 +1020,7 @@ export const MainTurnTableScreen: React.FC = () => {
                 </div>
 
                 <div className="you-hud-side">
-                  <div className="you-hud-row">
+                  <div className="you-hud-row" data-tour="cashflow">
                     <span className="you-stat-card you-stat-primary">
                       <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
                       <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
@@ -1047,10 +1124,58 @@ export const MainTurnTableScreen: React.FC = () => {
           {match.matchMode !== 'draft' && canActNow && (
             <section className="turn-action-dock">
               <div className="decision-choice-panel">
-                <div className="survival-row">
+                {canOfferPersonalCard && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 7 }}>
+                    <button
+                      type="button"
+                      onClick={() => setIsPersonalOfferPickerOpen((open) => !open)}
+                      style={{
+                        minHeight: 34,
+                        borderRadius: 11,
+                        border: '1px solid rgba(91,215,224,0.35)',
+                        background: 'rgba(91,215,224,0.09)',
+                        color: '#5BD7E0',
+                        fontSize: 11,
+                        fontWeight: 900,
+                      }}
+                    >
+                      {locale === 'ru' ? '↗ ПРЕДЛОЖИТЬ ЭТУ ВОЗМОЖНОСТЬ' : '↗ OFFER THIS OPPORTUNITY'}
+                    </button>
+                    {isPersonalOfferPickerOpen && (
+                      <div style={{ display: 'flex', gap: 7, overflowX: 'auto', padding: '2px 1px 4px' }}>
+                        {personalOfferTargets.map((player) => (
+                          <button
+                            key={player.id}
+                            type="button"
+                            onClick={() => {
+                              if (offerPersonalCard(player.id)) {
+                                setIsPersonalOfferPickerOpen(false);
+                                showToast(
+                                  locale === 'ru'
+                                    ? `Предложение отправлено ${player.name} · ваша комиссия 5% при покупке`
+                                    : `Offer sent to ${player.name} · 5% finder fee if bought`,
+                                  'success',
+                                );
+                              }
+                            }}
+                            style={{
+                              flex: '0 0 auto', minWidth: 74, minHeight: 48, borderRadius: 12,
+                              border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+                              color: '#F5F4ED', fontSize: 10, fontWeight: 800, padding: '5px 8px',
+                            }}
+                          >
+                            {player.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="survival-row" data-tour="choices">
                   {visibleChoices.map((choice, i) => {
                     const label = stripFirstEmoji(choice) || choice;
-                    const canAfford = affordable[i] ?? true;
+                    const proOnly = !isProMode && card.choiceProOnly?.[i] === true;
+                    const canAfford = !proOnly && (affordable[i] ?? true);
                     const preview = choicePreviews[i];
                     // A3: inline delta hint (cash + monthly net)
                     const inlineDelta = preview
@@ -1067,9 +1192,9 @@ export const MainTurnTableScreen: React.FC = () => {
                         className={`survival-choice ${selectedChoiceIdx === i ? 'survival-choice-selected' : ''} ${canAfford ? '' : 'survival-choice-locked'}`}
                         onClick={() => canAfford && setSelectedChoiceIdx(i)}
                         disabled={isAdvancingTime || !canAfford}
-                        title={canAfford ? undefined : (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash')}
+                        title={canAfford ? undefined : proOnly ? 'PRO' : (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash')}
                       >
-                        <span className="survival-choice-icon">{canAfford ? choiceIcon(choice) : '🔒'}</span>
+                        <span className="survival-choice-icon">{proOnly ? 'PRO' : canAfford ? choiceIcon(choice) : '🔒'}</span>
                         <span className="survival-choice-body">
                           <span className="survival-choice-label">{label}</span>
                           {inlineDelta && canAfford && (
@@ -1092,6 +1217,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     );
                   })}
                   <button
+                    data-tour="actions"
                     className={`survival-choice survival-choice-market ${fabExpanded ? 'survival-choice-market-open' : ''}`}
                     type="button"
                     aria-label={locale === 'ru' ? 'Рынок действий: банк, питомцы, рынок' : 'Action market'}
@@ -1105,7 +1231,7 @@ export const MainTurnTableScreen: React.FC = () => {
                 </div>
               </div>
               {selectedChoice ? (
-                <div className="turn-action-main">
+                <div className="turn-action-main" data-tour="confirm">
                   {selectedPreview && isConfirmPreviewOpen && (
                     <div className="confirm-preview confirm-preview-popover">
                       <span className="confirm-preview-title">
@@ -1138,16 +1264,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     aria-label={locale === 'ru' ? 'Что изменится после подтверждения' : 'Preview confirmation effects'}
                     aria-pressed={isConfirmPreviewOpen}
                     disabled={!selectedPreview || isAdvancingTime}
-                    onPointerDown={(event) => {
-                      event.preventDefault();
-                      setIsConfirmPreviewOpen(true);
-                    }}
-                    onPointerUp={() => setIsConfirmPreviewOpen(false)}
-                    onPointerCancel={() => setIsConfirmPreviewOpen(false)}
-                    onPointerLeave={() => setIsConfirmPreviewOpen(false)}
-                    onContextMenu={(event) => event.preventDefault()}
-                    onFocus={() => setIsConfirmPreviewOpen(true)}
-                    onBlur={() => setIsConfirmPreviewOpen(false)}
+                    onClick={() => setIsConfirmPreviewOpen((open) => !open)}
                   >
                     ?
                   </button>
@@ -1218,7 +1335,7 @@ export const MainTurnTableScreen: React.FC = () => {
       )}
 
       {/* A4: spectator stake banner — shown to non-active players when a deal/interest window is live */}
-      {!canActNow && (interestWindow?.status === 'open' || (incomingDeal && dealBannerReady)) && (
+      {isProMode && !canActNow && (interestWindow?.status === 'open' || (incomingDeal && dealBannerReady)) && (
         <div style={{
           position: 'fixed',
           top: 12,
@@ -1249,8 +1366,52 @@ export const MainTurnTableScreen: React.FC = () => {
         </div>
       )}
 
+      {incomingPersonalOffer && (() => {
+        const from = match.players.find((player) => player.id === incomingPersonalOffer.fromPlayerId);
+        return (
+          <div className="negot-banner-wrapper">
+            <div style={{
+              background: 'rgba(91,215,224,0.12)', border: '1px solid rgba(91,215,224,0.45)',
+              borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
+            }}>
+              <strong style={{ color: '#5BD7E0', fontSize: 14 }}>
+                {locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает возможность` : `${from?.name ?? 'Player'} offers an opportunity`}
+              </strong>
+              {incomingPersonalCard && (
+                <span style={{ color: '#F5F4ED', fontSize: 13, fontWeight: 900 }}>
+                  {incomingPersonalCard.title}
+                </span>
+              )}
+              <span style={{ color: '#B8B6A9', fontSize: 12, lineHeight: 1.35 }}>
+                {incomingPersonalCard?.text ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
+                {' · '}
+                {locale === 'ru'
+                  ? 'Принять вместо своей карты; при покупке автор наводки получит 5%.'
+                  : 'Take it instead of your card; a purchase pays the finder 5%.'}
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => acceptPersonalCard(incomingPersonalOffer.id)}
+                  style={{ flex: 1, minHeight: 40, borderRadius: 11, border: 0, background: '#28C76F', color: '#0B0B0C', fontWeight: 900 }}
+                >
+                  {locale === 'ru' ? 'Принять' : 'Accept'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => declinePersonalCard(incomingPersonalOffer.id)}
+                  style={{ flex: 1, minHeight: 40, borderRadius: 11, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#B8B6A9', fontWeight: 800 }}
+                >
+                  {locale === 'ru' ? 'Нет' : 'Decline'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Phase 3: Interest Window Banner */}
-      {interestWindow?.status === 'open' && (
+      {isProMode && interestWindow?.status === 'open' && (
         <div className="negot-banner-wrapper">
           <InterestWindowBanner
             window={interestWindow}
@@ -1268,7 +1429,7 @@ export const MainTurnTableScreen: React.FC = () => {
       )}
 
       {/* Incoming partnership invite — delayed 900ms when card active, hidden while interestWindow open */}
-      {incomingDeal && dealBannerReady && interestWindow?.status !== 'open' && (() => {
+      {isProMode && incomingDeal && dealBannerReady && interestWindow?.status !== 'open' && (() => {
         const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
         const cashOffer = incomingDeal.offer.cashOffer ?? 0;
         return (
@@ -1308,7 +1469,7 @@ export const MainTurnTableScreen: React.FC = () => {
       })()}
 
       {/* Deal confirmation sheet */}
-      {showDealConfirm && incomingDeal && (() => {
+      {isProMode && showDealConfirm && incomingDeal && (() => {
         const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
         const myShareFrac = incomingDeal.offer.shareSplit?.[me.id] ?? 0.5;
         const cardCostFull = incomingDeal.offer.projectedAssetValue ?? 0;
@@ -1371,7 +1532,7 @@ export const MainTurnTableScreen: React.FC = () => {
       })()}
 
       {/* Phase 3: Offer Builder Modal */}
-      {isOfferBuilderOpen && (() => {
+      {isProMode && isOfferBuilderOpen && (() => {
         const partner = (collabPartnerId ? match.players.find((p) => p.id === collabPartnerId) : null)
           ?? match.players.find((p) => interestWindow?.selectedPlayers.includes(p.id) && p.id !== me.id)
           ?? match.players.find((p) => p.id !== me.id)
@@ -1410,7 +1571,7 @@ export const MainTurnTableScreen: React.FC = () => {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         player={selectedPlayer}
-        onProposeDeal={handleProposeDeal}
+        onProposeDeal={isProMode ? handleProposeDeal : undefined}
         onSendReaction={handleSendReaction}
       />
 
@@ -1460,7 +1621,7 @@ export const MainTurnTableScreen: React.FC = () => {
       <HostInterjection moment={hostMoment} onDismiss={dismissHost} />
 
       {/* Native tutorial coach-mark: runs once for first-time players during an active match */}
-      {card && canActNow && <TutorialOverlay />}
+      {card && canActNow && <TutorialOverlay mode={isProMode ? 'pro' : 'basic'} />}
 
       {/* Cashflow breakdown sheet */}
       <CashflowBreakdownSheet

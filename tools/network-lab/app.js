@@ -24,7 +24,7 @@ const dom = {
   divergence: document.querySelector('#divergence-banner'),
   grid: document.querySelector('#player-grid'),
   template: document.querySelector('#player-card-template'),
-  cardMode: document.querySelector('#card-mode'),
+  experienceMode: document.querySelector('#experience-mode'),
   maxRounds: document.querySelector('#max-rounds'),
   globalRun: document.querySelector('#global-run'),
   globalPause: document.querySelector('#global-pause'),
@@ -43,6 +43,7 @@ const profiles = PROFILE_DEFINITIONS.map((definition, index) => ({
   playerId: definition.playerId,
   roomCode: '',
   lastAutoKey: '',
+  lastAutoFallbackKey: '',
   transportLog: [],
   elements: null,
 }));
@@ -106,8 +107,22 @@ function canonicalize(value) {
   return value;
 }
 
+function publicComparableState(state) {
+  if (!state?.submittedIntentPlayerIds) return state;
+  const { pendingIntents, ...stateWithoutHiddenChoices } = state;
+  if (state.experienceMode !== 'basic') return stateWithoutHiddenChoices;
+  const {
+    currentCard,
+    currentCardId,
+    personalCardIds,
+    personalCardOffers,
+    ...publicState
+  } = stateWithoutHiddenChoices;
+  return publicState;
+}
+
 function diagnosticHash(state) {
-  const serialized = JSON.stringify(canonicalize(state));
+  const serialized = JSON.stringify(canonicalize(publicComparableState(state)));
   let hash = 0x811c9dc5;
   for (let index = 0; index < serialized.length; index += 1) {
     hash ^= serialized.charCodeAt(index);
@@ -117,10 +132,12 @@ function diagnosticHash(state) {
 }
 
 function snapshotRevision(state) {
-  const submittedPlayerIds = Object.entries(state.pendingIntents ?? {})
-    .filter(([, intent]) => intent !== null)
-    .map(([playerId]) => playerId)
-    .sort();
+  const submittedPlayerIds = (
+    state.submittedIntentPlayerIds
+    ?? Object.entries(state.pendingIntents ?? {})
+      .filter(([, intent]) => intent !== null)
+      .map(([playerId]) => playerId)
+  ).slice().sort();
   return diagnosticHash({
     id: state.id,
     version: state.version,
@@ -162,7 +179,8 @@ function activePlayerFromState(state) {
 }
 
 function hasSubmittedIntent(profile) {
-  return Boolean(profile.state?.pendingIntents?.[profile.playerId]);
+  return profile.state?.submittedIntentPlayerIds?.includes(profile.playerId)
+    ?? Boolean(profile.state?.pendingIntents?.[profile.playerId]);
 }
 
 function mayAct(profile) {
@@ -358,6 +376,17 @@ function handleMessage(profile, rawData) {
 
   if (message.type === 'error') {
     profile.elements.lastError.textContent = formatValue(message.error, 'server error');
+    const fallbackKey = autoStateKey(profile);
+    if (
+      (profile.elements.autoEnabled.checked || globalRun.active)
+      && mayAct(profile)
+      && !hasSubmittedIntent(profile)
+      && fallbackKey
+      && profile.lastAutoFallbackKey !== fallbackKey
+    ) {
+      profile.lastAutoFallbackKey = fallbackKey;
+      window.setTimeout(() => sendPass(profile, globalRun.active ? 'global' : 'profile'), 40);
+    }
   }
 
   if (message.type === 'match_finished' && globalRun.active) {
@@ -700,6 +729,7 @@ async function createRoom() {
       profile.joined = false;
       profile.joinPromise = null;
       profile.lastAutoKey = '';
+      profile.lastAutoFallbackKey = '';
       renderProfile(profile);
     }
     updateDivergence();
@@ -738,12 +768,12 @@ function startMatch() {
   const message = {
     type: 'start',
     mode: 'classic',
-    cardMode: dom.cardMode.value,
+    experienceMode: dom.experienceMode.value,
     maxRounds,
   };
   sendProfileMessage(connectedProfiles[0], message);
   setGlobalMessage(
-    `Старт отправлен: ${connectedProfiles.length} игроков, ${message.cardMode}, ${maxRounds} rounds.`,
+    `Старт отправлен: ${connectedProfiles.length} игроков, ${message.experienceMode}, ${maxRounds} rounds.`,
     'ok',
   );
 }

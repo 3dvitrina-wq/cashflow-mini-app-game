@@ -213,22 +213,24 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
-          <button
-            onClick={() => onProposeDeal?.(player.id)}
-            style={{
-              flex: 1,
-              padding: '14px',
-              borderRadius: 12,
-              background: 'linear-gradient(180deg, #8C6BE8, #5E3FB8)',
-              color: '#fff',
-              fontSize: 14,
-              fontWeight: 900,
-              textTransform: 'uppercase',
-              boxShadow: '0 4px 12px rgba(123, 91, 215, 0.3)',
-            }}
-          >
-            🤝 Сделка
-          </button>
+          {onProposeDeal && (
+            <button
+              onClick={() => onProposeDeal(player.id)}
+              style={{
+                flex: 1,
+                padding: '14px',
+                borderRadius: 12,
+                background: 'linear-gradient(180deg, #8C6BE8, #5E3FB8)',
+                color: '#fff',
+                fontSize: 14,
+                fontWeight: 900,
+                textTransform: 'uppercase',
+                boxShadow: '0 4px 12px rgba(123, 91, 215, 0.3)',
+              }}
+            >
+              🤝 Сделка
+            </button>
+          )}
           <button
             onClick={() => onSendReaction?.(player.id)}
             style={{

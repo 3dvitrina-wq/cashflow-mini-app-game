@@ -75,6 +75,7 @@ export interface CardData {
   consequences: string[];
   choices: string[];
   choiceEffects?: string[][];
+  choiceProOnly?: boolean[];
   hostCue: string;
 }
 
@@ -86,6 +87,7 @@ export interface MatchState {
   epoch: string;
   epochIcon: string;
   currentCard: CardData | null;
+  globalCard?: CardData | null;
   players: PlayerState[];
   tickerItems: string[];
   timelineLabel: string;
@@ -95,6 +97,7 @@ export interface MatchState {
   // Futures positions that settled this round (realized win/loss), for a reveal toast.
   lastFuturesResults?: { pnl: number; liquidated: boolean }[];
   matchMode?: 'classic' | 'draft';
+  experienceMode?: 'basic' | 'pro';
 }
 
 export const OUTFIT_LABELS: Record<Outfit, string> = {

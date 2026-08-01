@@ -293,7 +293,11 @@ export const RecapScreen: React.FC = () => {
           onClick={() => {
             playSound('whoosh');
             hapticImpact('medium');
-            startMatch(match.players, { mode: match.matchMode ?? 'classic', maxRounds: match.maxRounds });
+            startMatch(match.players, {
+              mode: match.matchMode ?? 'classic',
+              maxRounds: match.maxRounds,
+              experienceMode: match.experienceMode ?? 'basic',
+            });
           }}
           className="flex-1 h-14 rounded-2xl bg-accent-cash text-canvas font-bold text-sm active:scale-95 transition-transform"
         >

@@ -1,45 +1,105 @@
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 
-const STORAGE_KEY = 'dyor_tutorial_done';
+const STORAGE_KEY = 'dyor_first_run_tour_v2';
+const PAD = 7;
+const EDGE = 12;
 
 interface Step {
+  id: string;
   selector: string;
+  title: string;
   copy: string;
-  dismiss: string;
 }
 
-const STEPS: Step[] = [
+const BASIC_STEPS: Step[] = [
   {
-    selector: '.dyor-card',
-    copy: 'Это карта месяца. Читай текст - здесь главное событие раунда.',
-    dismiss: 'Дальше',
+    id: 'time',
+    selector: '[data-tour="time"]',
+    title: 'Один месяц — одно решение',
+    copy: 'Здесь время на выбор и номер раунда. В сетевой игре молчание станет пасом, поэтому стол не зависнет.',
   },
   {
-    selector: '.survival-row',
-    copy: 'Выбери действие - купить, пасовать или совместить. Серые кнопки - не хватает наличных.',
-    dismiss: 'Дальше',
+    id: 'players',
+    selector: '[data-tour="players"]',
+    title: 'Люди за столом',
+    copy: 'Нажмите портрет, чтобы открыть профиль или реакцию. Предложения игроков появятся отдельной плашкой с понятными кнопками «Принять» и «Нет».',
   },
   {
-    selector: '.turn-preview-button',
-    copy: 'Держи эту кнопку - увидишь, как изменятся деньги до подтверждения.',
-    dismiss: 'Дальше',
+    id: 'market',
+    selector: '[data-tour="market"]',
+    title: 'Рынок действует на всех',
+    copy: 'Эта короткая плашка — общий фон месяца: кризис, бум или изменение расходов. Он применяется один раз ко всему столу.',
   },
   {
-    selector: '.you-panel',
-    copy: 'Следи за ПОТОКОМ - это cashflow в месяц. Упал в минус - скоро проблемы.',
-    dismiss: 'Дальше',
+    id: 'card',
+    selector: '[data-tour="card"]',
+    title: 'Эта возможность — только ваша',
+    copy: 'У остальных сейчас свои карты. С третьего раунда выгодную возможность можно передать одному игроку и получить 5% комиссии, если он купит.',
   },
   {
-    selector: '.survival-choice-market',
-    copy: 'Жми "+" - там банк, рынок, сделки с партнёрами. Главное меню действий.',
-    dismiss: 'Дальше',
+    id: 'choices',
+    selector: '[data-tour="choices"]',
+    title: 'Выберите один ход',
+    copy: 'Тапните один вариант. Серый замок означает, что сейчас не хватает денег; метка PRO оставляет сложную механику для режима PRO.',
   },
   {
-    selector: '.you-avatar-stage',
-    copy: 'Свайп вправо по своему аватару - отправишь реакцию другим игрокам.',
-    dismiss: 'Понял, играю!',
+    id: 'confirm',
+    selector: '[data-tour="confirm"]',
+    title: 'Сначала посчитайте',
+    copy: 'Кнопка «?» показывает деньги, доходы, расходы и итоговый поток после выбранного действия. «Подтвердить» фиксирует решение.',
+  },
+  {
+    id: 'cashflow',
+    selector: '[data-tour="cashflow"]',
+    title: 'Ваши деньги — не один показатель',
+    copy: 'ДЕНЬГИ — запас сейчас. ПОТОК — итог каждого месяца. РАСХОДЫ можно открыть и проверить. Минус допустим, пока есть чем его покрывать.',
+  },
+  {
+    id: 'actions',
+    selector: '[data-tour="actions"]',
+    title: 'Банк, рынок и работа',
+    copy: 'Кнопка «+» открывает дополнительные действия: попросить помощь, взять кредит, купить актив, нанять сотрудника или найти ночную работу.',
+  },
+  {
+    id: 'reactions',
+    selector: '[data-tour="reactions"]',
+    title: 'Покажите, что вы живой',
+    copy: 'Свайпните свой аватар вправо, чтобы отправить быструю реакцию. Это лёгкое общение без обязательного чата и ожидания.',
   },
 ];
+
+const PRO_STEPS: Step[] = BASIC_STEPS.map((step) => {
+  if (step.id === 'market') {
+    return {
+      id: 'phase',
+      selector: '[data-tour="phase"]',
+      title: 'Общий PRO-стол',
+      copy: 'В PRO все видят одну центральную карту и отвечают одновременно. Здесь отображается текущая фаза сделки.',
+    };
+  }
+  if (step.id === 'card') {
+    return {
+      ...step,
+      title: 'Общая возможность PRO',
+      copy: 'Эту карту видят все. Партнёрства, доли и договоры доступны только в PRO и требуют осознанного подтверждения.',
+    };
+  }
+  if (step.id === 'actions') {
+    return {
+      ...step,
+      title: 'Полный финансовый стол',
+      copy: 'Кнопка «+» открывает банк, рынок, труд и PRO-инструменты сделок. Используйте их, когда базовый ход уже понятен.',
+    };
+  }
+  return step;
+});
 
 interface SpotlightRect {
   top: number;
@@ -49,18 +109,31 @@ interface SpotlightRect {
 }
 
 function getRect(selector: string): SpotlightRect | null {
-  const el = document.querySelector(selector);
-  if (!el) return null;
-  const r = el.getBoundingClientRect();
-  if (r.width === 0 && r.height === 0) return null;
-  return { top: r.top, left: r.left, width: r.width, height: r.height };
+  const element = document.querySelector<HTMLElement>(selector);
+  if (!element) return null;
+  const rect = element.getBoundingClientRect();
+  if (rect.width < 1 || rect.height < 1) return null;
+  const top = Math.max(0, rect.top);
+  const left = Math.max(0, rect.left);
+  return {
+    top,
+    left,
+    width: Math.max(0, Math.min(window.innerWidth, rect.right) - left),
+    height: Math.max(0, Math.min(window.innerHeight, rect.bottom) - top),
+  };
 }
 
-const PAD = 6;
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
 
-export const TutorialOverlay: React.FC = () => {
+export const TutorialOverlay: React.FC<{ mode?: 'basic' | 'pro' }> = ({ mode = 'basic' }) => {
+  const steps = mode === 'pro' ? PRO_STEPS : BASIC_STEPS;
+  const forceTour = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('tour') === '1';
   const [step, setStep] = useState(0);
   const [done, setDone] = useState(() => {
+    if (forceTour) return false;
     try {
       return localStorage.getItem(STORAGE_KEY) === '1';
     } catch {
@@ -68,176 +141,194 @@ export const TutorialOverlay: React.FC = () => {
     }
   });
   const [rect, setRect] = useState<SpotlightRect | null>(null);
-  const rafRef = useRef<number>(0);
+  const [tooltipHeight, setTooltipHeight] = useState(210);
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const nextRef = useRef<HTMLButtonElement>(null);
+  const maskId = useId().replace(/:/g, '');
+  const current = steps[step];
 
-  const dismiss = () => {
+  const dismiss = useCallback(() => {
     try {
       localStorage.setItem(STORAGE_KEY, '1');
     } catch {
-      // ignore
+      // Storage is optional; closing the live overlay must still work.
     }
     setDone(true);
-    cancelAnimationFrame(rafRef.current);
-  };
+    requestAnimationFrame(() => {
+      document.querySelector<HTMLElement>('[data-tour="choices"] button:not(:disabled)')?.focus();
+    });
+  }, []);
 
-  const advance = () => {
-    const next = step + 1;
-    if (next >= STEPS.length) {
-      dismiss();
-    } else {
-      setStep(next);
-    }
-  };
+  const advance = useCallback(() => {
+    setStep((currentStep) => {
+      if (currentStep >= steps.length - 1) {
+        dismiss();
+        return currentStep;
+      }
+      return currentStep + 1;
+    });
+  }, [dismiss, steps.length]);
 
-  // Track target element position reactively
+  const goBack = useCallback(() => {
+    setStep((currentStep) => Math.max(0, currentStep - 1));
+  }, []);
+
   useLayoutEffect(() => {
     if (done) return;
-    const current = STEPS[step];
-
+    const target = document.querySelector<HTMLElement>(current.selector);
+    let frame = 0;
     const update = () => {
-      setRect(getRect(current.selector));
-      rafRef.current = requestAnimationFrame(update);
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => setRect(getRect(current.selector)));
     };
-    rafRef.current = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafRef.current);
+
+    update();
+    window.addEventListener('resize', update);
+    window.addEventListener('scroll', update, true);
+    const observer = target && typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(update)
+      : null;
+    if (target && observer) observer.observe(target);
+
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', update, true);
+      observer?.disconnect();
+    };
+  }, [current.selector, done]);
+
+  useLayoutEffect(() => {
+    if (done || !tooltipRef.current) return;
+    const update = () => setTooltipHeight(tooltipRef.current?.getBoundingClientRect().height ?? 210);
+    update();
+    const observer = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(update)
+      : null;
+    if (observer) observer.observe(tooltipRef.current);
+    return () => observer?.disconnect();
   }, [step, done]);
+
+  useEffect(() => {
+    if (done) return;
+    nextRef.current?.focus({ preventScroll: true });
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') dismiss();
+      if (event.key === 'ArrowRight') advance();
+      if (event.key === 'ArrowLeft') goBack();
+      if (event.key === 'Tab' && tooltipRef.current) {
+        const focusable = Array.from(
+          tooltipRef.current.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'),
+        );
+        if (focusable.length === 0) return;
+        const currentIndex = focusable.indexOf(document.activeElement as HTMLButtonElement);
+        const nextIndex = event.shiftKey
+          ? currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+          : currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1;
+        event.preventDefault();
+        focusable[nextIndex]?.focus();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [step, done, advance, dismiss, goBack]);
 
   if (done) return null;
 
-  const current = STEPS[step];
-  const isLast = step === STEPS.length - 1;
-
-  // Determine tooltip position: below target if target in top half, else above
-  const vp = typeof window !== 'undefined' ? window.innerHeight : 700;
-  const tooltipBelow = rect ? rect.top + rect.height / 2 < vp / 2 : false;
-
-  const spotTop = rect ? rect.top - PAD : 0;
-  const spotLeft = rect ? rect.left - PAD : 0;
-  const spotW = rect ? rect.width + PAD * 2 : 0;
-  const spotH = rect ? rect.height + PAD * 2 : 0;
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 390;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 700;
+  const tooltipWidth = Math.min(324, viewportWidth - EDGE * 2);
+  const spotTop = rect ? Math.max(4, rect.top - PAD) : 0;
+  const spotLeft = rect ? Math.max(4, rect.left - PAD) : 0;
+  const spotWidth = rect ? Math.min(viewportWidth - spotLeft - 4, rect.width + PAD * 2) : 0;
+  const spotHeight = rect ? Math.min(viewportHeight - spotTop - 4, rect.height + PAD * 2) : 0;
+  const targetCenter = rect ? spotLeft + spotWidth / 2 : viewportWidth / 2;
+  const roomBelow = rect ? viewportHeight - (spotTop + spotHeight) : 0;
+  const placement = rect && roomBelow >= tooltipHeight + 24 ? 'below' : 'above';
+  const tooltipLeft = clamp(targetCenter - tooltipWidth / 2, EDGE, viewportWidth - tooltipWidth - EDGE);
+  const tooltipTop = rect
+    ? placement === 'below'
+      ? clamp(spotTop + spotHeight + 16, EDGE, viewportHeight - tooltipHeight - EDGE)
+      : clamp(spotTop - tooltipHeight - 16, EDGE, viewportHeight - tooltipHeight - EDGE)
+    : clamp((viewportHeight - tooltipHeight) / 2, EDGE, viewportHeight - tooltipHeight - EDGE);
+  const arrowLeft = clamp(targetCenter - tooltipLeft - 9, 22, tooltipWidth - 40);
+  const isLast = step === steps.length - 1;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9000,
-        pointerEvents: 'all',
-      }}
-    >
-      {/* Backdrop with cutout using SVG clip or box-shadow trick */}
-      <svg
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' }}
-        preserveAspectRatio="none"
-      >
+    <div className="tutorial-layer" aria-live="polite">
+      <svg className="tutorial-scrim" preserveAspectRatio="none" aria-hidden="true">
         <defs>
-          <mask id="tut-mask">
+          <mask id={maskId}>
             <rect width="100%" height="100%" fill="white" />
             {rect && (
               <rect
                 x={spotLeft}
                 y={spotTop}
-                width={spotW}
-                height={spotH}
-                rx={10}
-                ry={10}
+                width={spotWidth}
+                height={spotHeight}
+                rx={14}
+                ry={14}
                 fill="black"
               />
             )}
           </mask>
         </defs>
-        <rect
-          width="100%"
-          height="100%"
-          fill="rgba(0,0,0,0.75)"
-          mask="url(#tut-mask)"
-          onClick={dismiss}
-        />
+        <rect width="100%" height="100%" fill="rgba(2,4,8,0.82)" mask={`url(#${maskId})`} />
       </svg>
 
-      {/* Spotlight ring */}
       {rect && (
         <div
-          style={{
-            position: 'absolute',
-            top: spotTop,
-            left: spotLeft,
-            width: spotW,
-            height: spotH,
-            borderRadius: 10,
-            boxShadow: '0 0 0 2px #5BD7E0',
-            pointerEvents: 'none',
-          }}
+          className="tutorial-spotlight"
+          style={{ top: spotTop, left: spotLeft, width: spotWidth, height: spotHeight }}
+          aria-hidden="true"
         />
       )}
 
-      {/* Tooltip */}
       <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'absolute',
-          left: rect ? Math.max(12, Math.min(spotLeft + spotW / 2 - 140, (typeof window !== 'undefined' ? window.innerWidth : 390) - 292)) : '50%',
-          top: rect
-            ? tooltipBelow
-              ? spotTop + spotH + 12
-              : Math.max(12, spotTop - 12 - 160)
-            : '50%',
-          width: 280,
-          background: '#1A1A1F',
-          border: '1px solid rgba(91,215,224,0.4)',
-          borderRadius: 16,
-          padding: '14px 16px 12px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 12,
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-          zIndex: 9001,
-        }}
+        ref={tooltipRef}
+        className="tutorial-tooltip"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tutorial-title"
+        aria-describedby="tutorial-copy"
+        style={{ top: tooltipTop, left: tooltipLeft, width: tooltipWidth }}
       >
-        {/* Step indicator + skip */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: 11, color: '#7D7B6F', fontWeight: 700, letterSpacing: '0.05em' }}>
-            {step + 1} / {STEPS.length}
-          </span>
-          <button
-            onClick={dismiss}
-            style={{
-              background: 'none',
-              border: 'none',
-              color: '#7D7B6F',
-              fontSize: 18,
-              lineHeight: 1,
-              cursor: 'pointer',
-              padding: '0 2px',
-            }}
-            aria-label="Пропустить обучение"
-          >
-            ✕
+        {rect && (
+          <span
+            className={`tutorial-arrow tutorial-arrow-${placement}`}
+            style={{ left: arrowLeft }}
+            aria-hidden="true"
+          />
+        )}
+
+        <div className="tutorial-topline">
+          <span>БЫСТРОЕ ОБУЧЕНИЕ · {step + 1}/{steps.length}</span>
+          <button type="button" onClick={dismiss} aria-label="Пропустить обучение">
+            Пропустить
           </button>
         </div>
 
-        <p style={{ margin: 0, fontSize: 14, color: '#F5F4ED', lineHeight: 1.45, fontWeight: 500 }}>
-          {current.copy}
-        </p>
+        <h2 id="tutorial-title">{current.title}</h2>
+        <p id="tutorial-copy">{current.copy}</p>
 
-        <button
-          onClick={advance}
-          style={{
-            alignSelf: 'flex-end',
-            height: 36,
-            paddingLeft: 20,
-            paddingRight: 20,
-            borderRadius: 10,
-            border: 'none',
-            background: '#5BD7E0',
-            color: '#0B0B0C',
-            fontWeight: 800,
-            fontSize: 13,
-            cursor: 'pointer',
-          }}
-        >
-          {isLast ? 'Понял, играю!' : current.dismiss}
-        </button>
+        <div className="tutorial-actions">
+          <button
+            type="button"
+            className="tutorial-back"
+            onClick={goBack}
+            disabled={step === 0}
+          >
+            Назад
+          </button>
+          <button
+            ref={nextRef}
+            type="button"
+            className="tutorial-next"
+            onClick={advance}
+          >
+            {isLast ? 'Понял, играю' : 'Дальше'}
+          </button>
+        </div>
       </div>
     </div>
   );

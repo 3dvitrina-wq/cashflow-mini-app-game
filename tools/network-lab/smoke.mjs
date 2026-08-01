@@ -38,15 +38,19 @@ assert.match(html, /class="auto-enabled"/);
 assert.match(html, /id="create-room"/);
 assert.match(html, /id="connect-all"/);
 assert.match(html, /id="start-match"/);
-assert.match(html, /id="card-mode"/);
+assert.match(html, /id="experience-mode"/);
 assert.match(html, /id="max-rounds"/);
 assert.match(html, /id="global-run"/);
 assert.match(html, /id="global-pause"/);
 assert.match(app, /command\.playerId !== profile\.playerId/);
 assert.match(app, /diagnosticHash/);
+assert.match(app, /publicComparableState/);
 assert.match(app, /canonicalize/);
+assert.match(app, /experienceMode: dom\.experienceMode\.value/);
 assert.match(app, /state\.currentCard\?\.choices/);
 assert.match(app, /autoChoice\(profile, exposedOptions\)/);
+assert.match(app, /lastAutoFallbackKey/);
+assert.match(app, /sendPass\(profile, globalRun\.active/);
 assert.match(css, /grid-template-columns: repeat\(3,/);
 
 const joinStateBlock = app.slice(

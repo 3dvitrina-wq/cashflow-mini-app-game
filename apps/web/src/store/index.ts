@@ -19,6 +19,7 @@ import {
   allDraftPicked,
   previewChoice as enginePreviewChoice,
   canAffordChoice,
+  cardIdForPlayer,
   type NewPlayer,
   type FairnessResult,
   type ChoicePreview,
@@ -66,11 +67,14 @@ interface AppState {
   openRules: (returnTo?: Screen) => void;
   openSettings: (returnTo?: Screen) => void;
   setTab: (tab: TabName) => void;
-  startMatch: (players: PlayerState[], options?: { mode?: 'classic' | 'draft'; maxRounds?: number }) => void;
+  startMatch: (players: PlayerState[], options?: { mode?: 'classic' | 'draft'; maxRounds?: number; experienceMode?: 'basic' | 'pro' }) => void;
   startMultiplayerMatch: (serverState: EngineMatchState, localPlayerId: string) => void;
   receiveServerState: (serverState: EngineMatchState) => void;
   nextRound: () => void;
   submitIntent: (choiceIdx: number) => void;
+  offerPersonalCard: (targetPlayerId: string) => boolean;
+  acceptPersonalCard: (offerId: string) => void;
+  declinePersonalCard: (offerId: string) => void;
   submitDraftIntent: (claims: DraftClaim[]) => void;
   pickDraftOption: (index: number, choiceIdx: number) => void;
   setMood: (playerId: string, mood: PlayerState['mood']) => void;
@@ -149,7 +153,7 @@ function describeEffect(effect: Effect): string | null {
     case 'protection.add':
       return `🛡 Protection: ${effect.value ?? 'added'}`;
     case 'asset.add':
-      return `🏢 Asset: ${String(effect.payload?.name ?? effect.payload?.kind ?? 'new asset')}`;
+      return `🏢 ${String(effect.payload?.name ?? effect.payload?.kind ?? 'Asset')}: +$${Number(effect.payload?.incomePerRound ?? 0).toLocaleString()}/mo${Number(effect.payload?.upkeepPerRound ?? 0) > 0 ? ` · upkeep $${Number(effect.payload?.upkeepPerRound).toLocaleString()}` : ''}`;
     case 'liability.add':
       return `💳 Liability ${amount > 0 ? '+' : ''}$${Math.abs(amount).toLocaleString()}`;
     case 'business.slot.modify':
@@ -212,6 +216,8 @@ function toUiCard(card: CardDefinition | null | undefined): CardData | null {
     consequences: consequencesFromCard(card),
     choices: loc.choices.length > 0 ? loc.choices.map((c) => c.label) : (card.choices ?? []).map((choice) => choice.label),
     choiceEffects: choiceEffectsFromCard(card),
+    choiceProOnly: (card.choices ?? []).map((choice) =>
+      choice.effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')),
     hostCue: loc.hostCue,
   };
 }
@@ -234,6 +240,7 @@ function toUiPlayer(
   const monthlyExpenses = cf.expense;
   const netCashflow = cf.net;
   const assetValue = p.assets.reduce((sum, asset) => sum + asset.value, 0);
+  const recurringAssetIncome = p.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
   // Only count an asset as occupying a business slot when the player is the
   // sole owner OR the majority (highest-share) co-owner. A 20% minority stake
   // still earns income but shouldn't block other acquisitions.
@@ -259,7 +266,7 @@ function toUiPlayer(
     mood: moodFromEngine(p),
     cash: Math.round(p.cash),
     cashflowPerMonth: boostedActiveIncome,
-    passiveIncome: Math.round(p.passiveIncome),
+    passiveIncome: Math.round(p.passiveIncome + recurringAssetIncome),
     professionId: p.professionId,
     monthlyExpenses: Math.round(monthlyExpenses),
     netCashflow: Math.round(netCashflow),
@@ -279,7 +286,11 @@ function toUiPlayer(
 }
 
 function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): MatchState {
-  const card = getCard(state.currentCardId);
+  const privateViewerIds = Object.keys(state.personalCardIds ?? {});
+  const viewerId = privateViewerIds.length === 1
+    ? privateViewerIds[0]
+    : state.players.find((player) => !player.isBot)?.id ?? state.players[0]?.id;
+  const card = getCard(viewerId ? cardIdForPlayer(state, viewerId) : state.currentCardId);
   return {
     round: state.round,
     maxRounds: state.maxRounds,
@@ -288,6 +299,7 @@ function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): Matc
     epoch: state.epoch.name,
     epochIcon: state.epoch.id === 'crypto_winter' ? '❄' : '⏳',
     currentCard: toUiCard(card),
+    globalCard: state.experienceMode === 'basic' ? toUiCard(getCard(state.globalCardId ?? null)) : null,
     players: state.players.map((player, idx) => toUiPlayer(state, player, state.activePlayerIndex, idx, negotiatingIds)),
     tickerItems: state.ticker.length ? state.ticker : [randomTicker()],
     timelineLabel: state.timeline.label,
@@ -295,6 +307,7 @@ function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): Matc
     calendarYear: state.timeline.year,
     lastSettlement: 0,
     matchMode: state.matchMode ?? 'classic',
+    experienceMode: state.experienceMode ?? 'pro',
   };
 }
 
@@ -361,6 +374,7 @@ function createEngineMatch(
   players: PlayerState[],
   mode: 'classic' | 'draft' = 'classic',
   maxRounds = 25,
+  experienceMode: 'basic' | 'pro' = 'basic',
 ): EngineMatchState {
   const roster = orderedRoster(players);
   const enginePlayers: NewPlayer[] = roster.map((p, index) => ({
@@ -377,7 +391,7 @@ function createEngineMatch(
   // and uses healthy defaults (stress 3, trust 6, debt 2, passiveIncome 200). We keep
   // those values: NO economic override here anymore. Only carry over the chosen outfit
   // (already passed) and inventory the roster may hold.
-  const match = createMatch(Date.now() ^ (Math.random() * 0xffffffff | 0), enginePlayers, { maxRounds, mode });
+  const match = createMatch(Date.now() ^ (Math.random() * 0xffffffff | 0), enginePlayers, { maxRounds, mode, experienceMode });
 
   // Every match is a clean slate: no pets, businesses, or protections carry over from
   // a previous session (otherwise a Rematch would inherit the last game's inventory).
@@ -411,9 +425,12 @@ function createEngineMatch(
 // bot still "locks in" on the shared card (and trades futures via the card's
 // futures.open effect when present).
 function botChoiceIntent(state: EngineMatchState, bot: EnginePlayerState): Command {
-  const intent = botIntent(state, bot);
+  const visibleState = state.experienceMode === 'basic'
+    ? { ...state, currentCardId: cardIdForPlayer(state, bot.id) }
+    : state;
+  const intent = botIntent(visibleState, bot);
   if (intent.type === 'choose_option' || intent.type === 'pass') return intent;
-  const card = getCard(state.currentCardId);
+  const card = getCard(cardIdForPlayer(state, bot.id));
   const choices = card?.choices ?? [];
   let idx = choices.findIndex((c) => c.effects.some((e) => e.type === 'futures.open'));
   if (idx < 0) idx = Math.max(0, choices.length - 1);
@@ -465,7 +482,7 @@ function advanceAndOpen(resolved: EngineMatchState, negotiatingIds: string[], hu
 
   // Negotiation interest window on opportunity/social cards.
   const drawnCard = getCard(next.currentCardId);
-  if (drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
+  if (next.experienceMode === 'pro' && drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
     const eligibleIds = next.players.filter((p) => p.alive && !p.bankrupt).map((p) => p.id);
     const events = openInterestWindow(next, drawnCard.id, drawnCard.title, eligibleIds, 45000);
     next.eventLog.push(...events);
@@ -988,7 +1005,8 @@ export const useStore = create<AppState>((set, get) => ({
     set(() => {
       const mode = options.mode ?? 'classic';
       const maxRounds = options.maxRounds ?? 25;
-      const base = createEngineMatch(players, mode, maxRounds);
+      const experienceMode = options.experienceMode ?? 'basic';
+      const base = createEngineMatch(players, mode, maxRounds, experienceMode);
       // Draft: deal the 6-card central board. Classic: open a single-card intent window.
       const engineMatch = mode === 'draft' ? dealDraftBoard(base) : openIntentWindow(base);
       return {
@@ -1032,6 +1050,66 @@ export const useStore = create<AppState>((set, get) => ({
       }
       // Not everyone in yet (e.g. networked) — show locked-in state, keep waiting.
       return { engineMatch: state, match: toUiMatch(state, st.negotiatingPlayerIds) };
+    }),
+
+  offerPersonalCard: (targetPlayerId) => {
+    const st = get();
+    const state = st.engineMatch;
+    const human = state ? getLocalPlayer(st) ?? state.players[0] : null;
+    if (!state || !human || state.experienceMode !== 'basic') return false;
+    const command: Command = { type: 'offer_personal_card', playerId: human.id, targetPlayerId };
+    if (st.isMultiplayer) {
+      wsClient.send({ type: 'command', command });
+      return true;
+    }
+
+    const cashBefore = human.cash;
+    let next = resolveCommand(state, command).state;
+    const offer = next.personalCardOffers?.find((candidate) =>
+      candidate.status === 'pending'
+      && candidate.fromPlayerId === human.id
+      && candidate.toPlayerId === targetPlayerId);
+    if (!offer) return false;
+    next = resolveCommand(next, { type: 'accept_personal_card', playerId: targetPlayerId, offerId: offer.id }).state;
+    for (const player of next.players.filter((candidate) => candidate.alive && candidate.id !== human.id)) {
+      if (next.pendingIntents[player.id]) continue;
+      next = queueOfflineIntentWithFallback(next, player, botChoiceIntent(next, player));
+    }
+    if (allIntentsSubmitted(next)) {
+      const resolved = resolveAllIntents(next).state;
+      set(advanceAndOpen(resolved, st.negotiatingPlayerIds, cashBefore));
+    } else {
+      set({ engineMatch: next, match: toUiMatch(next, st.negotiatingPlayerIds) });
+    }
+    return true;
+  },
+
+  acceptPersonalCard: (offerId) =>
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const me = getLocalPlayer(st);
+      if (!me) return st;
+      const command: Command = { type: 'accept_personal_card', playerId: me.id, offerId };
+      if (st.isMultiplayer) {
+        wsClient.send({ type: 'command', command });
+        return st;
+      }
+      const result = resolveCommand(st.engineMatch, command);
+      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) };
+    }),
+
+  declinePersonalCard: (offerId) =>
+    set((st) => {
+      if (!st.engineMatch) return st;
+      const me = getLocalPlayer(st);
+      if (!me) return st;
+      const command: Command = { type: 'decline_personal_card', playerId: me.id, offerId };
+      if (st.isMultiplayer) {
+        wsClient.send({ type: 'command', command });
+        return st;
+      }
+      const result = resolveCommand(st.engineMatch, command);
+      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) };
     }),
 
   // Draft: human submits up to 2 reservations; bots lock in; the board resolves
@@ -1151,8 +1229,9 @@ export const useStore = create<AppState>((set, get) => ({
     set((st) => {
       if (!st.engineMatch) return st;
       const active = st.engineMatch.players[st.engineMatch.activePlayerIndex];
-      const card = getCard(st.engineMatch.currentCardId);
-      if (!active || !card?.choices?.[choiceIdx]) return st;
+      if (!active) return st;
+      const card = getCard(cardIdForPlayer(st.engineMatch, active.id));
+      if (!card?.choices?.[choiceIdx]) return st;
 
       const cmd: Command = {
         type: 'choose_option',
@@ -1179,8 +1258,8 @@ export const useStore = create<AppState>((set, get) => ({
 
   affordableChoices: () => {
     const st = get();
-    const card = st.engineMatch ? getCard(st.engineMatch.currentCardId) : null;
     const me = st.engineMatch ? getLocalPlayer(st) : null;
+    const card = st.engineMatch && me ? getCard(cardIdForPlayer(st.engineMatch, me.id)) : null;
     if (!st.engineMatch || !card?.choices || !me) return [];
     return card.choices.map((_, i) => canAffordChoice(st.engineMatch!, me.id, i));
   },

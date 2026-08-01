@@ -2,92 +2,54 @@
 
 ## Session
 
-- Date: 2026-07-30
-- Session log: `docs/agents/sessions/2026-07-30.md`
+- Date: 2026-08-01
+- Session log: `docs/agents/sessions/2026-08-01.md`
 
 ## Task
 
-Turn the current prototype into a genuinely playable slice: reduce engine/UI truth drift,
-make economy clicks resolve through the deterministic engine, and clarify the first-session
-flow so players understand who acts now, how deals work, and why money moved.
+Ship and observe the new two-level game:
 
-## Goal
+- **ОБЫЧНЫЙ / BASIC** is the default: every player receives one private card,
+  answers simultaneously, sees one compact shared market effect, and can offer a
+  personal opportunity from round 3 for a 5% finder fee.
+- **PRO** keeps the shared table, percentages, partnerships and advanced deal
+  controls for players who intentionally opt in.
 
-Ship a "friends-playable" rules slice for the current build:
+## Product invariant
 
-- bank / market / pets / labor actions resolve through engine commands instead of local hacks;
-- online room flow stops advancing the whole month on every side-action;
-- deal contracts and enforcement levels (`word` / `iou` / `written` / `lawyer`) have real differentiated behavior;
-- first-turn comprehension improves with clearer phase/turn copy and control hints;
-- recap and event log rely on real match history instead of fabricated flavor text.
+DYOR is a short social financial satire, not a win-rate equalizer. Fairness means
+equal access to legible decisions and recovery tools; outcomes may be negative.
+Cashflow may stay below zero. A player reaches recovery/bankruptcy when cash is
+depleted and may use credit, a player loan, a gift/help request, asset sale or a
+night survival job. Do not “fix” this by removing losses.
 
-## Scope
+## Current verified state
 
-- Patch `packages/game-engine` and `packages/shared` so contract/deal behavior is formula-driven and typed.
-- Patch `apps/server` so multiplayer respects side-actions without incorrectly rotating the turn/month.
-- Patch `apps/web/src/store` to remove local authoritative mutations for economy/deal actions.
-- Wire `BankScreen` to deposits as well as loans.
-- Tighten `MainTurnTableScreen`, `EventLogScreen`, `RecapScreen`, and onboarding copy for clarity.
-- Land the strongest Wave 2 / Wave 3 playability items from `.planning/phases/PHASE_4_1_PLAYABILITY_EXPANSION_PLAN.md`:
-  - real profession surfacing and start differentiation;
-  - hero powers that modify live economy instead of sitting as flavor text;
-  - recovery actions: sell asset, restructure debt, take ugly job;
-  - longer offline match pacing via round presets and `Long 25`.
-
-## Decisions
-
-- Current session prioritizes rules truth and playability over additional art polish.
-- Multiplayer deal acceptance between two live humans remains incomplete; current UI must not pretend it is fully real if the engine/server path is not there.
-- Safe "boring money" play should be visible in MVP, so deposits are exposed in the bank UI.
-- Turn ownership should be explicit in the top bar rather than inferred from timer alone.
-- Profession identity now belongs to shared/game-engine truth, not only to UI flavor:
-  profession bonus text must map to a real engine modifier.
-- Recovery actions should live where players already look for self-management:
-  hero sheet, labor screen, and bank screen.
-- Lobby now has a social-hook entry screen and richer host-room composition:
-  pet/interior/regalia are cosmetic identity signals, not gameplay advantage claims.
-- `?lobby=1` is the QA route for lobby screenshots; `?autostart=1` still starts a match.
-- First-session fast path now starts a local `Long 25` bot match from the first screen,
-  and returning players skip mandatory onboarding into the lobby.
-- Online classic rooms default to shared-card simultaneous play: every player sees the
-  same current card and submits one intent; the old per-turn personal-card behavior is
-  kept as the explicit `Личные` room mode.
-- Online reactions are table-visible in-match: clients send the local player's reaction
-  through WebSocket and render the broadcast badge over each player's avatar.
-- `crisis_immunity` is an in-match protection token, not investment advice or real-money
-  trading logic: one per session, deterministic 50% roll on the next negative crisis choice.
-- Before public infrastructure work, the owner wants a free localhost playtest on one
-  computer with friends; Telegram auth, persistence and deployment are deferred until
-  the game is demonstrably stable and interesting.
-- `tools/network-lab/` is the local six-profile WebSocket harness. Each profile owns a
-  separate socket/player id and can choose independently in individual or shared mode.
-  Connection success requires server room acknowledgement; hash comparison excludes
-  disconnected/stale snapshots instead of reporting false divergence.
+- Private card ownership and the shared market strip are explicit in mobile UI.
+- BASIC private cards and personal offers are server-authoritative and private
+  per recipient.
+- Other players can see who locked in, but cannot read the selected choice before
+  month resolution.
+- The `?` button toggles a persistent preview derived from the same engine math
+  used by authoritative resolution.
+- First active match opens a nine-step, skippable, mode-aware guided tour. The
+  `?tour=1` QA route forces a replay for browser inspection.
+- Asset recurring income/upkeep has one ledger representation; duplicate passive
+  effects were removed.
+- PRO-only partnership choices are visibly gated in BASIC.
+- `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
+  PRO and compares only the public portion of recipient-specific snapshots.
+- Verification: engine 149/149; client-state 3/3; web/server typecheck; production
+  build; Network Lab smoke; browser run with 6/6 clients and hidden early intent.
 
 ## Next Step
 
-Run targeted local playtests on offline and room flows to verify:
-
-- side-actions no longer advance the month unexpectedly;
-- deposits/loans/assets/pets all change state through engine commands;
-- recap/event log reflect actual engine history;
-- deal prompts feel honest about what the current multiplayer slice can and cannot do.
-- profession power math is visible and believable on hero screen;
-- `sell asset` / `restructure debt` / `survival job` each create a meaningful rescue path;
-- `Long 25` actually gives enough room for starts to diverge.
-- lobby entry and room-open views remain readable at mobile viewport sizes without horizontal overflow.
-- shared-card online rooms keep all players on the same card through full 25-round matches;
-- individual-card mode remains available and clearly framed as the alternate branch;
-- reaction badges remain visible above own and peer miniatures in online matches;
-- use `tools/network-lab/` to run repeatable 6-player shared and individual matches,
-  including disconnect/reconnect, and record seeds/choices where fun or state diverges;
-- Run a click-level browser check for the two new fast-start CTAs once Playwright module
-  resolution or the in-app Browser JS bridge is available; current verification covers build
-  and mobile screenshots.
-
-## Advisory
-
-- `docs/second_brain/10_game_design/CHARACTER_VISUAL_STYLE_PROMPT.md` - canonical DYOR character style direction.
-- `docs/second_brain/10_game_design/IMAGE_GEN_PROMPTS.md` - shared UI palette and older asset prompts.
-- `docs/agents/prompts/CHARACTER_V2_CHROMAKEY_PIPELINE.md` - current chroma-key runbook used for PNG alpha extraction.
-- `.planning/phases/PHASE_4_1_PLAYABILITY_EXPANSION_PLAN.md` - founder-requested follow-up plan for first-session hook, profession/job surfacing, housing lifecycle, recovery economy, and pet reset rules.
+1. Publish server and web to the canonical old addresses.
+2. Run a short production room check and replay `?autostart=1&tour=1` after deployment.
+3. Play a longer human-facing BASIC match and record where decisions feel flat,
+   funny, socially useful or confusing.
+4. Audit the remaining content defects separately from engine correctness:
+   `prot-accountant:later`, P2P transfer/liability truth, market cards that only
+   add stress, Russian joke quality and repeated host memes.
+5. Expand the recovery UI only where the engine already has authoritative actions;
+   do not reintroduce client-only money mutations.

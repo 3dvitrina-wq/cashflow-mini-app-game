@@ -27,7 +27,7 @@ import {
   TAX_BAND_MULTIPLIER,
   getProfession,
 } from '../../shared/src/index';
-import { CARD_IDS, getCard, getWeightedCardIds } from './cards';
+import { CARD_IDS, getCard, getCardsByType, getWeightedCardIds } from './cards';
 import { checkEligibility } from './conditions';
 import { applyEffects, PARTNERSHIP_ASSET_PREFIX } from './effects';
 import { createContract, enforceAllContracts } from './contracts';
@@ -238,6 +238,8 @@ export interface CreateMatchOptions {
   timer?: TimerSettings;
   locationId?: string;
   mode?: MatchState['matchMode'];
+  /** BASIC = private simultaneous cards. PRO = shared/draft negotiation table. */
+  experienceMode?: MatchState['experienceMode'];
   /**
    * When false, the engine never auto-generates deal proposals (card `deal.resolve`
    * effects and bot partnership invites become no-ops). Online human matches set this
@@ -296,6 +298,10 @@ export function createMatch(
 
     activePlayerIndex: 0,
     pendingIntents: {},
+    experienceMode: opts.experienceMode ?? 'pro',
+    personalCardIds: {},
+    personalCardOffers: [],
+    globalCardId: null,
 
     players: built,
 
@@ -323,6 +329,10 @@ export function createMatch(
     state.pendingIntents[p.id] = null;
   }
 
+  if (state.experienceMode === 'basic') {
+    dealPersonalCards(state, 0);
+  }
+
   return state;
 }
 
@@ -330,6 +340,55 @@ export function createMatch(
 
 export function activePlayer(state: MatchState): PlayerState | null {
   return state.players[state.activePlayerIndex] ?? null;
+}
+
+/** The card this player is actually allowed to see and resolve this round. */
+export function cardIdForPlayer(state: MatchState, playerId: string): string | null {
+  if (state.experienceMode === 'basic') {
+    return state.personalCardIds?.[playerId] ?? null;
+  }
+  return state.currentCardId;
+}
+
+/** Deal one eligible private card per alive player without cloning a public lot. */
+function dealPersonalCards(state: MatchState, startCursor: number): void {
+  const personal: Record<string, string | null> = {};
+  let cursor = startCursor;
+
+  for (const player of state.players) {
+    if (!player.alive) {
+      personal[player.id] = null;
+      continue;
+    }
+
+    let selected: string | null = null;
+    for (let offset = 0; offset < state.deck.length; offset += 1) {
+      const index = (cursor + offset) % state.deck.length;
+      const candidateId = state.deck[index];
+      const candidate = getCard(candidateId);
+      const allowedInBasic = candidate && candidate.type !== 'market_pulse' && candidate.type !== 'social';
+      if (allowedInBasic && checkEligibility(state, player, candidate.eligibility)) {
+        selected = candidateId;
+        cursor = (index + 1) % state.deck.length;
+        break;
+      }
+    }
+
+    if (!selected) {
+      selected = state.deck[cursor % state.deck.length] ?? null;
+      cursor = (cursor + 1) % Math.max(1, state.deck.length);
+    }
+    personal[player.id] = selected;
+  }
+
+  state.personalCardIds = personal;
+  state.personalCardOffers = [];
+  const marketCards = getCardsByType('market_pulse');
+  state.globalCardId = marketCards.length > 0
+    ? marketCards[rngInt(state.seed, state.round * 7919, marketCards.length)].id
+    : null;
+  state.deckCursor = cursor;
+  state.currentCardId = personal[state.players[state.activePlayerIndex]?.id] ?? null;
 }
 
 // ─── Avatar State Derivation ────────────────────────────────────────────────
@@ -424,12 +483,38 @@ function maybeUseCrisisImmunity(
 // the clamp-to-zero damage model resolve it). Shared by validateCommand and the UI
 // so a button is never offered for a command the engine would reject.
 export function canAffordChoice(state: MatchState, playerId: string, choiceIndex: number): boolean {
-  const choices = getCard(state.currentCardId)?.choices ?? [];
+  const choices = getCard(cardIdForPlayer(state, playerId))?.choices ?? [];
   const choice = choices[choiceIndex];
   const actor = state.players.find((p) => p.id === playerId);
   if (!choice || !actor) return true; // not an affordability question
+  if (state.experienceMode === 'basic' && choice.effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')) {
+    return false;
+  }
   if (choiceUpfrontCost(choice) <= actor.cash) return true;
   return !choices.some((c) => choiceUpfrontCost(c) <= actor.cash);
+}
+
+function pendingPersonalOfferFor(state: MatchState, playerId: string) {
+  return state.personalCardOffers?.find((offer) =>
+    offer.round === state.round
+    && offer.status === 'pending'
+    && (offer.fromPlayerId === playerId || offer.toPlayerId === playerId));
+}
+
+function acceptedReferralFor(state: MatchState, playerId: string, cardId: string) {
+  return state.personalCardOffers?.find((offer) =>
+    offer.round === state.round
+    && offer.status === 'accepted'
+    && offer.toPlayerId === playerId
+    && offer.cardId === cardId);
+}
+
+function referralFeeForChoice(state: MatchState, playerId: string, choiceIndex: number): number {
+  const cardId = cardIdForPlayer(state, playerId);
+  const offer = cardId ? acceptedReferralFor(state, playerId, cardId) : undefined;
+  const choice = cardId ? getCard(cardId)?.choices?.[choiceIndex] : undefined;
+  if (!offer || !choice) return 0;
+  return Math.round(choiceUpfrontCost(choice) * 0.05);
 }
 
 export function validateCommand(state: MatchState, cmd: Command): string | null {
@@ -442,6 +527,33 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     || cmd.type === 'file_bankruptcy'
   ) {
     return `${cmd.type} is not implemented`;
+  }
+
+  if (cmd.type === 'offer_personal_card') {
+    if (state.experienceMode !== 'basic') return 'personal card offers are BASIC only';
+    if (state.phase !== 'intent_window') return 'personal card can only be offered during choice time';
+    if (state.round < 3) return 'personal card offers unlock in round 3';
+    const player = state.players.find((candidate) => candidate.id === cmd.playerId);
+    const target = state.players.find((candidate) => candidate.id === cmd.targetPlayerId);
+    if (!player?.alive || !target?.alive) return 'player not available';
+    if (player.id === target.id) return 'cannot offer a card to yourself';
+    if (state.pendingIntents[player.id] || state.pendingIntents[target.id]) return 'player already locked a choice';
+    if (pendingPersonalOfferFor(state, player.id) || pendingPersonalOfferFor(state, target.id)) return 'player already has a card offer';
+    const card = getCard(cardIdForPlayer(state, player.id));
+    if (!card || (card.type !== 'opportunity' && card.type !== 'modern_earning')) {
+      return 'this personal card cannot be offered';
+    }
+    return null;
+  }
+
+  if (cmd.type === 'accept_personal_card' || cmd.type === 'decline_personal_card') {
+    if (state.experienceMode !== 'basic') return 'personal card offers are BASIC only';
+    if (state.phase !== 'intent_window') return 'personal card offer is closed';
+    const offer = state.personalCardOffers?.find((candidate) => candidate.id === cmd.offerId);
+    if (!offer || offer.status !== 'pending') return 'personal card offer not found';
+    if (offer.toPlayerId !== cmd.playerId) return 'personal card offer belongs to another player';
+    if (state.pendingIntents[cmd.playerId]) return 'player already locked a choice';
+    return null;
   }
 
   // express_interest: any alive player can submit when a window is open, regardless of phase
@@ -587,18 +699,22 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
   }
 
   if (cmd.type === 'choose_option') {
-    const card = getCard(state.currentCardId);
+    const card = getCard(cardIdForPlayer(state, cmd.playerId));
     const choices = card?.choices ?? [];
     if (cmd.choiceIndex < 0 || cmd.choiceIndex >= choices.length) return 'invalid choice index';
+    if (state.experienceMode === 'basic' && choices[cmd.choiceIndex].effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')) {
+      return 'this choice requires PRO mode';
+    }
 
     // You can't pick an option you can't pay for (blocks "free" over-budget buys on
     // opportunity/protection/staff cards). Forced crises with no affordable option
     // still resolve via the clamp-to-zero damage model. See canAffordChoice.
-    if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex)) {
+    const referralFee = referralFeeForChoice(state, cmd.playerId, cmd.choiceIndex);
+    const actor = state.players.find((p) => p.id === cmd.playerId);
+    if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex) || (actor && choiceUpfrontCost(choices[cmd.choiceIndex]) + referralFee > actor.cash)) {
       return 'insufficient cash for this option';
     }
 
-    const actor = state.players.find((p) => p.id === cmd.playerId);
     const addsCrisisImmunity = choices[cmd.choiceIndex]?.effects.some(
       (effect) => effect.type === 'protection.add' && effect.value === 'crisis_immunity',
     );
@@ -625,7 +741,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
   }
 
   const active = activePlayer(state)!;
-  const card = getCard(state.currentCardId);
+  const card = getCard(cardIdForPlayer(state, cmd.playerId));
 
   // ─── Simultaneous rounds: queue the round action instead of executing now ──
   // During an open intent window, each player's main action (choose_option/pass)
@@ -664,6 +780,46 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
   // ─── Dispatch by command type ───────────────────────────────────────────
 
   switch (cmd.type) {
+    case 'offer_personal_card': {
+      const cardId = cardIdForPlayer(state, actor.id);
+      if (cardId) {
+        state.personalCardOffers ??= [];
+        state.personalCardOffers.push({
+          id: `personal_${state.round}_${actor.id}_${cmd.targetPlayerId}`,
+          cardId,
+          fromPlayerId: actor.id,
+          toPlayerId: cmd.targetPlayerId,
+          round: state.round,
+          status: 'pending',
+        });
+        events.push({ type: 'deal', playerId: actor.id, message: `personal card offered to ${cmd.targetPlayerId}`, payload: { targetPlayerId: cmd.targetPlayerId } });
+      }
+      break;
+    }
+
+    case 'accept_personal_card': {
+      const offer = state.personalCardOffers?.find((candidate) => candidate.id === cmd.offerId);
+      if (offer) {
+        const previousCard = state.personalCardIds?.[actor.id];
+        if (previousCard) state.discardPile.push(previousCard);
+        state.personalCardIds ??= {};
+        state.personalCardIds[actor.id] = offer.cardId;
+        state.pendingIntents[offer.fromPlayerId] = { type: 'pass', playerId: offer.fromPlayerId };
+        offer.status = 'accepted';
+        events.push({ type: 'deal', playerId: actor.id, message: `personal card accepted from ${offer.fromPlayerId}`, payload: { fromPlayerId: offer.fromPlayerId } });
+      }
+      break;
+    }
+
+    case 'decline_personal_card': {
+      const offer = state.personalCardOffers?.find((candidate) => candidate.id === cmd.offerId);
+      if (offer) {
+        offer.status = 'declined';
+        events.push({ type: 'deal', playerId: actor.id, message: `personal card declined from ${offer.fromPlayerId}` });
+      }
+      break;
+    }
+
     case 'choose_option': {
       if (card?.choices) {
         const choice = card.choices[cmd.choiceIndex];
@@ -675,6 +831,15 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
             if (blocked) break;
           }
           events.push(...applyEffects(state, actor, choice.effects));
+          const referral = acceptedReferralFor(state, actor.id, card.id);
+          const fee = referralFeeForChoice(state, actor.id, cmd.choiceIndex);
+          const finder = referral ? state.players.find((player) => player.id === referral.fromPlayerId) : undefined;
+          if (finder && fee > 0) {
+            actor.cash = Math.max(0, actor.cash - fee);
+            finder.cash += fee;
+            events.push({ type: 'money', playerId: actor.id, amount: -fee, message: `finder fee to ${finder.name}` });
+            events.push({ type: 'money', playerId: finder.id, amount: fee, message: `finder fee from ${actor.name}` });
+          }
         }
       }
       break;
@@ -1156,16 +1321,25 @@ export function resolveAllIntents(prev: MatchState): CommandResult {
   // executes (the in-window guard in resolveCommand only fires while phase === 'intent_window').
   state.phase = 'resolution';
 
+  if (state.experienceMode === 'basic' && state.globalCardId) {
+    const globalCard = getCard(state.globalCardId);
+    const tableActor = activePlayer(state);
+    if (globalCard?.effects && tableActor) {
+      events.push(...applyEffects(state, tableActor, globalCard.effects));
+      events.push({ type: 'host', cue: globalCard.hostCue, message: `global:${globalCard.id}` });
+    }
+  }
+
   // Who chose a co-investment ('partnership.invite') on the shared card this round —
   // collected here so partnerships can be formed once everyone's choice is applied.
-  const card = getCard(state.currentCardId);
   const coInvestors: { playerId: string; contribution: number; fullCost: number }[] = [];
 
   let currentState = state;
   for (const [playerId, intent] of Object.entries(state.pendingIntents)) {
     if (intent) {
       if (intent.type === 'choose_option') {
-        const inv = card?.choices?.[intent.choiceIndex]?.effects.find((e) => e.type === 'partnership.invite');
+        const intentCard = getCard(cardIdForPlayer(state, playerId));
+        const inv = intentCard?.choices?.[intent.choiceIndex]?.effects.find((e) => e.type === 'partnership.invite');
         if (inv) {
           const contribution = (inv.payload?.['contribution'] as number) ?? inv.amount ?? 0;
           const fullCost = (inv.payload?.['fullCost'] as number) ?? contribution;
@@ -1180,7 +1354,9 @@ export function resolveAllIntents(prev: MatchState): CommandResult {
   }
   Object.assign(state, currentState);
 
-  events.push(...formPartnerships(state, coInvestors));
+  if (state.experienceMode !== 'basic') {
+    events.push(...formPartnerships(state, coInvestors));
+  }
 
   state.phase = 'resolution';
   state.eventLog.push(...events);
@@ -1509,28 +1685,35 @@ export function advanceRound(prev: MatchState): CommandResult {
   state.activePlayerIndex = nextIdx;
   state.players[state.activePlayerIndex].isActive = true;
 
-  // Draw next card (with eligibility check)
-  state.deckCursor += 1;
-  const currentActive = state.players[state.activePlayerIndex];
-  let cardFound = false;
-  for (let i = 0; i < state.deck.length && !cardFound; i++) {
-    const candidateIdx = (state.deckCursor + i) % state.deck.length;
-    const candidateId = state.deck[candidateIdx];
-    const candidate = getCard(candidateId);
-    if (candidate && checkEligibility(state, currentActive, candidate.eligibility)) {
-      state.currentCardId = candidateId;
-      state.deckCursor = candidateIdx;
-      cardFound = true;
+  if (state.experienceMode === 'basic') {
+    for (const cardId of Object.values(state.personalCardIds ?? {})) {
+      if (cardId) state.discardPile.push(cardId);
     }
-  }
-  if (!cardFound) {
-    // Fallback: use next card regardless
-    state.currentCardId = state.deck[state.deckCursor % state.deck.length] ?? null;
+    dealPersonalCards(state, state.deckCursor);
+  } else {
+    // Draw next shared card (with eligibility check)
+    state.deckCursor += 1;
+    const currentActive = state.players[state.activePlayerIndex];
+    let cardFound = false;
+    for (let i = 0; i < state.deck.length && !cardFound; i++) {
+      const candidateIdx = (state.deckCursor + i) % state.deck.length;
+      const candidateId = state.deck[candidateIdx];
+      const candidate = getCard(candidateId);
+      if (candidate && checkEligibility(state, currentActive, candidate.eligibility)) {
+        state.currentCardId = candidateId;
+        state.deckCursor = candidateIdx;
+        cardFound = true;
+      }
+    }
+    if (!cardFound) {
+      // Fallback: use next card regardless
+      state.currentCardId = state.deck[state.deckCursor % state.deck.length] ?? null;
+    }
   }
 
   // ─── Bots send partnership invites on opportunity/social cards ─────────
   const drawnCard = getCard(state.currentCardId);
-  if (state.autoDeals !== false && drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
+  if (state.experienceMode !== 'basic' && state.autoDeals !== false && drawnCard && (drawnCard.type === 'opportunity' || drawnCard.type === 'social')) {
     for (const p of state.players) {
       if (!p.alive || !p.isBot) continue;
       const roll = rngFloat(state.seed, state.rngCounter + 7777 + state.players.indexOf(p));
@@ -1581,12 +1764,13 @@ export interface ChoicePreview {
   hint?: string;
 }
 
-function previewSnapshot(p: PlayerState) {
+function previewSnapshot(state: MatchState, p: PlayerState) {
+  const flow = monthlyCashflow(state, p);
   return {
     cash: Math.round(p.cash),
-    passive: Math.round(p.passiveIncome),
-    expenses: Math.round(p.expenses),
-    cashflow: Math.round(effectiveActiveIncome(p) + p.passiveIncome - p.expenses),
+    passive: Math.round(p.passiveIncome + p.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0)),
+    expenses: Math.round(flow.expense),
+    cashflow: Math.round(flow.net),
     assetUpkeep: Math.round(p.assets.reduce((s, a) => s + a.upkeepPerRound, 0)),
     stress: Math.round(p.stress),
     debt: Math.round(p.debt),
@@ -1598,7 +1782,7 @@ export function previewChoice(
   playerId: string,
   choiceIndex: number,
 ): ChoicePreview | null {
-  const card = getCard(prev.currentCardId);
+  const card = getCard(cardIdForPlayer(prev, playerId));
   const choice = card?.choices?.[choiceIndex];
   if (!card || !choice) return null;
 
@@ -1606,9 +1790,9 @@ export function previewChoice(
   const player = state.players.find((p) => p.id === playerId);
   if (!player) return null;
 
-  const before = previewSnapshot(player);
+  const before = previewSnapshot(state, player);
   applyEffects(state, player, choice.effects);
-  const after = previewSnapshot(player);
+  const after = previewSnapshot(state, player);
 
   const lines: PreviewLine[] = [
     { key: 'cash', from: before.cash, to: after.cash },

@@ -519,7 +519,7 @@ describe('intent window applies card effects through resolveAllIntents', () => {
   }
 
   it('a chosen option subtracts/adds for the acting player only', () => {
-    let state = openOn('opp-route'); // choice 0: cash -2000, income +980 (scope self)
+    let state = openOn('opp-route'); // choice 0: cash -2000, route asset +980/round (scope self)
     const cashBefore = state.players.map((p) => p.cash);
     const incomeBefore = state.players.map((p) => p.activeIncome);
 
@@ -530,7 +530,8 @@ describe('intent window applies card effects through resolveAllIntents', () => {
     const p1 = state.players.find((p) => p.id === 'p1')!;
     const p2 = state.players.find((p) => p.id === 'p2')!;
     expect(cashBefore[0] - p1.cash).toBe(2000);          // p1 paid
-    expect(p1.activeIncome - incomeBefore[0]).toBe(980); // p1 earned
+    expect(p1.activeIncome).toBe(incomeBefore[0]);
+    expect(p1.assets.find((asset) => asset.kind === 'service_route')?.incomePerRound).toBe(980);
     expect(p2.cash).toBe(cashBefore[1]);                 // p2 untouched
     expect(p2.activeIncome).toBe(incomeBefore[1]);
   });

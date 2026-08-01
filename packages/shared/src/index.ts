@@ -469,6 +469,9 @@ export type Command =
   | { type: 'choose_option'; playerId: PlayerId; choiceIndex: number }
   | { type: 'pass'; playerId: PlayerId }
   | { type: 'draw_card'; playerId: PlayerId }
+  | { type: 'offer_personal_card'; playerId: PlayerId; targetPlayerId: PlayerId }
+  | { type: 'accept_personal_card'; playerId: PlayerId; offerId: string }
+  | { type: 'decline_personal_card'; playerId: PlayerId; offerId: string }
   | { type: 'express_interest'; playerId: PlayerId; targetPlayerId: PlayerId }
   | { type: 'close_interest_window'; playerId: PlayerId }
   | { type: 'submit_offer'; playerId: PlayerId; offer: OfferPayload }
@@ -574,6 +577,15 @@ export interface MatchState {
   // Turn tracking
   activePlayerIndex: number;
   pendingIntents: Record<PlayerId, Command | null>;
+  /** Network snapshots expose who locked in without revealing other players' choices. */
+  submittedIntentPlayerIds?: PlayerId[];
+
+  // BASIC deals one private card to every alive player and resolves all choices
+  // simultaneously. PRO keeps the shared-table/draft negotiation systems.
+  experienceMode?: ExperienceMode;
+  personalCardIds?: Record<PlayerId, CardId | null>;
+  personalCardOffers?: PersonalCardOffer[];
+  globalCardId?: CardId | null;
 
   // Players
   players: PlayerState[];
@@ -608,6 +620,17 @@ export interface MatchState {
 }
 
 export type MatchMode = 'classic' | 'draft';
+
+export type ExperienceMode = 'basic' | 'pro';
+
+export interface PersonalCardOffer {
+  id: string;
+  cardId: CardId;
+  fromPlayerId: PlayerId;
+  toPlayerId: PlayerId;
+  round: number;
+  status: 'pending' | 'accepted' | 'declined';
+}
 
 export type ContestPref = 'fight' | 'split';
 

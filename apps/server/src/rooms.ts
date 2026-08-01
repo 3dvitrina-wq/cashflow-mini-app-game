@@ -10,12 +10,14 @@ import {
   resolveAllIntents,
   allIntentsSubmitted,
   dealDraftBoard,
+  cardIdForPlayer,
 } from '../../../packages/game-engine/src/index';
 import { botIntent } from '../../../packages/game-engine/src/bot';
 import type { MatchState, Command } from '../../../packages/shared/src/index';
 
 export type RoomStatus = 'waiting' | 'playing' | 'finished';
 export type CardMode = 'shared' | 'individual';
+export type ExperienceMode = 'basic' | 'pro';
 
 export interface RoomMember {
   playerId: string;
@@ -54,6 +56,8 @@ export interface Room {
   turnStartedAt: number;
   /** Shared = everyone resolves one visible card together. Individual = old per-turn card flow. */
   cardMode: CardMode;
+  /** BASIC = private simultaneous cards. PRO = shared table and advanced deals. */
+  experienceMode: ExperienceMode;
 }
 
 const rooms = new Map<string, Room>();
@@ -81,7 +85,7 @@ function toRoundIntent(playerId: string, command: Command): Command {
 }
 
 function usesSharedCards(room: Room): boolean {
-  return room.cardMode === 'shared' && room.engineState?.matchMode !== 'draft';
+  return room.engineState?.matchMode !== 'draft';
 }
 
 function openSharedWindowIfNeeded(room: Room): void {
@@ -95,7 +99,10 @@ function queueBotIntents(room: Room): void {
     if (room.engineState.pendingIntents[player.id]) continue;
     const member = room.members.find((m) => m.playerId === player.id);
     if (!member?.isBot && !member?.botControlled) continue;
-    const raw = toRoundIntent(player.id, normalizeBotCommand(player.id, botIntent(room.engineState, player)));
+    const botState = room.engineState.experienceMode === 'basic'
+      ? { ...room.engineState, currentCardId: cardIdForPlayer(room.engineState, player.id) }
+      : room.engineState;
+    const raw = toRoundIntent(player.id, normalizeBotCommand(player.id, botIntent(botState, player)));
     let result = resolveCommand(room.engineState, raw);
     if (wasRejected(result.events)) {
       result = resolveCommand(room.engineState, { type: 'pass', playerId: player.id });
@@ -146,7 +153,8 @@ export function createRoom(isPrivate = false): Room {
     seed: Date.now(),
     turnTimer: null,
     turnStartedAt: 0,
-    cardMode: 'shared',
+    cardMode: 'individual',
+    experienceMode: 'basic',
   };
   rooms.set(code, room);
   return room;
@@ -281,12 +289,14 @@ export interface StartOptions {
   maxRounds?: number;
   mode?: 'classic' | 'draft';
   cardMode?: CardMode;
+  experienceMode?: ExperienceMode;
 }
 
 export function startRoom(code: string, opts: StartOptions = {}): Room | null {
   const room = rooms.get(code);
   if (!room || room.status !== 'waiting' || room.members.length < 2) return null;
-  room.cardMode = opts.cardMode ?? 'shared';
+  room.experienceMode = opts.experienceMode ?? (opts.cardMode === 'shared' ? 'pro' : 'basic');
+  room.cardMode = room.experienceMode === 'pro' ? 'shared' : 'individual';
   const players = room.members.map((m) => ({
     id: m.playerId,
     name: m.name,
@@ -300,6 +310,7 @@ export function startRoom(code: string, opts: StartOptions = {}): Room | null {
   room.engineState = createMatch(room.seed, players, {
     maxRounds: opts.maxRounds,
     mode: opts.mode,
+    experienceMode: room.experienceMode,
     // Online matches never auto-fabricate partnerships: a player must never receive a
     // deal "nobody sent". Real deals go through the explicit negotiation flow.
     autoDeals: false,
@@ -324,7 +335,22 @@ export function applyCommand(
   }
   try {
     const phaseBefore = room.engineState.phase;
-    const cmdResult = resolveCommand(room.engineState, command);
+    let cmdResult = resolveCommand(room.engineState, command);
+    if (command.type === 'offer_personal_card' && !wasRejected(cmdResult.events)) {
+      const targetMember = room.members.find((member) => member.playerId === command.targetPlayerId);
+      const offer = cmdResult.state.personalCardOffers?.find((candidate) =>
+        candidate.status === 'pending'
+        && candidate.fromPlayerId === command.playerId
+        && candidate.toPlayerId === command.targetPlayerId);
+      if (offer && (targetMember?.isBot || targetMember?.botControlled)) {
+        const accepted = resolveCommand(cmdResult.state, {
+          type: 'accept_personal_card',
+          playerId: command.targetPlayerId,
+          offerId: offer.id,
+        });
+        cmdResult = { state: accepted.state, events: [...cmdResult.events, ...accepted.events] };
+      }
+    }
     room.engineState = cmdResult.state;
     // Only advance the turn when the command was actually accepted. The engine
     // rejects invalid commands (wrong turn, unaffordable choice) without throwing,

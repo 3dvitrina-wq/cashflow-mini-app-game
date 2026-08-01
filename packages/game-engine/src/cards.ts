@@ -26,8 +26,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'buy', label: 'Buy for $3K', effects: [
         { type: 'cash.delta', amount: -3000 },
-        { type: 'passive.add', amount: 400 },
-        { type: 'expense.add', amount: 150 },
         { type: 'business.slot.modify', amount: 1 },
         { type: 'asset.add', amount: 3000, payload: { kind: 'storage_pod', name: 'Storage Pod', tags: ['physical'], synergyKeys: ['logistics'], incomePerRound: 400, upkeepPerRound: 150, value: 3000 } },
       ], hint: 'High cost, steady return' },
@@ -52,8 +50,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'allin', label: 'Go all in', effects: [
         { type: 'cash.delta', amount: -2500 },
-        { type: 'passive.add', amount: 1500 },
-        { type: 'expense.add', amount: 400 },
         { type: 'stress.delta', amount: 1 },
         { type: 'asset.add', amount: 2500, payload: { kind: 'ai_shop', name: 'AI Template Shop', tags: ['digital', 'tech'], synergyKeys: ['ai_tools'], incomePerRound: 1500, upkeepPerRound: 400, value: 2500 } },
       ], hint: 'High reward, high stress' },
@@ -78,7 +74,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'invest', label: 'Invest $2K', effects: [
         { type: 'cash.delta', amount: -2000 },
-        { type: 'income.add', amount: 980 },
         { type: 'asset.add', amount: 2000, payload: { kind: 'service_route', name: 'Delivery Route', tags: ['service'], synergyKeys: ['logistics'], incomePerRound: 980, value: 2000 } },
       ] },
       { id: 'coinvest', label: 'Co-invest $1K', effects: [
@@ -101,8 +96,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'buy', label: 'Buy for $5K', effects: [
         { type: 'cash.delta', amount: -5000 },
-        { type: 'passive.add', amount: 800 },
-        { type: 'expense.add', amount: 200 },
         { type: 'business.slot.modify', amount: 1 },
         { type: 'asset.add', amount: 5000, payload: { kind: 'laundromat', name: 'Laundromat', tags: ['physical', 'boring_biz'], synergyKeys: ['utilities'], incomePerRound: 800, upkeepPerRound: 200, value: 5000 } },
       ] },
@@ -128,8 +121,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'buy_all', label: 'Buy all 3 ($1.8K)', effects: [
         { type: 'cash.delta', amount: -1800 },
-        { type: 'passive.add', amount: 350 },
-        { type: 'expense.add', amount: 180 },
         { type: 'asset.add', amount: 1800, payload: { kind: 'vending', name: 'Vending Machines', tags: ['physical'], synergyKeys: ['food'], incomePerRound: 350, upkeepPerRound: 180, value: 1800 } },
       ] },
       { id: 'buy_one', label: 'Buy 1 ($600)', effects: [
@@ -179,8 +170,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'launch', label: 'Launch ($800 production)', effects: [
         { type: 'cash.delta', amount: -800 },
-        { type: 'passive.add', amount: 300 },
-        { type: 'expense.add', amount: 150 },
         { type: 'expense.tag', value: 'content_creation' },
         { type: 'asset.add', amount: 800, payload: { kind: 'course', name: 'Online Course', tags: ['digital', 'education'], synergyKeys: ['content_creation'], incomePerRound: 300, upkeepPerRound: 150, value: 800 } },
       ] },
@@ -231,7 +220,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'buy', label: 'Buy in ($6K)', effects: [
         { type: 'cash.delta', amount: -6000 },
-        { type: 'passive.add', amount: 1200 },
         { type: 'business.slot.modify', amount: 1 },
         { type: 'asset.add', amount: 6000, payload: { kind: 'franchise', name: 'Coffee Franchise', tags: ['physical', 'food'], synergyKeys: ['food'], incomePerRound: 1200, upkeepPerRound: 250, value: 6000 } },
       ] },
@@ -862,7 +850,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'build', label: 'Build ($1.5K)', effects: [
         { type: 'cash.delta', amount: -1500 },
-        { type: 'passive.add', amount: 500 },
         { type: 'asset.add', amount: 1500, payload: { kind: 'mini_app', name: 'Telegram Mini-App', tags: ['digital', 'tech'], synergyKeys: ['ai_tools', 'content_creation'], incomePerRound: 500, value: 1500 } },
       ] },
       { id: 'no_code', label: 'No-code builder ($300)', effects: [
@@ -1285,8 +1272,6 @@ export const CARDS: CardDefinition[] = [
     choices: [
       { id: 'invest_3k', label: 'Invest $3K', effects: [
         { type: 'cash.delta', amount: -3000 },
-        { type: 'passive.add', amount: 500 },
-        { type: 'expense.add', amount: 200 },
         { type: 'asset.add', amount: 3000, payload: { kind: 'boring_fund', name: 'Boring Business Fund', tags: ['physical', 'boring_biz'], synergyKeys: ['legal_entity'], incomePerRound: 500, upkeepPerRound: 200, value: 3000 } },
       ], hint: 'Steady 20% annual return' },
       { id: 'invest_1k', label: 'Invest $1K', effects: [

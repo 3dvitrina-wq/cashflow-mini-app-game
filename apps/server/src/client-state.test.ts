@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMatch } from '../../../packages/game-engine/src/index';
+import { createMatch, openIntentWindow, resolveCommand } from '../../../packages/game-engine/src/index';
 import { toClientState } from './client-state';
 
 describe('client state card copy', () => {
@@ -20,5 +20,34 @@ describe('client state card copy', () => {
       'Найти партнёра',
       'Пропустить',
     ]);
+  });
+
+  it('exposes only the viewer private card in BASIC mode', () => {
+    const state = createMatch(42, [
+      { id: 'p1', name: 'Ari', outfit: 'hustler', isBot: false },
+      { id: 'p2', name: 'Bella', outfit: 'trader', isBot: false },
+    ], { experienceMode: 'basic' });
+
+    const p1State = toClientState(state, 'p1')!;
+    const p2State = toClientState(state, 'p2')!;
+
+    expect(Object.keys(p1State.personalCardIds ?? {})).toEqual(['p1']);
+    expect(Object.keys(p2State.personalCardIds ?? {})).toEqual(['p2']);
+    expect(p1State.currentCardId).toBe(state.personalCardIds?.p1);
+    expect(p2State.currentCardId).toBe(state.personalCardIds?.p2);
+  });
+
+  it('exposes lock status without leaking another player choice', () => {
+    let state = createMatch(44, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+    ], { experienceMode: 'basic' });
+    state = openIntentWindow(state);
+    state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
+
+    const snapshot = toClientState(state, 'p1')!;
+    expect(snapshot.submittedIntentPlayerIds).toEqual(['p2']);
+    expect(snapshot.pendingIntents.p1).toBeNull();
+    expect(snapshot.pendingIntents.p2).toBeNull();
   });
 });
