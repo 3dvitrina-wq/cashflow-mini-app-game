@@ -20,6 +20,44 @@ import { checkDealFairness } from './negotiation';
 
 const DEAL_EXPIRY_ROUNDS = 3;
 
+type AssetTransferResult =
+  | { ok: true; asset: Asset }
+  | { ok: false; reason: 'asset_not_found' | 'same_player' | 'target_capacity' };
+
+export function transferAssetOwnership(
+  source: PlayerState,
+  target: PlayerState,
+  assetId: string,
+  clearCoOwners = false,
+): AssetTransferResult {
+  const asset = source.assets.find((candidate) => candidate.id === assetId);
+  if (!asset) return { ok: false, reason: 'asset_not_found' };
+  if (source.id === target.id) return { ok: false, reason: 'same_player' };
+
+  const slotsUsed = asset.slotsUsed ?? 1;
+  if (target.businessSlotsUsed + slotsUsed > target.businessSlotsMax) {
+    return { ok: false, reason: 'target_capacity' };
+  }
+
+  const sourceAssets = source.assets.filter((candidate) => candidate.id !== assetId);
+  const sourceBusinesses = sourceAssets.some((candidate) => candidate.name === asset.name)
+    ? source.businesses
+    : source.businesses.filter((name) => name !== asset.name);
+  const receivedAsset = clearCoOwners ? { ...asset, coOwners: undefined } : asset;
+  const targetBusinesses = target.businesses.includes(asset.name)
+    ? target.businesses
+    : [...target.businesses, asset.name];
+
+  source.assets = sourceAssets;
+  source.businesses = sourceBusinesses;
+  source.businessSlotsUsed = Math.max(0, source.businessSlotsUsed - slotsUsed);
+  target.assets = [...target.assets, receivedAsset];
+  target.businesses = targetBusinesses;
+  target.businessSlotsUsed += slotsUsed;
+
+  return { ok: true, asset: receivedAsset };
+}
+
 function nextDealId(state: MatchState): string {
   return `deal_${state.round}_${state.rngCounter}_${state.eventLog.length}`;
 }
@@ -152,29 +190,21 @@ export function acceptDeal(
 
   // Asset transfer
   if (deal.offer.assetId) {
-    const assetIdx = proposer.assets.findIndex((a) => a.id === deal.offer.assetId);
-    if (assetIdx < 0) {
-      setDealStatus(state, deal.id, 'expired');
+    const transfer = transferAssetOwnership(proposer, acceptor, deal.offer.assetId);
+    if (!transfer.ok) {
+      if (transfer.reason === 'asset_not_found') {
+        setDealStatus(state, deal.id, 'expired');
+      }
+      const message = transfer.reason === 'asset_not_found'
+        ? 'promised asset is no longer available'
+        : transfer.reason === 'same_player'
+          ? 'cannot transfer asset to self'
+          : 'target has no free business slots';
       return [{
         type: 'command_rejected',
         playerId: acceptor.id,
-        message: 'promised asset is no longer available',
+        message,
       }];
-    }
-    const promisedAsset = proposer.assets[assetIdx]!;
-    const promisedSlots = promisedAsset.slotsUsed ?? 1;
-    if (acceptor.businessSlotsUsed + promisedSlots > acceptor.businessSlotsMax) {
-      return [{
-        type: 'command_rejected',
-        playerId: acceptor.id,
-        message: 'target has no free business slots',
-      }];
-    }
-    const [asset] = proposer.assets.splice(assetIdx, 1);
-    if (asset) {
-      proposer.businessSlotsUsed = Math.max(0, proposer.businessSlotsUsed - promisedSlots);
-      acceptor.businessSlotsUsed += promisedSlots;
-      acceptor.assets.push(asset);
     }
   }
 

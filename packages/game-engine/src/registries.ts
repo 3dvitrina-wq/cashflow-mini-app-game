@@ -25,15 +25,15 @@ export interface AssetPurchaseConfig {
   readonly synergyKeys: readonly string[];
 }
 
-const STAFF_CONFIGS: readonly StaffConfig[] = [
-  { staffId: 'junior_dev', salary: 800, bonus: { slots: 0, income: 0 } },
-  { staffId: 'welder', salary: 800, bonus: { slots: 2, income: 0 } },
-  { staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 500 } },
-  { staffId: 'chef', salary: 600, bonus: { slots: 1, income: 0 } },
-  { staffId: 'lawyer', salary: 1500, bonus: { slots: 0, income: 0 } },
-  { staffId: 'accountant', salary: 900, bonus: { slots: 0, income: 0 } },
-  { staffId: 'marketer', salary: 1100, bonus: { slots: 0, income: 300 } },
-];
+const STAFF_CONFIGS: Readonly<Record<string, StaffConfig>> = {
+  junior_dev: { staffId: 'junior_dev', salary: 800, bonus: { slots: 0, income: 0 } },
+  welder: { staffId: 'welder', salary: 800, bonus: { slots: 2, income: 0 } },
+  coder: { staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 500 } },
+  chef: { staffId: 'chef', salary: 600, bonus: { slots: 1, income: 0 } },
+  lawyer: { staffId: 'lawyer', salary: 1500, bonus: { slots: 0, income: 0 } },
+  accountant: { staffId: 'accountant', salary: 900, bonus: { slots: 0, income: 0 } },
+  marketer: { staffId: 'marketer', salary: 1100, bonus: { slots: 0, income: 300 } },
+};
 
 const ASSET_PURCHASE_CONFIGS: readonly AssetPurchaseConfig[] = [
   {
@@ -101,15 +101,20 @@ export function getCanonicalStaff(
   salary: number | undefined,
   bonus: { slots?: number; income?: number } | undefined,
 ): StaffConfig | undefined {
+  const config = STAFF_CONFIGS[staffId];
+  if (!config || config.staffId !== staffId) return undefined;
+
   const normalizedSalary = salary ?? 0;
   const requestedSlots = bonus?.slots;
   const requestedIncome = bonus?.income;
-  return STAFF_CONFIGS.find((config) =>
-    config.staffId === staffId
-    && config.salary === normalizedSalary
-    && (requestedSlots === undefined || config.bonus.slots === requestedSlots)
-    && (requestedIncome === undefined || config.bonus.income === requestedIncome)
-  );
+  if (
+    config.salary !== normalizedSalary
+    || (requestedSlots !== undefined && config.bonus.slots !== requestedSlots)
+    || (requestedIncome !== undefined && config.bonus.income !== requestedIncome)
+  ) {
+    return undefined;
+  }
+  return config;
 }
 
 export function getCanonicalAssetPurchase(input: {

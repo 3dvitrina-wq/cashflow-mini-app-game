@@ -378,6 +378,66 @@ describe('unified cashflow', () => {
     // Cash moved by exactly the net (clamped at 0); proves the displayed flow is real.
     expect(after.cash).toBe(Math.max(0, cashBefore + cf.net));
   });
+
+  it('drains cash under a negative flow, then enters bankruptcy without eliminating the player', () => {
+    let match = createMatch(19, [...PLAYERS]);
+    const p1 = match.players.find((p) => p.id === 'p1')!;
+    p1.cash = 1000;
+    p1.activeIncome = 0;
+    p1.passiveIncome = 0;
+    p1.expenses = 600;
+
+    match = advanceRound(match).state;
+    const afterFirst = match.players.find((p) => p.id === 'p1')!;
+    expect(afterFirst.cash).toBe(400);
+    expect(afterFirst.bankrupt).toBe(false);
+
+    const second = advanceRound(match);
+    const afterSecond = second.state.players.find((p) => p.id === 'p1')!;
+    expect(afterSecond.cash).toBe(0);
+    expect(afterSecond.bankrupt).toBe(true);
+    expect(afterSecond.alive).toBe(true);
+    expect(second.events.some((event) => event.effectType === 'bankruptcy.file')).toBe(true);
+
+    const bankCredit = resolveCommand(second.state, { type: 'take_loan', playerId: 'p1', amount: 500 });
+    expect(bankCredit.events.some((event) => event.type === 'command_rejected')).toBe(false);
+    expect(bankCredit.state.players.find((p) => p.id === 'p1')!.cash).toBe(500);
+
+    const nightJob = resolveCommand(second.state, { type: 'take_survival_job', playerId: 'p1', jobId: 'night' });
+    expect(nightJob.events.some((event) => event.type === 'command_rejected')).toBe(false);
+    expect(nightJob.state.players.find((p) => p.id === 'p1')!.cash).toBeGreaterThan(0);
+    expect(nightJob.state.players.find((p) => p.id === 'p1')!.activeIncome).toBeGreaterThan(0);
+
+    const gift = resolveCommand(second.state, { type: 'request_help', playerId: 'p1', targetPlayerId: 'p2' });
+    expect(gift.events.some((event) => event.type === 'command_rejected')).toBe(false);
+    expect(gift.state.players.find((p) => p.id === 'p1')!.cash).toBeGreaterThan(0);
+
+    const proposedLoan = resolveCommand(second.state, {
+      type: 'propose_deal',
+      playerId: 'p1',
+      targetId: 'p2',
+      offer: {
+        targetPlayerId: 'p2',
+        preset: 'loan_shark',
+        cashRequest: 300,
+        description: 'Emergency table loan',
+      },
+    });
+    const pendingLoan = proposedLoan.state.players
+      .find((p) => p.id === 'p2')!
+      .pendingDeals.at(-1)!;
+    const acceptedLoan = resolveCommand(proposedLoan.state, {
+      type: 'accept_deal',
+      playerId: 'p2',
+      dealId: pendingLoan.id,
+    });
+    const borrower = acceptedLoan.state.players.find((p) => p.id === 'p1')!;
+    const loan = borrower.contracts.at(-1)!;
+    expect(borrower.cash).toBe(300);
+    expect(loan.terms.kind).toBe('loan');
+    expect(loan.terms.payerId).toBe('p1');
+    expect(loan.terms.payeeId).toBe('p2');
+  });
 });
 
 describe('simultaneous rounds (intent window)', () => {

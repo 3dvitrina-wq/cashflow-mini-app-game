@@ -19,6 +19,12 @@ const CANONICAL_STAFF = {
   bonus: { slots: 0, income: 0 },
 } as const;
 
+const CANONICAL_CODER = {
+  staffId: 'coder',
+  salary: 1_200,
+  bonus: { slots: 3, income: 500 },
+} as const;
+
 const CANONICAL_STORAGE_ASSET = {
   name: 'Storage Pod',
   price: 3_000,
@@ -74,23 +80,37 @@ describe('client economy payload is not authoritative', () => {
     expect(after.passiveIncome).toBe(before.passiveIncome);
   });
 
-  it('rejects a hidden alternative price for an otherwise canonical staff id', () => {
+  it('accepts the canonical coder economy and rejects a forged variant without gameplay mutation', () => {
+    const canonical = createMatch(101, [...BASE_PLAYERS]);
+    const canonicalBefore = player(canonical, 'p1');
+    const hired = resolveCommand(canonical, {
+      type: 'hire_staff',
+      playerId: 'p1',
+      ...CANONICAL_CODER,
+    });
+    const hiredPlayer = player(hired.state, 'p1');
+
+    expect(rejected(hired.events)).toBe(false);
+    expect(hiredPlayer.cash).toBe(canonicalBefore.cash - CANONICAL_CODER.salary);
+    expect(hiredPlayer.expenses).toBe(canonicalBefore.expenses + CANONICAL_CODER.salary);
+    expect(hiredPlayer.assistantSlotsUsed).toBe(canonicalBefore.assistantSlotsUsed + 1);
+    expect(hiredPlayer.businessSlotsMax).toBe(canonicalBefore.businessSlotsMax + CANONICAL_CODER.bonus.slots);
+    expect(hiredPlayer.passiveIncome).toBe(canonicalBefore.passiveIncome + CANONICAL_CODER.bonus.income);
+    expect(hiredPlayer.hiredStaffIds).toEqual([...(canonicalBefore.hiredStaffIds ?? []), CANONICAL_CODER.staffId]);
+
     const state = createMatch(101, [...BASE_PLAYERS]);
-    const before = player(state, 'p1');
+    const playersBefore = JSON.stringify(state.players);
 
     const result = resolveCommand(state, {
       type: 'hire_staff',
       playerId: 'p1',
-      staffId: 'coder',
+      staffId: CANONICAL_CODER.staffId,
       salary: 500,
       bonus: { slots: 0, income: 0 },
     });
-    const after = player(result.state, 'p1');
 
     expect(rejected(result.events)).toBe(true);
-    expect(after.cash).toBe(before.cash);
-    expect(after.expenses).toBe(before.expenses);
-    expect(after.assistantSlotsUsed).toBe(before.assistantSlotsUsed);
+    expect(JSON.stringify(result.state.players)).toBe(playersBefore);
   });
 
   it('rejects asset numbers that differ from the canonical market card', () => {
@@ -283,16 +303,14 @@ describe('player-to-player asset sales', () => {
     const dealId = player(state, 'p2').pendingDeals.at(-1)!.id;
     const sellerCashBefore = player(state, 'p1').cash;
     const buyerCashBefore = player(state, 'p2').cash;
+    const playersBefore = JSON.stringify(state.players);
 
     const accepted = resolveCommand(state, { type: 'accept_deal', playerId: 'p2', dealId });
 
     expect(rejected(accepted.events)).toBe(true);
-    expect(player(accepted.state, 'p1').assets.some((asset) => asset.id === assetId)).toBe(true);
-    expect(player(accepted.state, 'p2').assets.some((asset) => asset.id === assetId)).toBe(false);
+    expect(JSON.stringify(accepted.state.players)).toBe(playersBefore);
     expect(player(accepted.state, 'p1').cash).toBe(sellerCashBefore);
     expect(player(accepted.state, 'p2').cash).toBe(buyerCashBefore);
-    expect(player(accepted.state, 'p2').businessSlotsUsed).toBe(2);
-    expect(player(accepted.state, 'p2').pendingDeals.find((deal) => deal.id === dealId)?.status).toBe('pending');
   });
 
   it('allows any mutually accepted price even when it exceeds the asset book value', () => {
@@ -314,13 +332,24 @@ describe('player-to-player asset sales', () => {
     });
     state = proposed.state;
     const dealId = player(state, 'p2').pendingDeals.at(-1)!.id;
+    const sellerBefore = player(state, 'p1');
+    const buyerBefore = player(state, 'p2');
+    const assetBefore = sellerBefore.assets.find((asset) => asset.id === assetId)!;
+    const assetSlots = assetBefore.slotsUsed ?? 1;
 
     const accepted = resolveCommand(state, { type: 'accept_deal', playerId: 'p2', dealId });
+    const sellerAfter = player(accepted.state, 'p1');
+    const buyerAfter = player(accepted.state, 'p2');
 
     expect(rejected(accepted.events)).toBe(false);
-    expect(player(accepted.state, 'p1').cash).toBe(47_000);
-    expect(player(accepted.state, 'p2').cash).toBe(10_000);
-    expect(player(accepted.state, 'p2').assets.some((asset) => asset.id === assetId)).toBe(true);
+    expect(sellerAfter.cash).toBe(47_000);
+    expect(buyerAfter.cash).toBe(10_000);
+    expect(sellerAfter.assets).toEqual(sellerBefore.assets.filter((asset) => asset.id !== assetId));
+    expect(buyerAfter.assets).toEqual([...buyerBefore.assets, assetBefore]);
+    expect(sellerAfter.businesses).toEqual(sellerBefore.businesses.filter((name) => name !== assetBefore.name));
+    expect(buyerAfter.businesses).toEqual([...buyerBefore.businesses, assetBefore.name]);
+    expect(sellerAfter.businessSlotsUsed).toBe(sellerBefore.businessSlotsUsed - assetSlots);
+    expect(buyerAfter.businessSlotsUsed).toBe(buyerBefore.businessSlotsUsed + assetSlots);
   });
 });
 

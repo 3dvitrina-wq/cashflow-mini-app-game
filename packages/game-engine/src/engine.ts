@@ -36,7 +36,7 @@ import { rngFloat, rngInt, shuffle } from './rng';
 import { advanceTimeline, createTimeline } from './timeline';
 import { getAllLocations, getCanonicalAssetPurchase, getCanonicalStaff } from './registries';
 import { applyDepositInterest, createDeposit, withdrawDeposit } from './bank';
-import { expireOldDeals, proposeDeal, acceptDeal, rejectDeal } from './deals';
+import { expireOldDeals, proposeDeal, acceptDeal, rejectDeal, transferAssetOwnership } from './deals';
 import { evaluateDeal, maybeProposeDeal } from './bot';
 import { applyDraftPick } from './draft';
 import { applySynergyBonuses } from './synergy';
@@ -872,21 +872,18 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
     case 'transfer_asset': {
       const player = state.players.find((p) => p.id === cmd.playerId);
       const target = state.players.find((p) => p.id === cmd.targetPlayerId);
-      const asset = player?.assets.find((item) => item.id === cmd.assetId);
-      if (!player || !target || !asset) break;
-      const slotsUsed = assetSlotsUsed(asset);
-      player.assets = player.assets.filter((item) => item.id !== cmd.assetId);
-      player.businessSlotsUsed = Math.max(0, player.businessSlotsUsed - slotsUsed);
-      const sourceStillHasSameBusiness = player.assets.some((item) => item.name === asset.name);
-      if (!sourceStillHasSameBusiness) {
-        player.businesses = player.businesses.filter((item) => item !== asset.name);
+      if (!player || !target) break;
+      const transfer = transferAssetOwnership(player, target, cmd.assetId, true);
+      if (!transfer.ok) {
+        const message = transfer.reason === 'asset_not_found'
+          ? 'asset not found'
+          : transfer.reason === 'same_player'
+            ? 'cannot transfer asset to self'
+            : 'target has no free business slots';
+        events.push({ type: 'command_rejected', playerId: player.id, message });
+        break;
       }
-
-      target.assets.push({ ...asset, coOwners: undefined });
-      target.businessSlotsUsed += slotsUsed;
-      if (!target.businesses.includes(asset.name)) {
-        target.businesses.push(asset.name);
-      }
+      const { asset } = transfer;
 
       const prevTrustPlayer = player.trust;
       const prevTrustTarget = target.trust;
@@ -1303,8 +1300,12 @@ export function allIntentsSubmitted(state: MatchState): boolean {
 // step (mathematically identical to the old split adjustments). The SAME function
 // feeds the UI, so the displayed cashflow equals the real monthly change.
 
-export function computeTax(player: PlayerState, macro: MatchState['macro']): number {
-  const taxable = Math.max(0, effectiveActiveIncome(player) + player.passiveIncome);
+function computeTaxForIncome(
+  player: PlayerState,
+  macro: MatchState['macro'],
+  taxableIncome: number,
+): number {
+  const taxable = Math.max(0, taxableIncome);
   const hasAccountant = player.protections.includes('accountant');
   const baseRate = macro.taxRate;
   const bracket1 = Math.min(taxable, 1500);
@@ -1316,23 +1317,46 @@ export function computeTax(player: PlayerState, macro: MatchState['macro']): num
   return Math.round((bracket1 * effectiveRate1 * 0.1 + bracket2 * effectiveRate2 * 0.1) * taxBandMultiplier * (1 - professionDiscount));
 }
 
+export function computeTax(player: PlayerState, macro: MatchState['macro']): number {
+  const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
+  return computeTaxForIncome(
+    player,
+    macro,
+    effectiveActiveIncome(player) + player.passiveIncome + assetIncome,
+  );
+}
+
 export interface Cashflow {
   income: number;
   expense: number;
   net: number;
 }
 
-export function monthlyCashflow(state: MatchState, player: PlayerState): Cashflow {
+/** Recurring non-salary cashflow after upkeep, debt service and its marginal tax. */
+export function passiveCashflow(
+  player: PlayerState,
+  macro: MatchState['macro'] = DEFAULT_MACRO,
+): Cashflow {
   const assetIncome = player.assets.reduce((s, a) => s + a.incomePerRound, 0);
   const assetUpkeep = player.assets.reduce((s, a) => s + a.upkeepPerRound, 0);
-  // Loan service: interest on every still-active liability (principal × rate).
   const loanPayments = player.liabilities.reduce(
     (s, l) => (l.remainingPayments > 0 ? s + Math.round(l.principal * l.interestRate) : s),
     0,
   );
-  const tax = computeTax(player, state.macro);
-  const income = effectiveActiveIncome(player) + player.passiveIncome + assetIncome;
-  const expense = player.expenses + assetUpkeep + loanPayments + tax;
+  const totalTax = computeTax(player, macro);
+  const activeTax = computeTaxForIncome(player, macro, effectiveActiveIncome(player));
+  const passiveTax = Math.max(0, totalTax - activeTax);
+  const income = player.passiveIncome + assetIncome;
+  const expense = player.expenses + assetUpkeep + loanPayments + passiveTax;
+  return { income, expense, net: income - expense };
+}
+
+export function monthlyCashflow(state: MatchState, player: PlayerState): Cashflow {
+  const passive = passiveCashflow(player, state.macro);
+  const activeIncome = effectiveActiveIncome(player);
+  const activeTax = computeTaxForIncome(player, state.macro, activeIncome);
+  const income = activeIncome + passive.income;
+  const expense = passive.expense + activeTax;
   return { income, expense, net: income - expense };
 }
 
@@ -1363,13 +1387,13 @@ export function advanceRound(prev: MatchState): CommandResult {
     // Avatar state
     p.avatarState = deriveAvatarState(p);
 
-    // Bankruptcy check
-    if (p.cash === 0 && p.passiveIncome < p.expenses && p.stress >= 7) {
+    // Negative cashflow drains cash first. Bankruptcy starts only when the
+    // settlement exhausts the remaining cash; it is a recovery state, not elimination.
+    if (p.cash === 0 && net < 0 && !p.bankrupt) {
       p.bankrupt = true;
-      p.alive = false;
       p.avatarState = 'cardboard';
       p.recapTags.push('bankrupt');
-      events.push({ type: 'effect', playerId: p.id, message: 'BANKRUPT' });
+      events.push({ type: 'effect', playerId: p.id, effectType: 'bankruptcy.file', message: 'BANKRUPT' });
     }
   }
 
@@ -1608,7 +1632,7 @@ export interface ScoreBonus {
 }
 
 export interface ScoreBreakdown {
-  passiveAnnual: number; // passiveIncome × 12 — the primary, heavily-weighted term
+  passiveAnnual: number; // net recurring non-salary cashflow × 12
   cash: number;
   assetValue: number;
   bankDebt: number;      // outstanding loan principal (subtracted; 0 = clean finish)
@@ -1617,8 +1641,12 @@ export interface ScoreBreakdown {
   freedomAchieved: boolean; // passive covers expenses AND no bank debt
 }
 
-export function scoreBreakdown(player: PlayerState): ScoreBreakdown {
-  const passiveAnnual = Math.round(player.passiveIncome * 12);
+export function scoreBreakdown(
+  player: PlayerState,
+  macro: MatchState['macro'] = DEFAULT_MACRO,
+): ScoreBreakdown {
+  const recurring = passiveCashflow(player, macro);
+  const passiveAnnual = Math.round(recurring.net * 12);
   const cash = Math.round(player.cash);
   const assetValue = Math.round(player.assets.reduce((s, a) => s + a.value, 0));
   const bankDebt = Math.round(
@@ -1626,7 +1654,7 @@ export function scoreBreakdown(player: PlayerState): ScoreBreakdown {
   );
 
   const bonuses: ScoreBonus[] = [];
-  if (player.passiveIncome >= player.expenses) bonuses.push({ key: 'rat_race_out', amount: 5000 });
+  if (recurring.net >= 0) bonuses.push({ key: 'rat_race_out', amount: 5000 });
   if (bankDebt === 0) bonuses.push({ key: 'debt_free', amount: 2000 });
   if (player.stress <= 3) bonuses.push({ key: 'low_stress', amount: 1000 });
   if (player.protections.length > 0) bonuses.push({ key: 'protected', amount: player.protections.length * 300 });
@@ -1634,13 +1662,16 @@ export function scoreBreakdown(player: PlayerState): ScoreBreakdown {
 
   const bonusTotal = bonuses.reduce((s, b) => s + b.amount, 0);
   const total = passiveAnnual + cash + assetValue - bankDebt + bonusTotal;
-  const freedomAchieved = player.passiveIncome >= player.expenses && bankDebt === 0;
+  const freedomAchieved = recurring.net >= 0 && bankDebt === 0;
 
   return { passiveAnnual, cash, assetValue, bankDebt, bonuses, total, freedomAchieved };
 }
 
-export function freedomScore(player: PlayerState): number {
-  return scoreBreakdown(player).total;
+export function freedomScore(
+  player: PlayerState,
+  macro: MatchState['macro'] = DEFAULT_MACRO,
+): number {
+  return scoreBreakdown(player, macro).total;
 }
 
 export interface Achievement {
@@ -1649,9 +1680,12 @@ export interface Achievement {
 }
 
 /** End-of-match badges derived from final state + recap tags. UI maps key → label. */
-export function computeAchievements(player: PlayerState): Achievement[] {
+export function computeAchievements(
+  player: PlayerState,
+  macro: MatchState['macro'] = DEFAULT_MACRO,
+): Achievement[] {
   const a: Achievement[] = [];
-  if (player.passiveIncome >= player.expenses) a.push({ key: 'financial_freedom', icon: '🕊️' });
+  if (passiveCashflow(player, macro).net >= 0) a.push({ key: 'financial_freedom', icon: '🕊️' });
   if (player.liabilities.every((l) => l.remainingPayments <= 0)) a.push({ key: 'debt_free', icon: '✅' });
   if (player.assets.length >= 3) a.push({ key: 'portfolio_builder', icon: '🏢' });
   if (player.partnerships.length > 0) a.push({ key: 'team_player', icon: '🤝' });

@@ -119,6 +119,18 @@ function resolveSharedWindowIfReady(room: Room): void {
   }
 }
 
+/** Close a shared decision window without waiting forever for silent players. */
+export function expireSharedIntentWindow(code: string): Room | null {
+  const room = rooms.get(code);
+  if (!room?.engineState || room.engineState.phase !== 'intent_window') return null;
+  for (const player of room.engineState.players.filter((candidate) => candidate.alive)) {
+    if (room.engineState.pendingIntents[player.id]) continue;
+    room.engineState = resolveCommand(room.engineState, { type: 'pass', playerId: player.id }).state;
+  }
+  resolveSharedWindowIfReady(room);
+  return room;
+}
+
 function randomCode(): string {
   return Math.random().toString(36).substring(2, 7).toUpperCase();
 }

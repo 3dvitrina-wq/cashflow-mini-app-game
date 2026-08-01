@@ -16,6 +16,7 @@ import {
   isBotCurrentTurn,
   runBotTurn,
   clearTurnTimer,
+  expireSharedIntentWindow,
 } from './rooms';
 import type { RoomMember } from './rooms';
 
@@ -40,6 +41,7 @@ function lobbyMember(m: RoomMember) {
 const HEARTBEAT_INTERVAL_MS = 20_000;  // ping clients every 20s
 const HEARTBEAT_TIMEOUT_MS  = 35_000;  // disconnect if no pong within 35s
 const TURN_TIMEOUT_MS       = 90_000;  // auto-resolve human turn after 90s
+const INTENT_TIMEOUT_MS     = 25_000;  // shared card: everyone answers concurrently
 const MAX_BOT_TURNS         = 200;     // safety cap against infinite bot loops
 
 // ─── Bot-turn cascade ────────────────────────────────────────────────────────
@@ -83,9 +85,24 @@ function drainBotTurns(roomCode: string): void {
   const room = getRoom(roomCode);
   if (room && room.status === 'playing') {
     clearTurnTimer(room);
+    const timeoutMs = room.engineState?.phase === 'intent_window'
+      ? INTENT_TIMEOUT_MS
+      : TURN_TIMEOUT_MS;
     room.turnTimer = setTimeout(() => {
       const r = getRoom(roomCode);
       if (!r || r.status !== 'playing') return;
+      if (r.engineState?.phase === 'intent_window') {
+        const expired = expireSharedIntentWindow(roomCode);
+        if (expired) {
+          broadcast(expired, { type: 'state_update', state: expired.engineState });
+          if (expired.status === 'finished') {
+            broadcast(expired, { type: 'match_finished', state: expired.engineState });
+            return;
+          }
+        }
+        drainBotTurns(roomCode);
+        return;
+      }
       // Auto-bot the timed-out human turn
       if (!isBotCurrentTurn(r)) {
         const engineState = r.engineState;
@@ -98,7 +115,7 @@ function drainBotTurns(roomCode: string): void {
         }
       }
       drainBotTurns(roomCode);
-    }, TURN_TIMEOUT_MS);
+    }, timeoutMs);
   }
 }
 

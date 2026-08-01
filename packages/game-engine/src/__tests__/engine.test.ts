@@ -9,6 +9,7 @@ import {
   deriveAvatarState,
   freedomScore,
   scoreBreakdown,
+  passiveCashflow,
   computeAchievements,
 } from '../engine';
 import { botIntent, parseBotPersona } from '../bot';
@@ -360,10 +361,10 @@ describe('rng', () => {
 // ─── Freedom Score ──────────────────────────────────────────────────────────
 
 describe('freedomScore', () => {
-  it('returns positive score for healthy player', () => {
+  it('shows the negative recurring gap before a player reaches financial freedom', () => {
     const player = createPlayer({ id: 'p1', name: 'A', outfit: 'trader' });
     const score = freedomScore(player);
-    expect(score).toBeGreaterThan(0);
+    expect(score).toBeLessThan(0);
   });
 
   it('higher passive income = higher score', () => {
@@ -382,6 +383,48 @@ describe('freedomScore', () => {
     expect(freedomScore(rentier)).toBeGreaterThan(freedomScore(cashKing));
   });
 
+  it('scores the same net passive cashflow that assets and recurring costs create', () => {
+    const match = createMatch(17, [
+      { id: 'p1', name: 'A', outfit: 'trader' },
+      { id: 'p2', name: 'B', outfit: 'office' },
+    ]);
+    const p = match.players[0]!;
+    p.passiveIncome = 0;
+    p.expenses = 100;
+    p.assets.push({
+      id: 'asset-1',
+      kind: 'business',
+      name: 'Satirical Kiosk',
+      tags: [],
+      synergyKeys: [],
+      incomePerRound: 400,
+      upkeepPerRound: 50,
+      value: 1000,
+      acquiredRound: 1,
+      slotsUsed: 1,
+    });
+
+    const beforeDebt = passiveCashflow(p, match.macro);
+    const score = scoreBreakdown(p, match.macro);
+    expect(beforeDebt.income).toBe(400);
+    expect(beforeDebt.expense).toBeGreaterThan(150); // living costs + upkeep + marginal tax
+    expect(score.passiveAnnual).toBe(beforeDebt.net * 12);
+    expect(score.freedomAchieved).toBe(true);
+
+    p.liabilities.push({
+      id: 'expensive-loan',
+      kind: 'loan',
+      principal: 5000,
+      interestRate: 0.10,
+      remainingPayments: 8,
+      creditor: 'Bank',
+    });
+    expect(passiveCashflow(p, match.macro).net).toBeLessThan(0);
+    const indebted = scoreBreakdown(p, match.macro);
+    expect(indebted.passiveAnnual).toBe(passiveCashflow(p, match.macro).net * 12);
+    expect(indebted.freedomAchieved).toBe(false);
+  });
+
   it('outstanding bank debt is subtracted and blocks financial freedom', () => {
     const p = createPlayer({ id: 'p', name: 'P', outfit: 'trader' });
     p.passiveIncome = 2000; p.expenses = 800; // passive covers expenses
@@ -392,7 +435,8 @@ describe('freedomScore', () => {
     const indebted = scoreBreakdown(p);
     expect(indebted.bankDebt).toBe(4000);
     expect(indebted.freedomAchieved).toBe(false);      // can't finish free while owing the bank
-    expect(indebted.total).toBe(free.total - 4000 - 2000); // debt subtracted + lost debt_free bonus
+    expect(indebted.passiveAnnual).toBe(free.passiveAnnual - 2400); // $200 monthly service × 12
+    expect(indebted.total).toBe(free.total - 4000 - 2000 - 2400);
   });
 
   it('computeAchievements reflects final state', () => {

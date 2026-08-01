@@ -127,7 +127,7 @@ function main(): void {
         outfit: p.outfit,
         persona: p.botPersona ?? 'conservative',
         strategy: p.botStrategy ?? 'none',
-        score: freedomScore(p),
+        score: freedomScore(p, state.macro),
         bankrupt: p.bankrupt,
       }));
 

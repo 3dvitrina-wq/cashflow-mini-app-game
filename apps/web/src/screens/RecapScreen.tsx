@@ -67,16 +67,19 @@ export const RecapScreen: React.FC = () => {
 
   const ranked = useMemo(
     () => [...players]
-      .map((p) => ({ player: p, score: scoreBreakdown(p) }))
+      .map((p) => ({ player: p, score: scoreBreakdown(p, engineMatch?.macro) }))
       .sort((a, b) => b.score.total - a.score.total),
-    [players],
+    [players, engineMatch?.macro],
   );
   const myIdx = ranked.findIndex((r) => r.player.id === myId);
   const mine = ranked[myIdx] ?? ranked[0];
   const myRank = myIdx >= 0 ? myIdx + 1 : 1;
   const me = mine?.player;
   const bd = mine?.score;
-  const achievements = useMemo(() => (me ? computeAchievements(me) : []), [me]);
+  const achievements = useMemo(
+    () => (me ? computeAchievements(me, engineMatch?.macro) : []),
+    [me, engineMatch?.macro],
+  );
   // UI players carry characterId + the avatar mood; engine players carry the scoring data.
   const uiById = useMemo(() => new Map(match.players.map((p) => [p.id, p])), [match.players]);
   const uiMe = uiById.get(myId ?? '');
@@ -103,7 +106,7 @@ export const RecapScreen: React.FC = () => {
   const lines = useMemo(() => {
     if (!bd) return [] as { key: string; icon: string; label: string; value: number; color: string }[];
     const arr = [
-      { key: 'passive', icon: '🌱', label: ru ? 'Пассивный доход ×12' : 'Passive income ×12', value: bd.passiveAnnual, color: '#28C76F' },
+      { key: 'passive', icon: '🌱', label: ru ? 'Чистый пассивный поток ×12' : 'Net passive cashflow ×12', value: bd.passiveAnnual, color: '#28C76F' },
       { key: 'cash', icon: '💵', label: ru ? 'Наличные' : 'Cash', value: bd.cash, color: '#F5C524' },
     ];
     if (bd.assetValue > 0) arr.push({ key: 'assets', icon: '🏢', label: ru ? 'Активы' : 'Assets', value: bd.assetValue, color: '#7AA7FF' });

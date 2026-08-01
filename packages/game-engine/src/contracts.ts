@@ -94,16 +94,20 @@ export function contractFromOffer(
         description: offer.description || 'Silent partner investment',
       };
       break;
-    case 'loan_shark':
+    case 'loan_shark': {
+      const borrowerRequestedCash = (offer.cashRequest ?? 0) > 0;
+      const borrower = borrowerRequestedCash ? fromPlayer : toPlayer;
+      const lender = borrowerRequestedCash ? toPlayer : fromPlayer;
       terms = {
         kind: 'loan',
         paymentAmount: Math.max(0, Math.round((offer.cashRequest ?? offer.cashOffer ?? 0) * 0.3)),
         paymentInterval: 1,
-        payerId: toPlayer.id,
-        payeeId: fromPlayer.id,
+        payerId: borrower.id,
+        payeeId: lender.id,
         description: offer.description || 'High-interest loan',
       };
       break;
+    }
     case 'service_for_equity':
       terms = {
         kind: 'service',

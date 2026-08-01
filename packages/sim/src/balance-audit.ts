@@ -10,6 +10,7 @@ import {
   botIntent,
   createMatch,
   freedomScore,
+  passiveCashflow,
   resolveCommand,
   type NewPlayer,
 } from '../../game-engine/src/index';
@@ -242,7 +243,7 @@ function main(): void {
         outfit: p.outfit,
         persona: p.botPersona ?? 'conservative',
         strategy: p.botStrategy ?? 'none',
-        score: freedomScore(p),
+        score: freedomScore(p, state.macro),
         cash: p.cash,
         passive: p.passiveIncome,
         stress: p.stress,
@@ -400,9 +401,15 @@ function main(): void {
   // ─── Strategy Viability ─────────────────────────────────────────────────
   console.log(`\n── Strategy Viability ─────────────────────────────`);
   const strategies = [
-    { name: 'Safe Cashflow', check: (s: PlayerState) => s.passiveIncome > s.expenses && s.stress < 4 },
+    {
+      name: 'Safe Cashflow',
+      check: (s: PlayerState, state: MatchState) => passiveCashflow(s, state.macro).net >= 0 && s.stress < 4,
+    },
     { name: 'Active Dealmaker', check: (s: PlayerState) => s.contracts.length > 0 || s.partnerships.length > 0 },
-    { name: 'High-Risk Speculator', check: (s: PlayerState) => s.futuresPositions.length > 0 || s.debt > 5 },
+    {
+      name: 'High-Risk Speculator',
+      check: (s: PlayerState) => s.recapTags.some((tag) => tag.startsWith('futures_')) || s.debt > 5,
+    },
   ];
   const viabilityCohorts: CohortMeasurement[] = [];
 
@@ -413,9 +420,11 @@ function main(): void {
       const { state, violations } = playMatchDetailed(m.seed);
       invariantViolations.push(...violations);
       for (const p of state.players) {
-        if (strat.check(p)) {
+        if (strat.check(p, state)) {
           count++;
-          const winner = [...state.players].sort((a, b) => freedomScore(b) - freedomScore(a))[0];
+          const winner = [...state.players].sort(
+            (a, b) => freedomScore(b, state.macro) - freedomScore(a, state.macro),
+          )[0];
           if (winner?.id === p.id) wins++;
         }
       }
@@ -452,7 +461,9 @@ function main(): void {
       invariantViolations.push(...collectInvariantViolations(state, seed + 100000, 'round'));
     }
     if (state.phase === 'finished') {
-      const sorted = [...state.players].sort((a, b) => freedomScore(b) - freedomScore(a));
+      const sorted = [...state.players].sort(
+        (a, b) => freedomScore(b, state.macro) - freedomScore(a, state.macro),
+      );
       const winner = sorted[0]!;
       for (const p of state.players) {
         const pid = p.professionId ?? 'unknown';
