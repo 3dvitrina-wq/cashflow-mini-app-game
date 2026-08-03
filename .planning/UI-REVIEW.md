@@ -1,387 +1,228 @@
-# DYOR — Post-fix UI Recheck
+# DYOR — UI Review
 
-**Rechecked:** 2026-08-03  
-**Tree:** live uncommitted working tree after the UI truth/momentum fixes  
-**Dev server:** `http://127.0.0.1:5173` returned HTTP 200  
-**Screenshots:** not captured — Playwright-MCP and local Playwright binary are unavailable; this is a targeted code recheck  
-**Scope:** only the P0/P1 findings and six pillar scores from the original review
+**Audited:** 2026-08-04
 
-## Recheck verdict
+**HEAD:** `ece7994` — `Unify game attention and reveal monthly cashflow`
 
-The fix pass materially improved product truth and mobile operability. The visible fake settings, broken labor auction, fictitious pet synergies, decorative market risk, repeatable daily reward, dead counter-offer, false enforcement prices, wrong visited-player state and broken character emotion loader are now closed. The first guided match is also 15 rounds, sound/haptics are real settings, and bots react when a card lands.
+**Baseline:** abstract 6-pillar standards plus `UI_TRUTH_AND_MOMENTUM_AUDIT.md`, `PHASE3_UI_AND_FEEL_SPEC.md`, and `PHASE_4_2_MOBILE_UX_LOBBY_STYLE_PLAN.md`
 
-There are **no remaining P0 UI-truth blockers** from the original list. Five P1 clusters remain: Telegram Back/focus handling, destructive-action confirmation, the server-authoritative deal lifecycle, fabricated lobby social proof, and the inconsistent returning-player/15-round path.
+**Visual evidence:** the main agent interactively verified the implemented mobile flow in the in-app Browser at **402×874**. This auditor's Playwright CLI attempt against the live `5173` server produced no screenshot artifact, so desktop/tablet visual judgments remain `needs_human_review: true`.
 
-### Updated pillar scores
-
-| Pillar | Before | Now | Recheck finding |
-|---|---:|---:|---|
-| 1. Copywriting | 2/4 | **3/4** | Dev-copy and false mechanic labels were mostly removed; fake lobby metrics and RU/EN/default-mode contradictions remain. |
-| 2. Visuals | 2/4 | **3/4** | Generated `.webp` emotion sets now load and the sheet chrome is unified; visual confirmation was code-only. |
-| 3. Color | 3/4 | **3/4** | Semantic palette remains coherent, but the scan still finds 214 unique hardcoded hex colors. |
-| 4. Typography | 2/4 | **2/4** | The original 6.8–9px microtype and broad weight vocabulary remain. |
-| 5. Spacing | 2/4 | **3/4** | Sheets, profiles, rooms and negotiation now use Telegram safe insets and 44px back/close targets. |
-| 6. Experience Design | 1/4 | **2/4** | Major truth/state defects are fixed, but navigation, destructive safety, deals and repeat-play entry still have notable gaps. |
-
-**Updated overall: 16/24** — up from **12/24**.
-
-## Previous P0/P1 status
-
-| Previous finding | Status | Current evidence |
-|---|---|---|
-| Fake Settings controls and dead links/actions | **Closed** | Visible settings now persist volume, music, effects, haptics, host and language (`apps/web/src/screens/SettingsScreen.tsx:22-26`, `116-239`). Unwired legacy controls/actions are hidden (`SettingsScreen.tsx:287-508`). Audio buses, volume and ambient music are real (`apps/web/src/lib/sound.ts:52-79`, `82-193`); haptics reads the same persisted preference (`apps/web/src/hooks/useHaptics.ts:5-11`). |
-| Unwinnable labor auction and fake `$200` refresh | **Closed** | Hire sends canonical fixed salary (`apps/web/src/screens/LaborMarketScreen.tsx:180-194`); all offered workers are `available` or non-actionable `scarce`, not contested (`LaborMarketScreen.tsx:38-139`); refresh no longer claims a price (`LaborMarketScreen.tsx:635-651`). |
-| False worker bonuses | **Closed for visible actions** | Chef/marketer labels match canonical slot/fixed-income values, while lawyer/accountant are disabled as scarce instead of selling nonexistent shields (`LaborMarketScreen.tsx:74-139`, `488-520`). |
-| Repeatable/fictitious daily reward | **Closed** | `lastDailyClaimDate` makes credit claim-once and all seven rewards are real coins (`apps/web/src/screens/DailyCardScreen.tsx:18-50`; `apps/web/src/store/persistence.ts:15-18`, `36-54`). A 44px explicit close is available before reveal (`DailyCardScreen.tsx:80-102`). |
-| Dead counter-offer and false enforcement price | **Closed** | Counter CTA/prop is removed; enforcement choices display zero cost and primary copy says “ОТПРАВИТЬ ПРЕДЛОЖЕНИЕ” (`apps/web/src/components/negotiation/OfferBuilderModal.tsx:24-29`, `33-47`, `246-253`). |
-| Multiplayer offer falsely announced as accepted | **Partially closed** | UI now says “Предложение отправлено” in multiplayer (`apps/web/src/screens/MainTurnTableScreen.tsx:1794-1805`), but store still returns the semantic value `accepted` immediately after send and has no explicit pending lifecycle (`apps/web/src/store/index.ts:615-619`). |
-| Visited profile shows local-player engine data / fake protection | **Closed** | Visited player is resolved first (`apps/web/src/screens/PlayerStatsScreen.tsx:123-129`); empty protection now renders “Нет” without immunity (`PlayerStatsScreen.tsx:383-389`). |
-| No explicit/shared sheet close, Escape or dialog semantics | **Mostly closed** | BottomSheet has Escape, `role="dialog"`, `aria-modal` and a 44px Back control (`apps/web/src/components/BottomSheet.tsx:27-34`, `68-73`, `103-114`; `apps/web/src/index.css:3495-3519`). Focus trap/initial focus/restore are still absent. |
-| Telegram safe-area collision in profile/rooms/negotiation | **Mostly closed** | Generic and profile sheets cap against `--safe-top` and use `--safe-bottom` (`apps/web/src/index.css:3472-3492`, `6080-6089`); negotiation uses safe padding and 44px Back (`index.css:10812-10832`); rooms overlay uses safe padding and a 44px close (`apps/web/src/screens/LobbyScreen.tsx:1283-1296`). The custom incoming-deal confirmation still uses hardcoded bottom padding (`MainTurnTableScreen.tsx:1725-1734`). |
-| Generated character emotion art never loads | **Closed** | Glob and regex now both match `.webp` (`apps/web/src/assets/characterRenderer.tsx:185-196`). |
-| Asset sale/transfer executes without confirmation | **Open** | Profile sale remains direct (`apps/web/src/screens/PlayerStatsScreen.tsx:179-186`, `540-553`); Business Slots sale and transfer call the store immediately (`apps/web/src/screens/BusinessSlotsScreen.tsx:162-183`, `312`, `361`). |
-| Pet multi-ownership/synergy/currency conflict | **Closed** | Only the most recent/engine-owned pet is shown, catalog disappears after ownership, synergies are removed, and purchase copy uses dollars (`apps/web/src/screens/PetShopScreen.tsx:46-65`, `98-131`). |
-| Market risk presented without mechanics; generic errors | **Closed** | Risk badges are no longer rendered; copy explicitly defers risk until authoritative; cash/slot eligibility and specific disabled copy are visible (`apps/web/src/screens/MarketBoardScreen.tsx:175-208`, `243-246`, `341-359`). Three reachable early assets were added (`MarketBoardScreen.tsx:34-67`). |
-| Bots react only near timer expiry / no sound atmosphere | **Closed** | A context-aware bot now reacts once when each card lands (`apps/web/src/screens/MainTurnTableScreen.tsx:590-609`); card-type stingers play (`MainTurnTableScreen.tsx:585-588`); ambient music and master volume are implemented (`apps/web/src/lib/sound.ts:52-79`, `150-193`). |
-
-## Remaining blockers
-
-1. **P1 — Telegram Back and modal focus stack are still missing.** `App.tsx` only toggles closing confirmation (`apps/web/src/App.tsx:29-36`); there is no `BackButton`/`backButtonClicked` integration anywhere in `apps/web/src`. BottomSheet gained Escape and dialog semantics but still does not set/trap/restore focus (`apps/web/src/components/BottomSheet.tsx:16-34`, `68-78`). Implement a topmost-overlay stack that maps Telegram Back and Escape to the same close action and restores focus to the opener.
-2. **P1 — destructive asset operations still have no review step.** Sale and transfer mutate immediately from Profile and Business Slots (`apps/web/src/screens/PlayerStatsScreen.tsx:179-186`; `apps/web/src/screens/BusinessSlotsScreen.tsx:162-183`). Add a shared confirmation showing asset, price/recipient, lost monthly flow and final irreversible action. Leave/surrender are currently hidden with the rest of the unwired legacy controls (`SettingsScreen.tsx:287-508`), so the product also lacks an intentional match-exit path.
-3. **P1 — the deal lifecycle is only cosmetically pending.** Multiplayer copy is now honest, but `submitDealOffer` still returns `accepted` on send (`apps/web/src/store/index.ts:615-619`), and there is no sender-facing sent/viewed/countered/accepted/rejected state. The removed counter button avoids a dead CTA but does not deliver reciprocal negotiation. Make the server state authoritative and keep an outgoing offer surface until terminal resolution.
-4. **P1 — lobby social proof remains fabricated.** `onlineCount = 1284`, minimum three achievements, fallback unearned achievements, `+1.2K`, `128` reactions and `312` views are still hardcoded (`apps/web/src/screens/LobbyScreen.tsx:466-470`, `1024-1032`, `1063-1069`). Remove them or label the avatars as bots/demo. This remains the largest copy/trust defect.
-5. **P1 — the 15-round/repeat-player path is inconsistent.** First-run code correctly starts 15 rounds (`apps/web/src/App.tsx:74-82`), but onboarding still announces `Long 25` (`apps/web/src/screens/OnboardingScreen.tsx:194-198`), lobby defaults to 25 (`apps/web/src/screens/LobbyScreen.tsx:534-537`), and the main returning-user CTA opens multiplayer rooms instead of a one-tap bot sprint (`LobbyScreen.tsx:1016-1022`). Default lobby to 15, correct onboarding copy, and split the primary choices into “Быстрый матч с ботами” / “Играть с людьми”.
-
-## Remaining non-blocking issues
-
-- `PlayerProfile` still hardcodes `LVL 14` for every player (`apps/web/src/components/PlayerProfile.tsx:50-57`).
-- Russian lobby/onboarding still mixes `Start`, `ready`, `Long`, `recovery` (`apps/web/src/screens/LobbyScreen.tsx:1171`, `1249`, `1258-1261`; `apps/web/src/screens/OnboardingScreen.tsx:195`).
-- `PlayerStatsScreen` keeps focusable page-navigation buttons inside `aria-hidden="true"` (`apps/web/src/screens/PlayerStatsScreen.tsx:570-579`).
-- Tiny typography remains widespread, including 6.8px labels (`apps/web/src/index.css:2944`, `3165`) and the new sheet kicker at 8px (`index.css:3543-3549`).
-- Labor and pet arrival animations still delay access on every open, and inline labor animations are not covered by the reduced-motion media rules (`apps/web/src/screens/LaborMarketScreen.tsx:169-177`, `294-339`, `536-549`; `apps/web/src/screens/PetShopScreen.tsx:38-44`).
-- `CollaborationHubScreen` remains mounted but unreachable: no call to `setIsCollabOpen(true)` exists (`apps/web/src/screens/MainTurnTableScreen.tsx:391`, `1842-1846`).
+**Verification:** `npm run typecheck` — PASS
 
 ---
 
-# Original audit — pre-fix baseline
+## Verdict
 
-# DYOR — UI/UX Review
+The current UI has **no remaining P0 truth blocker from the original audit**. Commit `ece7994` closes the high-impact attention and motion failures: Telegram Back and focus now share a topmost-layer stack, ordinary notices yield to decisions and modals, the tutorial suspends for every competing surface, and the next card is not revealed until an authoritative new round has passed through the itemized night ledger.
 
-**Audited:** 2026-08-03  
-**Scope:** весь реализованный продукт: onboarding, lobby/waiting room, основной стол, банк, рынок, труд, питомцы, профили/статистика, настройки, продажа карт и активов, партнёрства, daily reward, recap  
-**Baseline:** продуктовые документы и abstract 6-pillar standards; утверждённого `UI-SPEC.md` нет  
-**Screenshots:** не сняты — dev server не найден на `localhost:3000`, `5173` или `8080`; выводы основаны на code-only аудите  
-**Registry audit:** пропущен — `components.json` отсутствует
-
----
-
-## Итоговый вердикт
-
-Сейчас DYOR выглядит как выразительная мобильная игра, но ощущается как красивый вертикальный срез, в котором часть обещанных решений ещё не является настоящими решениями. Сильные стороны уже видны: карточка — ясный фокус раунда, финансовый preview полезен, иллюстрации и сатира отличают продукт от типового fintech UI, а recap хорошо объясняет результат. Главная угроза удержанию — не нехватка декора, а потеря доверия: некоторые кнопки ничего не делают, некоторые эффекты существуют только в тексте, а несколько систем расходятся с движком.
-
-Это критично именно для игры про выбор и последствия. Игрок простит поражение, но не простит интерфейс, который соврал о ставке, питомце, контракте, награде или настройке.
-
----
+Three P1 clusters remain. Multiplayer deal and Futures screens still equate WebSocket send success with authoritative success; Labor's worker confirmation is the only material custom modal outside the shared focus/Back contract; and users still have no intentional leave/surrender path. The UI is substantially more coherent, but these are not minor polish issues.
 
 ## Pillar Scores
 
 | Pillar | Score | Key finding |
 |---|---:|---|
-| 1. Copywriting | 2/4 | Сильный сатирический голос соседствует с dev-copy, ложными обещаниями, смешением RU/EN и неверными сообщениями об ошибках. |
-| 2. Visuals | 2/4 | Сильные диорамы и карточный фокус подрываются сломанными emotion-art персонажей и несогласованными модалками. |
-| 3. Color | 3/4 | Палитра узнаваема и семантически читаема, но 214 уникальных hardcoded hex-значений размывают систему. |
-| 4. Typography | 2/4 | Иерархия энергичная, но используется слишком много размеров и весов; текст местами опускается до 6.8–9px. |
-| 5. Spacing | 2/4 | Основной стол учитывает Telegram safe area, но часть sheet/modal поверхностей и touch targets — нет. |
-| 6. Experience Design | 1/4 | Есть recovery, preview и recap, но много dead/fake controls, сломанных обещаний и навигационных тупиков. |
+| 1. Copywriting | **3/4** | Core transaction and settlement copy is much more truthful; optimistic multiplayer acknowledgements and several fabricated/profile labels remain. |
+| 2. Visuals | **3/4** | The card is the focal point and the verified mobile month-change ledger creates a clear consequence spectacle; custom surfaces still vary in hierarchy. |
+| 3. Color | **3/4** | Cash/debt/warning roles are coherent, but 230 unique hardcoded hex values prevent a reliable token contract. |
+| 4. Typography | **2/4** | 49 numeric sizes, 14 weights, and extensive 6–9.6px text create avoidable readability and hierarchy debt. |
+| 5. Spacing | **3/4** | Shared sheets, confirms, negotiation, and routes honor Telegram insets; a few custom/sub-44 controls remain. |
+| 6. Experience Design | **2/4** | Modal ownership and turn sequencing are fixed, but three reproducible P1 interaction/truth gaps remain. |
 
-**Overall: 12/24**
+**Overall: 16/24**
 
 ---
 
 ## Severity
 
-- **P0 — release blocker:** интерфейс сообщает ложный результат, теряет/дублирует ценность или не даёт безопасно завершить действие.
-- **P1 — high:** ломает основную петлю, Telegram-навигацию, социальный payoff или повторную игру.
-- **P2 — medium:** ухудшает ясность, доступность, консистентность или темп.
-- **P3 — polish:** локальная косметика без существенного влияния на решение игрока.
-
----
+- **P0:** none.
+- **P1:** 3 reproducible clusters.
+- **P2:** typography/touch targets, residual profile truth, localization, accessibility, and reduced-motion consistency.
 
 ## Top 3 Priority Fixes
 
-1. **Ввести “truth contract” для каждого интерактивного элемента.** Настройки, ставки труда, синергии питомцев, стоимость enforcement, встречное предложение, daily reward и social proof должны либо реально работать, либо быть удалены/явно помечены. Пользовательский эффект: восстановление базового доверия к решениям. Конкретный критерий: ни одна видимая CTA, цена, награда, характеристика или статус не расходится с подтверждённым состоянием движка.
-2. **Собрать единый Telegram-safe modal/navigation stack.** Один sheet/modal contract: safe top/bottom, 44×44 close/back, Telegram `BackButton`, Escape, `role="dialog"`, focus management, один активный overlay, подтверждение разрушительных действий. Пользовательский эффект: нельзя застрять, случайно продать актив или попасть кнопкой под Close/ellipsis Telegram.
-3. **Сделать последствия раунда главным спектаклем.** Починить emotion-art `.webp`, показывать реакцию персонажа и соперника, дать короткий state-aware host cue, звук/хаптик и один ясный before→after outcome. Пользовательский эффект: каждый выбор ощущается событием, а не повтором “выбрать → подтвердить → следующий месяц”.
-
-### Следующие 2 приоритета
-
-4. **Сократить путь до игры и сам матч.** Первый meaningful choice — без десяти последовательных coach marks; returning player — в локальный матч с ботами за один тап; `Sprint 15` — рекомендуемый default, а 25 раундов — осознанный Long режим.
-5. **Превратить ботов и сделки в социальную систему.** Боты должны телеграфировать характер и реагировать на реальные последствия, а офферы — иметь состояния “отправлено / рассматривается / принято / отклонено”, а не мгновенный или оптимистически ложный результат.
+1. **P1 — replace optimistic transport success with authoritative lifecycle state.** Multiplayer deal submission returns `accepted` immediately after `wsClient.send` (`apps/web/src/store/index.ts:601-619`) even though the UI only says it was sent (`apps/web/src/screens/MainTurnTableScreen.tsx:2014-2025`). Futures likewise treats socket-send success as a debited margin and announces it after a cosmetic delay (`apps/web/src/screens/FuturesScreen.tsx:95-116`; `apps/web/src/store/index.ts:680-690`). Add command ids and server states such as `sending / acknowledged / accepted / rejected`, keep the originating surface visible until acknowledgement, and announce only authoritative outcomes.
+2. **P1 — move the Labor worker confirmation into the shared modal stack.** The nested confirmation is still a fixed `zIndex: 10000` div with backdrop click only; it has no dialog semantics, initial focus, trap, restore, Escape, or topmost Telegram Back ownership (`apps/web/src/screens/LaborMarketScreen.tsx:525-551`, `599-625`). Reuse `ConfirmDialog` or `useModalLayer`, put focus on “Отмена”, and make Back close the confirmation rather than the entire Labor sheet.
+3. **P1 — implement an intentional match-exit path.** “Выйти из матча” and “Сдаться” remain inside the hidden legacy block and have no commands (`apps/web/src/screens/SettingsScreen.tsx:287-290`, `474-507`). Add an authoritative leave/surrender action, a consequence preview and confirmation, then expose it separately from ordinary settings.
 
 ---
 
-## Что удерживает / что заставляет уйти
+## Attention Ownership and Window Stack
 
-| Удерживает | Заставляет уйти |
-|---|---|
-| Частная карточка и понятное право выбора | Один и тот же ритм на 15–25 раундов без актов и эскалации |
-| Preview денег, потока и расходов до подтверждения | Риск рынка, бонусы персонала и питомцев часто декоративны или ложны |
-| Яркие персонажи, комнаты, питомцы и диорамы | Персонаж почти не меняется после последствий из-за сломанной загрузки emotion-art |
-| Сатира и финансовая конкретика | Dev-текст, fake social proof и кнопки без действия разрушают мир |
-| Recovery jobs, банк, помощь стола | Recovery спрятан в меню/профиле; центральная цель не держится на основном HUD |
-| Сильный recap, achievements, share и rematch | Repeat-user путь из lobby ведёт только в комнаты, а не в быстрый матч с ботами |
+The implemented priority order is now understandable and mostly deterministic:
 
----
+| Surface | Layer/evidence | Ownership result |
+|---|---|---|
+| Global notice lane | `z-index: 850`; one latest persistent plus one latest transient (`apps/web/src/components/Toast.tsx:101-156`; `apps/web/src/index.css:130-140`) | Background feedback; yields to every higher decision surface. |
+| Decision-required banners | `z-index: 860`, safe-bottom, bounded scroll (`apps/web/src/index.css:11081-11098`; branches at `MainTurnTableScreen.tsx:1855-1933`) | One foreground decision lane for personal offers, interest, or incoming deal. |
+| Month transition / ledger | `z-index: 880` (`apps/web/src/index.css:7702-7715`) | Owns the screen while the round resolves. |
+| Tutorial | `z-index: 900–902` (`apps/web/src/index.css:11728-11763`) | Owns onboarding only when no window, decision, menu, or transition is active (`MainTurnTableScreen.tsx:724-746`, `2084-2090`). |
+| Shared sheet | backdrop `999`, sheet `1000` (`apps/web/src/index.css:3469-3500`) | Owns Back/Escape/Tab and scroll. |
+| Shared confirmation | `1200` (`apps/web/src/index.css:3535-3560`) | Top nested destructive-decision owner. |
+| Labor custom confirmation | local `10000` (`apps/web/src/screens/LaborMarketScreen.tsx:525-551`) | **Exception:** visually topmost but absent from the logical modal stack. |
 
-## Critical Findings
+When a registered modal opens, `modal-layer-open` hides both the notice center and decision banners (`apps/web/src/hooks/useModalLayer.ts:49-63`; `apps/web/src/index.css:143-148`). This closes the previous notice-over-window inconsistency. The global queue still permits one persistent and one transient notice at once, but both occupy one shared lane rather than competing hosts, reconnect banners, and toasts.
 
-### P0 — интерфейс обещает то, чего нет
+## Before / After / Why
 
-1. **Большая часть Settings — муляж.** `soundVolume`, `haptics`, `gameSpeed`, `volatility`, `turnTimer` и `commMode` живут только в локальном React state (`apps/web/src/screens/SettingsScreen.tsx:13-20`). Slider меняет цифру, но звуковой движок не имеет volume (`SettingsScreen.tsx:106-121`; `apps/web/src/lib/sound.ts:51-73`). Haptics toggle не читается хуком (`SettingsScreen.tsx:140-163`; `apps/web/src/hooks/useHaptics.ts:29-97`). Links не имеют `onClick` (`SettingsScreen.tsx:394-428`), а “Выйти из матча” и “Сдаться” не имеют ни действия, ни confirmation (`SettingsScreen.tsx:430-462`).
-2. **Contested labor auction нельзя выиграть.** UI требует перебить rival bid и отправляет повышенный `bidAmount` как salary (`apps/web/src/screens/LaborMarketScreen.tsx:191-208`), но registry принимает только точную canonical salary (`packages/game-engine/src/registries.ts:99-117`). Отказ ошибочно объясняется “Недостаточно наличных”. Дополнительно refresh обещает цену `$200`, но ничего не списывает (`LaborMarketScreen.tsx:212-221`, `699-715`).
-3. **Показанные бонусы сотрудников расходятся с движком.** Юрист обещает “Щит от споров”, бухгалтер — “Щит от налогов”, повар — “контент +5%”, маркетолог — “+15% доход” (`LaborMarketScreen.tsx:74-139`), но canonical registry хранит у первых трёх только slot/income values, а маркетолог даёт фиксированные `+300`, не процент (`packages/game-engine/src/registries.ts:29-35`).
-4. **Daily reward можно получать повторно при каждом открытии.** Экран всегда вызывает `handleReveal`, который снова увеличивает coins (`apps/web/src/screens/DailyCardScreen.tsx:36-47`), тогда как `checkDailyStreak` фиксирует только дату streak, не факт claim (`apps/web/src/store/persistence.ts:97-117`). “Редкая карта” вообще cosmetic-only, несмотря на текст награды (`DailyCardScreen.tsx:23-25`, `46`). Это одновременно эксплойт и ложное вознаграждение.
-5. **Negotiation UI содержит мёртвое встречное предложение и ненастоящую цену защиты.** “ВСТРЕЧНОЕ” вызывает callback (`apps/web/src/components/negotiation/OfferBuilderModal.tsx:249-254`), но caller оставляет его пустым (`apps/web/src/screens/MainTurnTableScreen.tsx:1750-1752`). UI показывает `Контракт −$50` и `Юрист −$200` (`OfferBuilderModal.tsx:24-29`, `249-252`), но создание контракта не списывает enforcement cost (`packages/game-engine/src/contracts.ts:134-164`).
-6. **Multiplayer сделка объявляется принятой до ответа сервера.** Store возвращает `accepted` сразу после отправки команды (`apps/web/src/store/index.ts:615-619`), после чего UI показывает “партнёр принял” (`MainTurnTableScreen.tsx:1740-1747`). Для социальной игры это прямое нарушение доверия.
-7. **Профиль другого игрока может показать данные локального игрока.** Условие поиска отдаёт local player раньше visited player (`apps/web/src/screens/PlayerStatsScreen.tsx:123-129`). Там же пустая защита подменяется “Бухгалтером” и “Налог. иммунитетом” (`PlayerStatsScreen.tsx:382-383`).
-
-### P1 — навигация, безопасность и последствия
-
-8. **Нет интеграции с Telegram `BackButton`.** `App.tsx` управляет только closing confirmation (`apps/web/src/App.tsx:29-36`); обработчиков `BackButton` в `apps/web/src` нет. На основном столе нет постоянного back/leave affordance, а настройки выхода не работают.
-9. **Общий BottomSheet нельзя явно закрыть.** Компонент имеет backdrop и swipe, но не close/back button, dialog semantics, Escape или focus trap (`apps/web/src/components/BottomSheet.tsx:48-115`). Поэтому Bank, Market, Labor, Pets, Profile и Business Slots закрываются по-разному; `PlayerProfile` и `BusinessSlotsScreen` не добавляют собственную кнопку.
-10. **Часть overlays конфликтует с Telegram Close/ellipsis и safe area.** Основной shell корректно использует Telegram insets (`apps/web/src/main.tsx:48-73`; `apps/web/src/index.css:76-88`), но profile sheet расширен до `96vh` (`index.css:6002-6008`), Offer Builder начинается с верхнего края и имеет 36px back (`index.css:10723-10753`), а общий sheet использует только `env(safe-area-inset-bottom)`, игнорируя вычисленный `--safe-bottom` (`index.css:3469-3489`).
-11. **Состояния новых персонажей визуально не загружаются.** Glob ищет `.webp`, regex проверяет `.png`, поэтому `CHARACTER_EMOTION_SETS` остаётся пустым (`apps/web/src/assets/characterRenderer.tsx:178-196`) и generated character всегда возвращает stable art (`characterRenderer.tsx:239-248`). Стресс, налоговая паника, ликвидация, картонная коробка и спокойствие теряют главный визуальный payoff.
-12. **Продажа активов выполняется без подтверждения.** И в profile (`PlayerStatsScreen.tsx:179-186`, `523-547`), и в Business Slots (`apps/web/src/screens/BusinessSlotsScreen.tsx:162-170`, `289-314`) “Продать” сразу меняет состояние. Передача и opening share также не имеют review step.
-13. **Питомцы показывают несуществующие синергии и конфликтуют с engine ownership.** UI поддерживает несколько `ownedIds` и объявляет две синергии (`apps/web/src/screens/PetShopScreen.tsx:29-50`, `85-99`), но engine хранит один `player.pet`, перезаписывает его при покупке и лишь накапливает upkeep/bonus (`packages/game-engine/src/engine.ts:974-995`). Кнопка использует coin emoji, хотя списываются live match dollars (`PetShopScreen.tsx:52-59`, `143-145`).
-14. **Риск Market — визуальный бейдж, а не механика.** Каталог описывает low/medium/high риск (`apps/web/src/screens/MarketBoardScreen.tsx:33-121`), но все registry assets имеют пустые tags/synergies и нулевой upkeep (`packages/game-engine/src/registries.ts:89-96`). Покупка не показывает текущий cash/slots и любой engine отказ переводит в “Недостаточно наличных” (`MarketBoardScreen.tsx:141-149`, `319-334`).
+| Area | Before | After at `ece7994` | Why it matters |
+|---|---|---|---|
+| Notice ownership | Host, reconnect, transaction notices and deal banners could overlap or cross modal z-indices. | Notices live at 850, decisions at 860, transition at 880, tutorial at 900, sheets at 1000 and confirms at 1200; registered modals suppress notices/decisions. | The player has one primary attention owner and does not act through stale feedback. |
+| Telegram Back / focus | Shared sheets had partial Escape semantics; full-screen routes and custom dialogs did not share a topmost stack. | `useModalLayer` registers topmost Back/Escape/Tab, traps focus, locks scroll and restores the opener (`apps/web/src/hooks/useModalLayer.ts:25-47`, `77-135`); routes use the same stack (`apps/web/src/App.tsx:39-52`). | Back behaves like the visible back action and nested confirms do not close the wrong layer. |
+| Safe-area windows | Daily and incoming-deal confirmation used bespoke full-screen padding; room/negotiation behavior varied. | Daily is a `BottomSheet` (`DailyCardScreen.tsx:54`), incoming deal is `ConfirmDialog` (`MainTurnTableScreen.tsx:1979-1995`), negotiation uses safe top/bottom and 44px Back (`apps/web/src/index.css:11268-11309`), and rooms/reactions use `useModalLayer` (`LobbyScreen.tsx:553-564`, `1318-1433`). | Telegram Close/ellipsis no longer collides with primary content or the only exit control. |
+| Destructive economy actions | Sale, transfer and share could mutate immediately. | Asset operations first create a pending fact model, then use cancel-first shared confirmation (`PlayerStatsScreen.tsx:118-123`, `186-195`, `601-617`; `BusinessSlotsScreen.tsx:169-243`, `495-504`). | The player sees cash, monthly-flow and recipient consequences before an irreversible change. |
+| Turn switch and card motion | Store state could advance under a fixed 1.28s settlement overlay; the next card completed its deal-in invisibly, and a lagging client could show the prior settlement. | Card reveal stays `ready` during transition and restarts only after it (`MainTurnTableScreen.tsx:602-621`). Closing submits at 180ms, night waits for `match.round` to advance, shows the ledger for 1.8s, then opening holds 620ms; an 8s stall exits with reconnect feedback (`MainTurnTableScreen.tsx:833-913`). | The causal sequence is visible: choice locked → authoritative money result → new month → new card. |
+| Monthly consequence | A generic settlement total did not explain the result. | The ledger decomposes work, passive income, assets, upkeep and round events, reconciles them to `lastSettlement`, and shows In/Out/Net (`MainTurnTableScreen.tsx:654-723`, `1147-1178`). Its stagger fits inside the 1.8s night hold and has reduced-motion fallbacks (`apps/web/src/index.css:7824-8025`). | The financial game now teaches why the wallet changed instead of presenting an unexplained number. |
+| Tutorial competition | The tour suspended only for profile, so coach marks could compete with other windows and decisions. | Suspension covers all sheets, menus, reactions, deal surfaces, personal-offer decisions and round transition (`MainTurnTableScreen.tsx:724-746`). | First-run guidance no longer steals attention from an urgent or modal action. |
+| Labor confirmation | Bespoke fixed confirmation inside the Labor sheet. | **Unchanged.** It remains outside `useModalLayer` (`LaborMarketScreen.tsx:525-551`). | This is the only material window preventing a fully fixed modal-stack verdict. |
 
 ---
 
-## Window-by-window Audit
+## Previous P0/P1 Status
 
-### Основной стол
+Status vocabulary is intentionally limited to **fixed / stale / reproducible**.
 
-**Сильное:** центральная карточка — ясный focal point; выбор недоступного варианта блокируется; `?` даёт before→after preview; основной shell и HUD уважают Telegram safe area (`apps/web/src/screens/MainTurnTableScreen.tsx:815-826`, `1411-1456`; `apps/web/src/index.css:76-99`). Settlement overlay даёт короткий итог месяца (`MainTurnTableScreen.tsx:887-898`).
-
-**Проблемы:** одновременно существует 15+ независимых boolean-состояний overlays (`MainTurnTableScreen.tsx:380-410`), но нет modal stack. Все вторичные действия спрятаны за `+` (`MainTurnTableScreen.tsx:832-877`, `1397-1408`), включая recovery и Settings; центральная цель финансовой свободы отсутствует на постоянном HUD. Ритм почти всегда одинаков: выбор → confirm → 1.28s settlement (`MainTurnTableScreen.tsx:673-683`). Это быстро превращает 25 раундов в повтор.
-
-### Банк
-
-**Сильное:** банк объясняет лимит, проценты, кредит, депозит и locking; это один из самых честных и полезных экранов. Финансовые действия привязаны к engine, а причины отказа в основном понятны.
-
-**Проблемы:** наследует sheet без явного close/back; copy “копится по формуле в engine” ломает игровой мир (`apps/web/src/screens/BankScreen.tsx:255-280`). До открытия нет явной подсказки, когда банк является хорошим recovery choice.
-
-### Рынок
-
-**Сильное:** диорамы, категории, price/income и сатирические blurbs дают хорошую scanability.
-
-**Проблемы:** risk почти декоративен; нет affordability/slot state на карточке; все ошибки сводятся к cash. Текст “Здесь уже не заглушки” — внутренний комментарий команды, а не голос мира (`MarketBoardScreen.tsx:163-171`). В текущей математике игрок выбирает ROI, а не риск/стратегию.
-
-### Труд
-
-**Сильное:** персонажи и recovery jobs добавляют человеческое лицо экономике; зарплата и recurring expense визуально представлены.
-
-**Проблемы:** auction, бонусы и refresh price недостоверны — это P0. Каждое открытие блокирует список arrival-анимацией на 950ms (`LaborMarketScreen.tsx:170-179`), а несколько inline animations не подчиняются global reduced-motion (`LaborMarketScreen.tsx:310-355`, `552-565`).
-
-### Питомцы
-
-**Сильное:** каталог визуально тёплый и может быть хорошим emotional relief от чисел.
-
-**Проблемы:** валюта неоднозначна; множественное владение и синергии расходятся с engine; 650ms arrival повторяется при каждом открытии (`PetShopScreen.tsx:41-47`, `101-112`). Питомец должен быть либо настоящим in-match стратегическим companion, либо meta-collection — сейчас экран смешивает обе экономики.
-
-### Профили и статистика
-
-**Сильное:** статусная сцена, свобода, assets, recovery, реакции и social visit собраны в богатую персональную поверхность.
-
-**Проблемы:** visited-player data bug и вымышленная защита — P0. `PlayerProfile` показывает одинаковый hardcoded `LVL 14` (`apps/web/src/components/PlayerProfile.tsx:55-57`) и не имеет видимой кнопки закрытия. В `PlayerStatsScreen` пять tabs, swipe и page dots дублируют навигацию; контейнер `aria-hidden="true"` содержит focusable buttons (`PlayerStatsScreen.tsx:564-573`). Empty state “Покупки через карты появятся здесь” не предлагает действие (`PlayerStatsScreen.tsx:523-559`).
-
-### Настройки
-
-**Сильное:** safe area и заметная “Вернуться в игру” реализованы правильно (`SettingsScreen.tsx:33-84`); destructive actions визуально отделены.
-
-**Проблемы:** экран в основном симулирует настройки. Дублируются “Звуки” и “Звук”; единственные реально сохраняемые элементы — mute и host toggle. Нельзя оставлять его в release в текущем виде: лучше четыре работающих настройки, чем двенадцать декоративных.
-
-### Продажа карты и управление активами
-
-**Сильное:** personal card offer даёт цену и адресата; Business Slots показывает стоимость, income, upkeep и доли (`BusinessSlotsScreen.tsx:250-327`, `333-399`). Empty asset state объясняет жизненный цикл.
-
-**Проблемы:** personal sale разворачивается внутри уже плотного action dock (`MainTurnTableScreen.tsx:1238-1347`), а не в согласованном review sheet; listings/direct offers имеют разные возможности отмены. Продажа/передача активов не подтверждается. Игроку нужен единый “что уйдёт / что придёт / можно ли отменить” шаг.
-
-### Партнёрства
-
-**Сильное:** split, side payment, enforcement и fairness warning создают потенциал настоящего социального решения; incoming confirmation хорошо показывает вклад и monthly outcome (`MainTurnTableScreen.tsx:1660-1719`).
-
-**Проблемы:** counter мёртв, enforcement costs ложны, multiplayer acceptance оптимистически ложный. Full-screen modal конфликтует с Telegram top controls. `CollaborationHubScreen` смонтирован, но открыть его невозможно: нет `setIsCollabOpen(true)` (`MainTurnTableScreen.tsx:391`, `1786-1791`). CTA “ПРИНЯТЬ УСЛОВИЯ” двусмысленна для отправителя; правильнее “Отправить предложение”.
-
-### Lobby, waiting room и onboarding
-
-**Сильное:** на первом запуске “Играть сейчас” действительно запускает локальный матч с ботами за один тап (`apps/web/src/App.tsx:74-82`). Waiting room различает host/guest, позволяет добавить ботов и показывает блокировку Start.
-
-**Проблемы:** первый матч сразу `Long 25`; после завершения onboarding возвращающийся пользователь по основной CTA попадает только в room browser, без quick bot match (`apps/web/src/screens/LobbyScreen.tsx:1016-1022`, `1283-1357`). Пресеты начинаются с 15, но default остаётся 25 (`LobbyScreen.tsx:124-128`). Десять coach-mark steps проходят перед полной свободой игрока (`apps/web/src/components/TutorialOverlay.tsx:23-87`) и объясняют почти всю игру заранее.
-
-Lobby показывает вымышленные `1284` online, `+1.2K`, `128` reactions, `312` views и минимум три достижения (`LobbyScreen.tsx:466-470`, `1024-1032`, `1063-1069`). Fallback также показывает не заработанные achievements. Это не мотивация, а риск недоверия. Есть смешение языка: `Start`, `ready`, `Long`, `recovery` внутри русского UI.
-
-### Daily reward и recap
-
-**Сильное:** recap последовательно раскрывает score, bonuses, achievements, leaderboard; есть Lobby, Share и Rematch (`apps/web/src/screens/RecapScreen.tsx:119-145`, `278-305`). Это лучший retention endpoint продукта.
-
-**Проблемы:** Daily reward эксплуатируем и частично фиктивен; экран нельзя закрыть до reveal (`apps/web/src/screens/DailyCardScreen.tsx:220-239`), overlay не имеет dialog semantics/safe-area policy. Ethical retention требует честного claim-once, а не fake rarity или скрытого convert “pet food → 50 coins” (`DailyCardScreen.tsx:43-46`).
+| Previous finding | Status | Current evidence |
+|---|---|---|
+| Fake Settings controls and dead links/actions | **fixed** | Visible volume, haptics, music, effects, host and language controls persist real preferences (`SettingsScreen.tsx:22-26`, `116-280`); unwired legacy controls are hidden (`287-290`). |
+| Unwinnable Labor auction and fake `$200` refresh | **fixed** | Hire submits canonical salary (`LaborMarketScreen.tsx:180-194`); visible workers are actionable or explicitly scarce (`38-139`); refresh no longer claims a price (`635-651`). |
+| False worker bonuses | **fixed** | Chef/marketer values match fixed slot/income effects; lawyer/accountant are scarce rather than selling nonexistent shields (`LaborMarketScreen.tsx:74-139`). |
+| Repeatable/fictitious daily reward | **fixed** | Claim is guarded by `lastDailyClaimDate`; the seven rewards are real coins (`DailyCardScreen.tsx:18-50`), and the surface now inherits shared close/safe-area behavior (`54`). |
+| Dead counter-offer and false enforcement price | **fixed** | Counter CTA is absent; primary action says “ОТПРАВИТЬ ПРЕДЛОЖЕНИЕ” and only renders a cost when nonzero (`OfferBuilderModal.tsx:263-269`). |
+| Multiplayer offer announced as accepted | **reproducible** | Visible copy is honest (“Предложение отправлено”), but the store still returns the semantic value `accepted` immediately after socket send (`MainTurnTableScreen.tsx:2014-2025`; `store/index.ts:615-619`). |
+| Visited profile shows local-player engine data / fake protection | **fixed** | Visited player lookup precedes local fallback and empty protection renders “Нет” (`PlayerStatsScreen.tsx:126-135`, `383-399`). |
+| No explicit/shared sheet close, Escape or dialog semantics | **fixed** | Shared `BottomSheet` provides dialog semantics and 44px Back (`BottomSheet.tsx:45-106`) through the common focus/Back hook (`17-22`). |
+| Telegram safe-area collision in profile/rooms/negotiation | **fixed** | Sheets cap below `max(--safe-top, 104px)` and use safe-bottom (`index.css:3479-3498`); confirms, negotiation and rooms use the same insets (`3535-3552`, `11268-11309`; `LobbyScreen.tsx:1318-1400`). |
+| Generated character emotion art never loads | **fixed** | Glob and regex both match `.webp` (`apps/web/src/assets/characterRenderer.tsx:185-196`). |
+| Asset sale/transfer executes without confirmation | **fixed** | Profile and Business Slots both route pending facts through `ConfirmDialog` (`PlayerStatsScreen.tsx:601-617`; `BusinessSlotsScreen.tsx:495-504`). |
+| Pet multi-ownership/synergy/currency conflict | **fixed** | Only the current engine-owned pet is represented, the catalog hides after ownership, and purchase copy uses match dollars (`PetShopScreen.tsx:46-65`, `98-131`). |
+| Market risk shown without mechanics; generic errors | **fixed** | Risk badges are gone; cash/slot eligibility and specific errors are rendered (`MarketBoardScreen.tsx:172-201`, `330-365`). |
+| Bots react only near timeout / no sound atmosphere | **fixed** | Card-aware reactions and stingers run after the card is ready; persisted music/volume buses are wired (`MainTurnTableScreen.tsx:623-647`; `apps/web/src/lib/sound.ts:52-79`, `150-193`). |
+| Telegram Back and modal focus stack are missing | **reproducible (narrowed)** | Shared sheets, confirms, OfferBuilder, lobby rooms/reactions and routes now register the stack (`useModalLayer.ts:25-148`; `App.tsx:39-52`), but Labor's nested confirmation still bypasses it (`LaborMarketScreen.tsx:525-551`). |
+| Destructive asset review and intentional match exit are absent | **reproducible (exit only)** | Asset review is fixed; leave/surrender remain hidden and unwired (`SettingsScreen.tsx:287-290`, `474-507`). |
+| Server-authoritative outgoing deal lifecycle is absent | **reproducible** | Sender copy is cosmetic pending; there is still no sent/viewed/countered/accepted/rejected state model (`store/index.ts:601-619`). |
+| Fabricated lobby social-proof counters (`1284`, `+1.2K`, `128`, `312`) | **stale** | Those literals and fallback achievement padding are gone; quick entry truthfully identifies five bots (`LobbyScreen.tsx:1036-1065`). Separate P2 profile-metadata fabrication remains below. |
+| Returning-player / 15-round path is inconsistent | **fixed** | Onboarding says Sprint 15, lobby defaults to 15, and the main CTA starts a 15-round five-bot match (`OnboardingScreen.tsx:194-198`; `LobbyScreen.tsx:533-535`, `1036-1054`; `App.tsx:91-99`). |
 
 ---
 
-## Detailed Findings by Pillar
+## Detailed Findings
 
-### Pillar 1: Copywriting (2/4)
+### Pillar 1: Copywriting (3/4)
 
-Сатира часто точная: “скучные денежные машинки”, burnout-персонажи и финансовые формулировки дают DYOR собственный голос. Preview и recap называют конкретные суммы, а recovery не стыдит игрока.
+Strong improvements:
 
-Но copy нарушает три базовых контракта:
+- Multiplayer deal copy says “sent”, not “accepted” (`MainTurnTableScreen.tsx:2017-2021`).
+- Decision banners consistently say “ТРЕБУЕТСЯ РЕШЕНИЕ” and expose a polite live region (`MainTurnTableScreen.tsx:1855-1933`).
+- The month ledger names sources and closes with an explicit round total (`MainTurnTableScreen.tsx:1147-1178`).
+- Quick match labels bots and duration honestly (`LobbyScreen.tsx:1036-1065`).
 
-- **Правдивость:** labor bonuses, pet synergies, enforcement costs, settings, daily rarity и multiplayer acceptance обещают несуществующее.
-- **Immersion:** “Здесь уже не заглушки” (`MarketBoardScreen.tsx:170`), “по формуле в engine” (`BankScreen.tsx:257`) и похожий текст в Recovery (`PlayerStatsScreen.tsx:406-411`) говорят голосом разработчика.
-- **Consistency:** русский UI смешивается с `Start`, `ready`, `Long`, `Recovery`, `Cash`, `Flow`, `Stress`; error copy часто неверно диагностирует cash вместо slots/canonical mismatch.
+Remaining issues:
 
-Рекомендация: завести copy matrix для каждой CTA: **action → precondition → pending → success → specific failure → undo/next step**. Любая строка о механике должна проходить engine-backed assertion.
+- **P1:** deal and Futures copy still outruns server acknowledgement (`store/index.ts:615-619`, `680-690`; `FuturesScreen.tsx:95-116`).
+- **P2:** remote lobby profiles fall back to `buildSampleMeta`, fabricating missing XP, housing, pet and achievements (`LobbyScreen.tsx:108-120`); room prestige is hardcoded (`1076-1083`), and `PlayerProfile` hardcodes `LVL 14` (`components/PlayerProfile.tsx:50-57`).
+- **P2:** Russian room copy still mixes `ready`, `invite`, `Long`, `recovery`, `Start` and English remove labels (`LobbyScreen.tsx:1201-1228`, `1263-1296`).
+- **P2:** the empty business state “Покупки через карты появятся здесь” gives no direct next action (`PlayerStatsScreen.tsx:574-583`).
 
-### Pillar 2: Visuals (2/4)
+### Pillar 2: Visuals (3/4)
 
-Диорамы рынка, лобби, питомцы и 15 generated characters создают узнаваемую 2.5D идентичность. На столе главный визуальный объект очевиден, а recap имеет хорошую драматургию.
+The active card, delayed actions, player rail and month transition establish a clear focal hierarchy. The 402×874 interactive pass confirmed the itemized night ledger is visible and readable in the implemented mobile flow. Code also keeps card actions hidden until the 620ms reveal is ready (`MainTurnTableScreen.tsx:602-621`) and stages the ledger within its 1.8s hold (`879-904`; `index.css:7846-7959`).
 
-Ключевой провал — главный персонаж не отражает последствия из-за `.webp/.png` mismatch (`characterRenderer.tsx:185-195`). Поэтому дорогие emotional assets фактически не работают. Второй провал — модальные поверхности выглядят как разные продукты: emoji-title sheets, titleless sheets, full-screen negotiation и bespoke confirmation sheet не имеют общего chrome. Боты показывают реакцию как простой текстовый badge, хотя picker использует иллюстрированные reaction assets (`MainTurnTableScreen.tsx:187-193`).
+The visual system is not 4/4 because the Labor confirmation is a bespoke high-z window, full-screen routes still use several unrelated header patterns, and desktop/tablet captures were unavailable in this auditor run. Those broader breakpoints require human review.
 
 ### Pillar 3: Color (3/4)
 
-Тёмная canvas-палитра, gold для ценности, green для gain, red для debt/risk, cyan и violet для вторичных систем работают. Контраст основных CTA в целом хороший.
+Static scan found **230 unique hardcoded hex values across 1,408 occurrences** in `apps/web/src` (generated assets excluded). Cash, debt, warning and decision colors are generally semantically consistent; the ledger reinforces income with `#52D98B` and expense with `#FF8069` (`index.css:7887-7951`). However, the palette is still implemented as scattered literals and near-duplicates rather than role tokens, so semantic drift remains likely.
 
-Статический scan обнаружил **214 уникальных hardcoded hex-значений** в `apps/web/src`. Наиболее частые цвета повторяются сотни раз (`#F5F4ED`, `#F5C524`, `#7D7B6F`, `#28C76F`), но рядом существуют близкие варианты red/green/purple без token contract. В результате цвет риска выглядит семантическим, хотя не соответствует реальной механике. Нужно свести palette к role tokens и не использовать severity color для декоративной характеристики.
+Concrete fix: define `--color-cash`, `--color-expense`, `--color-warning`, `--color-decision`, `--surface-*`, and `--border-*`, then migrate shared notices, ledger, sheets and economy cards first.
 
 ### Pillar 4: Typography (2/4)
 
-Inter, uppercase labels и tabular numbers хорошо подходят финансовой игре. Основные суммы и CTA выделены.
+The code uses **49 numeric font sizes** and **14 numeric weights** (`300` through `1000`, including unusual `720/750/760/780/850/950`). Static scan found **71 CSS and 8 inline occurrences at 6–9.6px**. Examples include a 6.8px label (`index.css:2951`), 7px mobile labels (`2589`, `2650`, `2665`) and 8px market arithmetic (`MarketBoardScreen.tsx:350-352`). These sizes are not dependable for Telegram mobile readability.
 
-Но CSS использует десятки размеров, включая `6.8px`, `7px`, `7.4px`, `8px`, `8.5px`, `8.8px`, `9px` (`apps/web/src/index.css:2566-2770`, `2941`, `3162`). Inline styles добавляют как минимум размеры 9–48px и веса 600/700/800/900/950; CSS также использует нестандартные 750/760/850/950/1000. На реальном Telegram viewport microcopy станет нечитаемой, особенно поверх art. Минимум для существенного текста — 11–12px, для action labels — 13–14px; weight vocabulary — 500/700/900 максимум.
+Concrete fix: constrain the app to a small type ramp (10/12/14/17/21/28) and 3–4 weights, with 10px reserved for nonessential badges rather than financial facts or action status.
 
-### Pillar 5: Spacing (2/4)
+### Pillar 5: Spacing (3/4)
 
-Main shell грамотно резервирует `--safe-top/right/bottom/left`, а многие основные кнопки достигают 44–56px. Это хорошая основа.
+Shared sheets have a 44px header grid, safe top cap and safe bottom padding (`index.css:3479-3527`); shared confirms and negotiation use the same Telegram-safe contract (`3535-3552`, `11268-11309`). The decision lane is also safe-bottom aware and scroll-bounded (`11081-11098`).
 
-Однако sheet contract ограничивает высоту через `vh`, а не доступную Telegram content area, и использует не тот bottom inset (`index.css:3469-3489`). Profile sheet в `96vh` может зайти под Close/ellipsis (`index.css:6002-6008`). Offer Builder имеет 36×36 back и 10px top padding (`index.css:10744-10753`). Rooms browser использует bespoke 20px `✕` без гарантированного 44×44 target (`LobbyScreen.tsx:1294`). Inline scan показывает множество 24/28/32/36/38/40px интерактивных размеров. Нужны единые `--tap-min: 44px` и `--content-top-safe` для любого fixed overlay.
+Remaining P2 gaps:
 
-### Pillar 6: Experience Design (1/4)
+- Negotiation still has a 34×34 swap control and 36×36 side-payment controls (`index.css:11415-11428`, `11568-11569`), below the 44px primary-touch target.
+- Lobby mode and round buttons are 42px tall (`LobbyScreen.tsx:1233-1250`, `1263-1281`).
+- Labor's custom confirmation uses hardcoded `padding: 20` instead of the shared safe-area contract (`LaborMarketScreen.tsx:525-551`).
+- Static scan found 101 explicit 28–42px width/height declarations; not all are interactive, but the scale is not enforced by component tokens.
 
-Плюсы: loading-like arrivals существуют, empty states есть в room browser и Business Slots, карточные preconditions блокируются, есть recovery jobs, банк, table help, recap/rematch, closing confirmation для game screens.
+### Pillar 6: Experience Design (2/4)
 
-Минусы перекрывают плюсы: dead actions, ложные эффекты, exploit reward, no BackButton, отсутствие focus/dialog contract, destructive actions без confirmation, visited-player data corruption, недостоверные online/achievement metrics, повторный путь без quick bots. Это не polish gap, а системный разрыв между UI и authoritative state.
+Passing evidence:
 
-Sound/feedback также недотянуты. `sound.ts` — только oscillator blips и persisted mute, без volume/music/ambience (`apps/web/src/lib/sound.ts:1-97`). Bank/Market/Labor/Pets вообще не вызывают `playSound`; звуковая хореография сосредоточена в recap и нескольких событиях основного стола. Bot reaction возникает только при `timer <= 7` и лишь с вероятностью 28% (`MainTurnTableScreen.tsx:696-710`), поэтому в нормальном быстром ходе боты почти всегда молчат. Host ограничен разумным cooldown, но существует только как transient toast (`MainTurnTableScreen.tsx:651-671`).
+- Topmost modal ownership, Telegram Back, Escape, Tab trap, focus restore and reference-counted scroll lock are centralized (`useModalLayer.ts:25-135`).
+- Full-screen rules/settings/editor/deal/futures/recap/shop routes register Back consistently (`App.tsx:39-52`).
+- Daily, incoming deal, rooms and reactions now use the shared interaction contract (`DailyCardScreen.tsx:54`; `MainTurnTableScreen.tsx:1979-1995`; `LobbyScreen.tsx:553-564`, `1318-1433`).
+- Transaction errors, empty rooms, loading/connection states, disabled actions and destructive economy confirmations are present.
+- Reduced-motion rules cover card reveal, transition/ledger, lobby staging and tutorial (`index.css:2523-2535`, `8010-8025`, `9366-9373`, `11887-11892`).
 
-Reduced-motion покрытие частичное: CSS отключает некоторые lobby/tutorial/avatar animations, но labor/pet inline animations и ряд бесконечных ticker/pulse/fx не входят в единый policy (`apps/web/src/index.css:3366-3372`, `4405-4629`; `LaborMarketScreen.tsx:310-355`).
+Blocking evidence:
 
----
+- **P1:** Labor confirmation is visually modal but logically absent from the stack (`LaborMarketScreen.tsx:525-551`).
+- **P1:** deal and Futures transport success is not authoritative (`store/index.ts:615-619`, `680-690`).
+- **P1:** there is no exposed leave/surrender workflow (`SettingsScreen.tsx:287-290`, `474-507`).
 
-## Rescue-from-boredom Plan
-
-### 0–2 дня: вернуть доверие
-
-1. Удалить или disabled-mark все неработающие Settings, links и destructive CTAs; оставить sound on/off, host on/off, language и working return.
-2. Исправить labor: ставка — отдельное auction value, canonical salary — неизменяемая recurring expense; либо временно убрать contested auction. Списывать `$200` refresh или убрать цену.
-3. Исправить daily claim-once, заменить fake card/pet-food rewards на реально persisted value.
-4. Убрать ложные pet synergies и enforcement costs до реализации. Заменить multiplayer “принял” на “предложение отправлено”.
-5. Удалить fake online/views/reactions/achievements или обозначить bots/demo без маскировки под live social proof.
-
-**Exit criterion:** автоматизированный audit-table подтверждает 100% видимых CTA и обещаний; нет action без success/failure state.
-
-### 1 неделя: сделать каждый раунд событием
-
-Собрать 4-фазную микропетлю длительностью до 8–12 секунд после выбора:
-
-1. **Commit:** выбор фиксируется, карточка коротко “схлопывается”.
-2. **Personal consequence:** cash/flow/stress меняются before→after; персонаж показывает emotion-art.
-3. **Table reaction:** один state-aware bot/rival показывает tell или реакцию, если событие его касается.
-4. **Forward hook:** host или карточка говорит, что изменилось в следующем месяце и какая ближайшая цель стала ближе/дальше.
-
-Починить `.webp` emotion sets, использовать изображение reaction badge, добавить sound group volume и короткие scene cues. Музыка не обязательна; тихий lobby ambience и 3–4 событийных stingers полезнее постоянного трека.
-
-**Exit criterion:** за первые 60 секунд игрок видит минимум одно заметное финансовое и одно эмоциональное последствие; каждый тип действия имеет различимый feedback.
-
-### 2 недели: перестроить ритм без перестройки архитектуры
-
-1. Сделать `Sprint 15` рекомендуемым default, а первый guided match — 10–15 раундов. `Long 25` оставить для осознанного выбора.
-2. Разделить матч на три визуально отмеченных акта: **выжить → собрать двигатель → вырваться**. Каждые 4–5 раундов — market pressure/milestone, а не просто следующий номер месяца.
-3. Держать на HUD одну текущую цель: например, “+$280/мес до безопасного потока” или “1 слот до следующего бизнеса”. Recovery CTA должна появляться контекстно при low cash/negative flow.
-4. Свести tutorial к трём действиям до первой consequence: выбрать → preview → подтвердить. Bank/market/reactions обучать по первому контекстному использованию.
-5. Вернуть в lobby одну primary CTA “Быстрый матч с ботами” и secondary “Играть с людьми”.
-
-**Exit criterion:** first meaningful action <20s; first visible consequence <60s; repeat match starts in 1 tap; tutorial does not блокировать первый round payoff.
-
-### 3 недели: социальная игра, а не одиночная математика с аватарами
-
-1. Дать ботам характерные risk preferences, tells и state-aware реакции на сделки, банкротство, большой пассив и betrayal.
-2. Для сделок ввести явный lifecycle: draft → sent → viewed → countered/accepted/rejected → settled.
-3. Сделать market assets state-dependent: macro sensitivity, upkeep, slots, staff/pet synergy, risk event exposure. Тогда “лучший ROI” перестанет быть единственным ответом.
-4. Показывать честный post-match social hook: “реванш тем же столом”, “поделиться конкретной историей”, “попробовать другой archetype”, а не искусственные online numbers.
-
-**Exit criterion:** в каждом матче есть хотя бы два reciprocal social moments; хотя бы треть asset choices меняет привлекательность в зависимости от текущего состояния игрока/рынка.
+P2 accessibility debt remains: focusable page-dot buttons sit inside `aria-hidden="true"` (`PlayerStatsScreen.tsx:588-598`), the FAB menu is not registered as a focus-managed popover (`MainTurnTableScreen.tsx:1800-1852`), and Labor/Pet arrival animations remain local timers rather than a fully shared reduced-motion policy (`LaborMarketScreen.tsx:169-177`, `294-339`; `PetShopScreen.tsx:38-44`).
 
 ---
 
-## Acceptance Checklist
+## Exhaustive Window, Notice and Toast Entry Points
 
-- [ ] Ни одна CTA не остаётся без действия, pending, success и specific failure state.
-- [ ] Любая цена/бонус/риск/награда подтверждается authoritative engine/persistence state.
-- [ ] Telegram `BackButton` закрывает верхний overlay или возвращает на предыдущий безопасный экран.
-- [ ] Все fixed overlays используют `--safe-top`/`--safe-bottom`; close/back — минимум 44×44.
-- [ ] Любая продажа, передача, surrender или leave проходит review/confirmation.
-- [ ] Generated character меняет art во всех заявленных mood states.
-- [ ] Reduced-motion выключает все бесконечные и staged decorative animations.
-- [ ] Returning user запускает quick bot match за один тап.
-- [ ] Lobby не показывает фиктивные live metrics или незаработанные regalia.
-- [ ] Daily reward claim идемпотентен и выдаёт ровно то, что написано.
+### Shared sheets — 14 call sites
+
+`CashflowBreakdownSheet.tsx:87`; `PlayerProfile.tsx:29`; `CharacterSelectSheet.tsx:62`; `LobbyPetSheet.tsx:25`; `BankScreen.tsx:87`; `BusinessSlotsScreen.tsx:288`; `CollaborationHubScreen.tsx:92`; `DailyCardScreen.tsx:54`; `EventLogScreen.tsx:76`; `LaborMarketScreen.tsx:218`; `MarketBoardScreen.tsx:201`; `PetShopScreen.tsx:65`; `PlayerStatsScreen.tsx:217`; `ProtectionScreen.tsx:89`.
+
+All inherit `BottomSheet.tsx:11-110` and `useModalLayer.ts:77-135`.
+
+### Confirmations and modal dialogs
+
+- Shared `ConfirmDialog`: Business sale/transfer/share (`BusinessSlotsScreen.tsx:495-504`), profile asset sale (`PlayerStatsScreen.tsx:601-617`), incoming partnership (`MainTurnTableScreen.tsx:1979-1995`).
+- Registered custom dialog: Offer Builder (`OfferBuilderModal.tsx:89-97`, `118-136`).
+- Registered lobby dialogs: rooms browser (`LobbyScreen.tsx:553-558`, `1318-1400`) and reactions (`559-564`, `1409-1433`).
+- Registered table reactions (`MainTurnTableScreen.tsx:433-438`, `1812-1835`).
+- Guided overlay: Tutorial (`TutorialOverlay.tsx:270-405`; mounted at `MainTurnTableScreen.tsx:2084-2090`).
+- **Unregistered exception:** Labor worker confirmation (`LaborMarketScreen.tsx:525-625`).
+
+### Non-modal attention and popover surfaces
+
+- Global toast/notice portal: `main.tsx:125`; implementation `Toast.tsx:101-156`.
+- Month transition and ledger: `MainTurnTableScreen.tsx:1125-1206`.
+- Personal-offer, interest and incoming-deal decision lane: `MainTurnTableScreen.tsx:1855-1957`.
+- Table FAB menu and backdrop: `MainTurnTableScreen.tsx:1800-1852`.
+- Personal-offer picker: `MainTurnTableScreen.tsx:1585-1667`.
+- Confirmation preview popover: `MainTurnTableScreen.tsx:1743-1770`.
+- Labor arrival/interstitial content: `LaborMarketScreen.tsx:169-177`, `286-355`.
+
+### Full-screen route entry points
+
+`App.tsx:91-140` routes onboarding, rules, settings, editor, deal, futures, recap, lobby, shop and the main table. Telegram Back is registered for every non-root in-app route at `App.tsx:39-52`; Deal and Futures also expose 44px visible back controls (`DealModalScreen.tsx:174-215`; `FuturesScreen.tsx:127-143`).
+
+### Toast producers — 78 call sites across 18 files
+
+`CharacterSelectSheet` (3), `BankScreen` (9), `BusinessSlotsScreen` (8), `CharacterEditorScreen` (3), `CollaborationHubScreen` (4), `DailyCardScreen` (1), `DealModalScreen` (2), `DraftBoardScreen` (3), `FuturesScreen` (3), `LaborMarketScreen` (5), `LobbyScreen` (1), `MainTurnTableScreen` (23), `MarketBoardScreen` (2), `PetShopScreen` (2), `PlayerStatsScreen` (6), `RecapScreen` (1), `ShopScreen` (2), plus the `showToast` definition in `Toast.tsx`.
+
+The queue deduplicates by key, persists connection state when requested, and renders only the latest persistent plus latest transient notice (`Toast.tsx:51-84`, `101-117`).
 
 ---
 
 ## Files Audited
 
-Все 60 frontend `ts/tsx/css` файлов в `apps/web/src` прошли pattern scan по строкам, цветам, typography, spacing, state coverage и motion. Детально прочитаны:
-
-- `apps/web/src/App.tsx`
-- `apps/web/src/main.tsx`
-- `apps/web/src/index.css`
-- `apps/web/src/screens/MainTurnTableScreen.tsx`
-- `apps/web/src/screens/LobbyScreen.tsx`
-- `apps/web/src/screens/OnboardingScreen.tsx`
-- `apps/web/src/screens/BankScreen.tsx`
-- `apps/web/src/screens/MarketBoardScreen.tsx`
-- `apps/web/src/screens/LaborMarketScreen.tsx`
-- `apps/web/src/screens/PetShopScreen.tsx`
-- `apps/web/src/screens/SettingsScreen.tsx`
-- `apps/web/src/screens/PlayerStatsScreen.tsx`
-- `apps/web/src/screens/BusinessSlotsScreen.tsx`
-- `apps/web/src/screens/CollaborationHubScreen.tsx`
-- `apps/web/src/screens/DailyCardScreen.tsx`
-- `apps/web/src/screens/RecapScreen.tsx`
-- `apps/web/src/components/BottomSheet.tsx`
-- `apps/web/src/components/PlayerProfile.tsx`
-- `apps/web/src/components/TutorialOverlay.tsx`
-- `apps/web/src/components/negotiation/OfferBuilderModal.tsx`
-- `apps/web/src/assets/characterRenderer.tsx`
-- `apps/web/src/assets/generatedCharacterCatalog.ts`
-- `apps/web/src/assets/petCatalog.ts`
-- `apps/web/src/lib/sound.ts`
-- `apps/web/src/lib/quickStartRoster.ts`
-- `apps/web/src/hooks/useHaptics.ts`
-- `apps/web/src/store/index.ts`
-- `apps/web/src/store/persistence.ts`
-- `packages/game-engine/src/engine.ts`
-- `packages/game-engine/src/registries.ts`
-- `packages/game-engine/src/contracts.ts`
-- продуктовые документы в `.planning/` и `docs/second_brain/`
-
----
+- Planning/truth: `.planning/UI-REVIEW.md` (previous review), `.planning/phases/PHASE_4_2_MOBILE_UX_LOBBY_STYLE_PLAN.md`, `docs/second_brain/10_game_design/UI_TRUTH_AND_MOMENTUM_AUDIT.md`, `docs/second_brain/10_game_design/PHASE3_UI_AND_FEEL_SPEC.md`.
+- Shell/navigation: `apps/web/src/App.tsx`, `main.tsx`, `index.css`, `hooks/useModalLayer.ts`.
+- Shared surfaces: `BottomSheet.tsx`, `ConfirmDialog.tsx`, `Toast.tsx`, `TutorialOverlay.tsx`, `CashflowBreakdownSheet.tsx`, `PlayerProfile.tsx`, lobby sheets, negotiation components.
+- Screens: all `apps/web/src/screens/*.tsx`, with deep inspection of `MainTurnTableScreen`, `LobbyScreen`, `LaborMarketScreen`, `DailyCardScreen`, `BusinessSlotsScreen`, `PlayerStatsScreen`, `MarketBoardScreen`, `PetShopScreen`, `SettingsScreen`, `DealModalScreen`, and `FuturesScreen`.
+- State/truth support: `apps/web/src/store/index.ts`, `store/persistence.ts`, `lib/sound.ts`, `hooks/useHaptics.ts`, `assets/characterRenderer.tsx`.
 
 ## Recommendation Count
 
-- Release blockers / P0 themes: **7**
-- High-priority / P1 themes: **7**
-- Top priority fixes: **5**
-- Overall recommendations and acceptance checks: **10**
+- P0 blockers: **0**
+- P1 priority clusters: **3**
+- P2 recommendations: **7**
+- Previous P0/P1 rows reclassified: **19**
