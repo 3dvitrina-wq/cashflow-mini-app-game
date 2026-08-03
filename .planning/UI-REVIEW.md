@@ -2,7 +2,7 @@
 
 **Audited:** 2026-08-04
 
-**HEAD:** `ece7994` — `Unify game attention and reveal monthly cashflow`
+**HEAD:** `c441a42` — `Bring labor confirmation into modal stack`
 
 **Baseline:** abstract 6-pillar standards plus `UI_TRUTH_AND_MOMENTUM_AUDIT.md`, `PHASE3_UI_AND_FEEL_SPEC.md`, and `PHASE_4_2_MOBILE_UX_LOBBY_STYLE_PLAN.md`
 
@@ -16,34 +16,33 @@
 
 The current UI has **no remaining P0 truth blocker from the original audit**. Commit `ece7994` closes the high-impact attention and motion failures: Telegram Back and focus now share a topmost-layer stack, ordinary notices yield to decisions and modals, the tutorial suspends for every competing surface, and the next card is not revealed until an authoritative new round has passed through the itemized night ledger.
 
-Three P1 clusters remain. Multiplayer deal and Futures screens still equate WebSocket send success with authoritative success; Labor's worker confirmation is the only material custom modal outside the shared focus/Back contract; and users still have no intentional leave/surrender path. The UI is substantially more coherent, but these are not minor polish issues.
+Two P1 clusters remain. Multiplayer deal and Futures screens still equate WebSocket send success with authoritative success, and users still have no intentional leave/surrender path. Labor's worker confirmation now uses the same cancel-first focus/Back contract as every other nested decision. The UI is substantially more coherent, but the remaining server-contract gaps are not minor polish issues.
 
 ## Pillar Scores
 
 | Pillar | Score | Key finding |
 |---|---:|---|
 | 1. Copywriting | **3/4** | Core transaction and settlement copy is much more truthful; optimistic multiplayer acknowledgements and several fabricated/profile labels remain. |
-| 2. Visuals | **3/4** | The card is the focal point and the verified mobile month-change ledger creates a clear consequence spectacle; custom surfaces still vary in hierarchy. |
+| 2. Visuals | **3/4** | The card is the focal point and the verified mobile month-change ledger creates a clear consequence spectacle; full-screen routes still vary in hierarchy. |
 | 3. Color | **3/4** | Cash/debt/warning roles are coherent, but 230 unique hardcoded hex values prevent a reliable token contract. |
 | 4. Typography | **2/4** | 49 numeric sizes, 14 weights, and extensive 6–9.6px text create avoidable readability and hierarchy debt. |
 | 5. Spacing | **3/4** | Shared sheets, confirms, negotiation, and routes honor Telegram insets; a few custom/sub-44 controls remain. |
-| 6. Experience Design | **2/4** | Modal ownership and turn sequencing are fixed, but three reproducible P1 interaction/truth gaps remain. |
+| 6. Experience Design | **3/4** | Modal ownership and turn sequencing are fixed; two server-authoritative P1 lifecycle gaps remain. |
 
-**Overall: 16/24**
+**Overall: 17/24**
 
 ---
 
 ## Severity
 
 - **P0:** none.
-- **P1:** 3 reproducible clusters.
+- **P1:** 2 reproducible clusters.
 - **P2:** typography/touch targets, residual profile truth, localization, accessibility, and reduced-motion consistency.
 
-## Top 3 Priority Fixes
+## Top Priority Fixes
 
 1. **P1 — replace optimistic transport success with authoritative lifecycle state.** Multiplayer deal submission returns `accepted` immediately after `wsClient.send` (`apps/web/src/store/index.ts:601-619`) even though the UI only says it was sent (`apps/web/src/screens/MainTurnTableScreen.tsx:2014-2025`). Futures likewise treats socket-send success as a debited margin and announces it after a cosmetic delay (`apps/web/src/screens/FuturesScreen.tsx:95-116`; `apps/web/src/store/index.ts:680-690`). Add command ids and server states such as `sending / acknowledged / accepted / rejected`, keep the originating surface visible until acknowledgement, and announce only authoritative outcomes.
-2. **P1 — move the Labor worker confirmation into the shared modal stack.** The nested confirmation is still a fixed `zIndex: 10000` div with backdrop click only; it has no dialog semantics, initial focus, trap, restore, Escape, or topmost Telegram Back ownership (`apps/web/src/screens/LaborMarketScreen.tsx:525-551`, `599-625`). Reuse `ConfirmDialog` or `useModalLayer`, put focus on “Отмена”, and make Back close the confirmation rather than the entire Labor sheet.
-3. **P1 — implement an intentional match-exit path.** “Выйти из матча” and “Сдаться” remain inside the hidden legacy block and have no commands (`apps/web/src/screens/SettingsScreen.tsx:287-290`, `474-507`). Add an authoritative leave/surrender action, a consequence preview and confirmation, then expose it separately from ordinary settings.
+2. **P1 — implement an intentional match-exit path.** “Выйти из матча” and “Сдаться” remain inside the hidden legacy block and have no commands (`apps/web/src/screens/SettingsScreen.tsx:287-290`, `474-507`). Add an authoritative leave/surrender action, a consequence preview and confirmation, then expose it separately from ordinary settings.
 
 ---
 
@@ -59,13 +58,13 @@ The implemented priority order is now understandable and mostly deterministic:
 | Tutorial | `z-index: 900–902` (`apps/web/src/index.css:11728-11763`) | Owns onboarding only when no window, decision, menu, or transition is active (`MainTurnTableScreen.tsx:724-746`, `2084-2090`). |
 | Shared sheet | backdrop `999`, sheet `1000` (`apps/web/src/index.css:3469-3500`) | Owns Back/Escape/Tab and scroll. |
 | Shared confirmation | `1200` (`apps/web/src/index.css:3535-3560`) | Top nested destructive-decision owner. |
-| Labor custom confirmation | local `10000` (`apps/web/src/screens/LaborMarketScreen.tsx:525-551`) | **Exception:** visually topmost but absent from the logical modal stack. |
+| Labor confirmation | shared confirmation `1200`, portalled to `document.body` (`apps/web/src/screens/LaborMarketScreen.tsx`; `apps/web/src/components/ConfirmDialog.tsx`) | Top nested owner with candidate and exact immediate/monthly consequences. |
 
 When a registered modal opens, `modal-layer-open` hides both the notice center and decision banners (`apps/web/src/hooks/useModalLayer.ts:49-63`; `apps/web/src/index.css:143-148`). This closes the previous notice-over-window inconsistency. The global queue still permits one persistent and one transient notice at once, but both occupy one shared lane rather than competing hosts, reconnect banners, and toasts.
 
 ## Before / After / Why
 
-| Area | Before | After at `ece7994` | Why it matters |
+| Area | Before | After at `c441a42` | Why it matters |
 |---|---|---|---|
 | Notice ownership | Host, reconnect, transaction notices and deal banners could overlap or cross modal z-indices. | Notices live at 850, decisions at 860, transition at 880, tutorial at 900, sheets at 1000 and confirms at 1200; registered modals suppress notices/decisions. | The player has one primary attention owner and does not act through stale feedback. |
 | Telegram Back / focus | Shared sheets had partial Escape semantics; full-screen routes and custom dialogs did not share a topmost stack. | `useModalLayer` registers topmost Back/Escape/Tab, traps focus, locks scroll and restores the opener (`apps/web/src/hooks/useModalLayer.ts:25-47`, `77-135`); routes use the same stack (`apps/web/src/App.tsx:39-52`). | Back behaves like the visible back action and nested confirms do not close the wrong layer. |
@@ -74,7 +73,7 @@ When a registered modal opens, `modal-layer-open` hides both the notice center a
 | Turn switch and card motion | Store state could advance under a fixed 1.28s settlement overlay; the next card completed its deal-in invisibly, and a lagging client could show the prior settlement. | Card reveal stays `ready` during transition and restarts only after it (`MainTurnTableScreen.tsx:602-621`). Closing submits at 180ms, night waits for `match.round` to advance, shows the ledger for 1.8s, then opening holds 620ms; an 8s stall exits with reconnect feedback (`MainTurnTableScreen.tsx:833-913`). | The causal sequence is visible: choice locked → authoritative money result → new month → new card. |
 | Monthly consequence | A generic settlement total did not explain the result. | The ledger decomposes work, passive income, assets, upkeep and round events, reconciles them to `lastSettlement`, and shows In/Out/Net (`MainTurnTableScreen.tsx:654-723`, `1147-1178`). Its stagger fits inside the 1.8s night hold and has reduced-motion fallbacks (`apps/web/src/index.css:7824-8025`). | The financial game now teaches why the wallet changed instead of presenting an unexplained number. |
 | Tutorial competition | The tour suspended only for profile, so coach marks could compete with other windows and decisions. | Suspension covers all sheets, menus, reactions, deal surfaces, personal-offer decisions and round transition (`MainTurnTableScreen.tsx:724-746`). | First-run guidance no longer steals attention from an urgent or modal action. |
-| Labor confirmation | Bespoke fixed confirmation inside the Labor sheet. | **Unchanged.** It remains outside `useModalLayer` (`LaborMarketScreen.tsx:525-551`). | This is the only material window preventing a fully fixed modal-stack verdict. |
+| Labor confirmation | Bespoke fixed confirmation inside the Labor sheet. | Uses the shared `ConfirmDialog`, portalled to `document.body`, with candidate, immediate cost, monthly salary and bonus. | Nested hire review now follows the same safe-area, focus, Escape and Telegram Back contract as asset actions. |
 
 ---
 
@@ -98,7 +97,7 @@ Status vocabulary is intentionally limited to **fixed / stale / reproducible**.
 | Pet multi-ownership/synergy/currency conflict | **fixed** | Only the current engine-owned pet is represented, the catalog hides after ownership, and purchase copy uses match dollars (`PetShopScreen.tsx:46-65`, `98-131`). |
 | Market risk shown without mechanics; generic errors | **fixed** | Risk badges are gone; cash/slot eligibility and specific errors are rendered (`MarketBoardScreen.tsx:172-201`, `330-365`). |
 | Bots react only near timeout / no sound atmosphere | **fixed** | Card-aware reactions and stingers run after the card is ready; persisted music/volume buses are wired (`MainTurnTableScreen.tsx:623-647`; `apps/web/src/lib/sound.ts:52-79`, `150-193`). |
-| Telegram Back and modal focus stack are missing | **reproducible (narrowed)** | Shared sheets, confirms, OfferBuilder, lobby rooms/reactions and routes now register the stack (`useModalLayer.ts:25-148`; `App.tsx:39-52`), but Labor's nested confirmation still bypasses it (`LaborMarketScreen.tsx:525-551`). |
+| Telegram Back and modal focus stack are missing | **fixed** | Shared sheets, confirms, Labor hire, OfferBuilder, lobby rooms/reactions and routes register the stack (`useModalLayer.ts:25-148`; `ConfirmDialog.tsx`; `LaborMarketScreen.tsx`; `App.tsx:39-52`). |
 | Destructive asset review and intentional match exit are absent | **reproducible (exit only)** | Asset review is fixed; leave/surrender remain hidden and unwired (`SettingsScreen.tsx:287-290`, `474-507`). |
 | Server-authoritative outgoing deal lifecycle is absent | **reproducible** | Sender copy is cosmetic pending; there is still no sent/viewed/countered/accepted/rejected state model (`store/index.ts:601-619`). |
 | Fabricated lobby social-proof counters (`1284`, `+1.2K`, `128`, `312`) | **stale** | Those literals and fallback achievement padding are gone; quick entry truthfully identifies five bots (`LobbyScreen.tsx:1036-1065`). Separate P2 profile-metadata fabrication remains below. |
@@ -128,7 +127,7 @@ Remaining issues:
 
 The active card, delayed actions, player rail and month transition establish a clear focal hierarchy. The 402×874 interactive pass confirmed the itemized night ledger is visible and readable in the implemented mobile flow. Code also keeps card actions hidden until the 620ms reveal is ready (`MainTurnTableScreen.tsx:602-621`) and stages the ledger within its 1.8s hold (`879-904`; `index.css:7846-7959`).
 
-The visual system is not 4/4 because the Labor confirmation is a bespoke high-z window, full-screen routes still use several unrelated header patterns, and desktop/tablet captures were unavailable in this auditor run. Those broader breakpoints require human review.
+The visual system is not 4/4 because full-screen routes still use several unrelated header patterns, and desktop/tablet captures were unavailable in this auditor run. Those broader breakpoints require human review.
 
 ### Pillar 3: Color (3/4)
 
@@ -150,10 +149,9 @@ Remaining P2 gaps:
 
 - Negotiation still has a 34×34 swap control and 36×36 side-payment controls (`index.css:11415-11428`, `11568-11569`), below the 44px primary-touch target.
 - Lobby mode and round buttons are 42px tall (`LobbyScreen.tsx:1233-1250`, `1263-1281`).
-- Labor's custom confirmation uses hardcoded `padding: 20` instead of the shared safe-area contract (`LaborMarketScreen.tsx:525-551`).
 - Static scan found 101 explicit 28–42px width/height declarations; not all are interactive, but the scale is not enforced by component tokens.
 
-### Pillar 6: Experience Design (2/4)
+### Pillar 6: Experience Design (3/4)
 
 Passing evidence:
 
@@ -165,7 +163,6 @@ Passing evidence:
 
 Blocking evidence:
 
-- **P1:** Labor confirmation is visually modal but logically absent from the stack (`LaborMarketScreen.tsx:525-551`).
 - **P1:** deal and Futures transport success is not authoritative (`store/index.ts:615-619`, `680-690`).
 - **P1:** there is no exposed leave/surrender workflow (`SettingsScreen.tsx:287-290`, `474-507`).
 
@@ -183,12 +180,11 @@ All inherit `BottomSheet.tsx:11-110` and `useModalLayer.ts:77-135`.
 
 ### Confirmations and modal dialogs
 
-- Shared `ConfirmDialog`: Business sale/transfer/share (`BusinessSlotsScreen.tsx:495-504`), profile asset sale (`PlayerStatsScreen.tsx:601-617`), incoming partnership (`MainTurnTableScreen.tsx:1979-1995`).
+- Shared `ConfirmDialog`: Business sale/transfer/share (`BusinessSlotsScreen.tsx:495-504`), profile asset sale (`PlayerStatsScreen.tsx:601-617`), incoming partnership (`MainTurnTableScreen.tsx:1979-1995`) and Labor hire (`LaborMarketScreen.tsx`).
 - Registered custom dialog: Offer Builder (`OfferBuilderModal.tsx:89-97`, `118-136`).
 - Registered lobby dialogs: rooms browser (`LobbyScreen.tsx:553-558`, `1318-1400`) and reactions (`559-564`, `1409-1433`).
 - Registered table reactions (`MainTurnTableScreen.tsx:433-438`, `1812-1835`).
 - Guided overlay: Tutorial (`TutorialOverlay.tsx:270-405`; mounted at `MainTurnTableScreen.tsx:2084-2090`).
-- **Unregistered exception:** Labor worker confirmation (`LaborMarketScreen.tsx:525-625`).
 
 ### Non-modal attention and popover surfaces
 
@@ -223,6 +219,6 @@ The queue deduplicates by key, persists connection state when requested, and ren
 ## Recommendation Count
 
 - P0 blockers: **0**
-- P1 priority clusters: **3**
+- P1 priority clusters: **2**
 - P2 recommendations: **7**
 - Previous P0/P1 rows reclassified: **19**
