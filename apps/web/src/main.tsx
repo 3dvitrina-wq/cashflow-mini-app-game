@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
 import { initLocale } from './i18n';
+import { ToastContainer } from './components/Toast';
 
 // Initialize locale from localStorage before rendering
 initLocale();
@@ -109,6 +110,7 @@ window.addEventListener('orientationchange', setVh);
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
+    <ToastContainer />
   </React.StrictMode>
 );
 

@@ -9,7 +9,6 @@ import { OnboardingScreen } from './screens/OnboardingScreen';
 import { SettingsScreen } from './screens/SettingsScreen';
 import { ShopScreen } from './screens/ShopScreen';
 import { CharacterEditorScreen } from './screens/CharacterEditorScreen';
-import { ToastContainer } from './components/Toast';
 import { CharacterPreviewScreen } from './screens/CharacterPreviewScreen';
 import { savePlayerData } from './store/persistence';
 import { buildQuickStartRoster } from './lib/quickStartRoster';
@@ -124,7 +123,6 @@ const App: React.FC = () => {
   return (
     <div style={{ minHeight: '100vh' }}>
       <MainTurnTableScreen />
-      <ToastContainer />
     </div>
   );
 };

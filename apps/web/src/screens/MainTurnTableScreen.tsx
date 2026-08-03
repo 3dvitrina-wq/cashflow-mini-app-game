@@ -20,13 +20,17 @@ import { PlayerStatsScreen } from './PlayerStatsScreen';
 import { BusinessSlotsScreen } from './BusinessSlotsScreen';
 import { ProtectionScreen } from './ProtectionScreen';
 import { CashflowBreakdownSheet } from '../components/CashflowBreakdownSheet';
-import { showToast } from '../components/Toast';
+import { dismissToast, showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { playSound } from '../lib/sound';
-import { HostInterjection, type HostMoment } from '../components/HostInterjection';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
+
+type HostMoment = {
+  cue: string;
+  tone: 'event' | 'check' | 'deal' | 'warning';
+};
 
 // The host is a guest, not a narrator: it only has something to say when a market
 // event, a stress check, or a risky deal is imminent. Most rounds → null (silent).
@@ -450,6 +454,30 @@ export const MainTurnTableScreen: React.FC = () => {
   useEffect(() => wsClient.addStatusListener(setNetworkStatus), []);
 
   useEffect(() => {
+    const noticeId = 'network-status';
+    if (!isMultiplayer || networkStatus === 'connected') {
+      dismissToast(noticeId);
+      return;
+    }
+    const reconnecting = networkStatus === 'reconnecting' || networkStatus === 'connecting';
+    showToast(
+      reconnecting
+        ? (locale === 'ru' ? 'Переподключаемся к столу…' : 'Reconnecting to the table…')
+        : (locale === 'ru' ? 'Связь потеряна. Решения пока не отправляются.' : 'Connection lost. Decisions are not being sent.'),
+      'warning',
+      {
+        dedupeKey: noticeId,
+        title: locale === 'ru' ? 'СВЯЗЬ СО СТОЛОМ' : 'TABLE CONNECTION',
+        persistent: true,
+        actionLabel: reconnecting ? undefined : (locale === 'ru' ? 'ПОВТОРИТЬ' : 'RETRY'),
+        onAction: reconnecting ? undefined : () => wsClient.reconnectNow(),
+      },
+    );
+  }, [isMultiplayer, locale, networkStatus]);
+
+  useEffect(() => () => dismissToast('network-status'), []);
+
+  useEffect(() => {
     if (devOpenBank) setIsBankOpen(true);
     if (devOpenMarket) setIsMarketOpen(true);
     if (devOpenLabor) setIsLaborOpen(true);
@@ -620,27 +648,27 @@ export const MainTurnTableScreen: React.FC = () => {
     }
   }, [match.round, match.lastFuturesResults, locale]);
 
-  // ─── Host interjection: meaningful trigger + cooldown (≥3 rounds), auto-retreat.
-  const [hostMoment, setHostMoment] = useState<HostMoment | null>(null);
+  // ─── Host line uses the same notice lane as results and connection state.
   const lastHostRound = useRef(-99);
-  const hostTimer = useRef<number | null>(null);
   useEffect(() => {
+    if (isTutorialActive || isRoomTutorialPaused) {
+      dismissToast('host-moment');
+      return;
+    }
     if (typeof window !== 'undefined' && window.localStorage?.getItem('dyor_host_enabled') === '0') return;
     if (match.round - lastHostRound.current < 3) return; // cooldown — never spammy
     const moment = pickHostMoment(card, interestWindow?.status === 'open', me?.cash ?? 0, locale === 'ru');
     if (!moment) return;
     lastHostRound.current = match.round;
-    setHostMoment(moment);
     playSound('whoosh');
     hapticImpact('soft');
-    if (hostTimer.current) window.clearTimeout(hostTimer.current);
-    hostTimer.current = window.setTimeout(() => setHostMoment(null), 4200);
+    showToast(moment.cue, moment.tone === 'check' || moment.tone === 'warning' ? 'warning' : 'info', {
+      dedupeKey: 'host-moment',
+      duration: 4200,
+      title: locale === 'ru' ? 'ВЕДУЩИЙ' : 'HOST',
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card?.id, match.round]);
-  const dismissHost = useCallback(() => {
-    if (hostTimer.current) window.clearTimeout(hostTimer.current);
-    setHostMoment(null);
-  }, []);
+  }, [card?.id, match.round, isTutorialActive, isRoomTutorialPaused]);
 
   const queueAdvance = useCallback(
     (choiceIdx: number) => {
@@ -850,26 +878,12 @@ export const MainTurnTableScreen: React.FC = () => {
 
   const activeCardSignal = cardSignal(card.type, locale === 'ru');
   const visibleConsequences = (card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3);
-  const cardCopyLength = `${card.title} ${card.text} ${card.hostCue ?? ''} ${visibleConsequences.join(' ')}`.length;
+  const cardCopyLength = `${card.title} ${card.text} ${visibleConsequences.join(' ')}`.length;
   const cardDensity = cardCopyLength > 360 ? 'long' : cardCopyLength > 250 ? 'medium' : 'regular';
 
   return (
     <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
       <div className="game-bg-noise" />
-      {isMultiplayer && networkStatus !== 'connected' && (
-        <button
-          type="button"
-          className="network-reconnect-banner"
-          onClick={() => wsClient.reconnectNow()}
-        >
-          <IconNoWifi size={16} />
-          <span>
-            {networkStatus === 'reconnecting' || networkStatus === 'connecting'
-              ? (locale === 'ru' ? 'Переподключаемся к столу…' : 'Reconnecting to the table…')
-              : (locale === 'ru' ? 'Связь потеряна · повторить' : 'Connection lost · retry')}
-          </span>
-        </button>
-      )}
       {isAdvancingTime && (
         <div className="time-advance-overlay">
           <div className="time-advance-card">
@@ -1032,18 +1046,21 @@ export const MainTurnTableScreen: React.FC = () => {
               >
                 {/* One readable stage: gameplay cards never create a nested scroll. */}
                 <div className="card-scroll-area card-poster-content">
-                  <div className={`card-event-signal card-event-signal-${activeCardSignal.tone}`}>
-                    <span>{activeCardSignal.label}</span>
-                    {card.hostCue && <p>{card.hostCue}</p>}
+                  <div className={`card-event-signal card-event-signal-${activeCardSignal.tone} ${isProMode ? 'card-event-signal-shared' : 'card-event-signal-private'}`}>
+                    <span>
+                      {isProMode
+                        ? (locale === 'ru' ? 'ОБЩАЯ КАРТА · ДЛЯ ВСЕХ' : 'SHARED CARD · FOR EVERYONE')
+                        : (locale === 'ru' ? 'ЛИЧНАЯ КАРТА · ТОЛЬКО ВАМ' : 'PRIVATE CARD · ONLY YOU')}
+                    </span>
+                    <p>
+                      {activeCardSignal.label}
+                      {!isProMode && (locale === 'ru' ? ' · у остальных свои' : ' · everyone else has their own')}
+                    </p>
                   </div>
                   <div className="card-poster-kicker">
                     <span className="card-type-badge">
                       <IconAlert size={11} />
-                      {isProMode
-                        ? cardTypeLabel(card.type, locale === 'ru')
-                        : locale === 'ru'
-                          ? `ЛИЧНАЯ · ${cardTypeLabel(card.type, true)}`
-                          : `PRIVATE · ${cardTypeLabel(card.type, false)}`}
+                      {cardTypeLabel(card.type, locale === 'ru')}
                     </span>
                   </div>
 
@@ -1348,7 +1365,9 @@ export const MainTurnTableScreen: React.FC = () => {
                     return (
                       <button
                         key={choice}
+                        type="button"
                         className={`survival-choice ${selectedChoiceIdx === i ? 'survival-choice-selected' : ''} ${canAfford ? '' : 'survival-choice-locked'}`}
+                        aria-pressed={selectedChoiceIdx === i}
                         onClick={() => canAfford && setSelectedChoiceIdx(i)}
                         disabled={isAdvancingTime || !canAfford}
                         title={canAfford ? undefined : proOnly ? 'PRO' : (locale === 'ru' ? 'Не хватает наличных' : 'Not enough cash')}
@@ -1418,6 +1437,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     </div>
                   )}
                   <button
+                    data-tour="preview"
                     className="turn-preview-button"
                     type="button"
                     aria-label={locale === 'ru' ? 'Что изменится после подтверждения' : 'Preview confirmation effects'}
@@ -1785,9 +1805,6 @@ export const MainTurnTableScreen: React.FC = () => {
           }}
         />
       )}
-
-      {/* AI host — slides in only on meaningful moments, retreats on its own */}
-      <HostInterjection moment={hostMoment} onDismiss={dismissHost} />
 
       {/* Native tutorial coach-mark: runs once for first-time players during an active match */}
       {card && canActNow && (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
-import { showToast, ToastContainer } from '../components/Toast';
+import { showToast } from '../components/Toast';
 
 export const FuturesScreen: React.FC = () => {
   const { setScreen, match, openFutures } = useStore();
@@ -282,7 +282,6 @@ export const FuturesScreen: React.FC = () => {
           {loading ? '⏳ Отправка...' : `🚀 ${position.toUpperCase()} ${leverage}x`}
         </button>
       </div>
-      <ToastContainer />
     </div>
   );
 };
