@@ -73,7 +73,7 @@ export const EventLogScreen: React.FC<EventLogScreenProps> = ({ isOpen, onClose 
   const events = generateEventLog(match, engineMatch);
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="📰 Лента событий">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Лента событий">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         {events.length === 0 ? (
           <div

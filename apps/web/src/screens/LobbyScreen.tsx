@@ -8,7 +8,6 @@ import avatarYou from '../assets/generated/avatar-you.webp';
 import lobbyInterior from '../assets/generated/lobby/dyor-lobby-interior-clean.webp';
 import dyorClubLogo from '../assets/generated/lobby/dyor-club-logo-transparent.webp';
 import iconPrestigeI from '../assets/generated/ui/prestige_roman_I_square.png';
-import iconFire from '../assets/generated/ui/fire_gold_square.png';
 import iconPaw from '../assets/generated/ui/paw_gold_purple_square.png';
 import iconRoom from '../assets/generated/ui/room_gold_badge_square.png';
 import iconCrown from '../assets/generated/ui/crown_gold_square.png';
@@ -128,15 +127,15 @@ const ROUND_PRESETS = [
 ] as const;
 
 const LOBBY_REGALIA: { id: string; icon: string; imgSrc?: string; title: string; subtitle: string }[] = [
-  { id: 'top-host', icon: '🏆', title: 'Топ-хост', subtitle: '3 победы подряд' },
-  { id: 'prestige', icon: 'I', imgSrc: iconPrestigeI, title: 'Престиж I', subtitle: '560 / 1000' },
-  { id: 'legend-room', icon: '🔥', imgSrc: iconFire, title: 'Легендарная', subtitle: 'комната' },
+  { id: 'profile', icon: '👤', title: 'Профиль', subtitle: 'ваш прогресс' },
+  { id: 'mode', icon: '⚡', title: 'BASIC', subtitle: 'быстрый старт' },
+  { id: 'seats', icon: '6', title: '6 мест', subtitle: 'вы + 5 ботов' },
 ];
 
 const HOST_BADGES: { id: string; icon: string; imgSrc?: string; title: string; subtitle: string }[] = [
-  { id: 'host', icon: '👑', title: 'Топ-хост', subtitle: 'в этом месяце' },
-  { id: 'collector', icon: '🎁', title: 'Редкий', subtitle: 'коллекционер' },
-  { id: 'interior', icon: '🏠', imgSrc: iconRoom, title: 'Интерьер', subtitle: 'премиум-зала' },
+  { id: 'host', icon: '👑', title: 'Хост', subtitle: 'создаёт стол' },
+  { id: 'role', icon: '🎲', title: 'Роль', subtitle: 'можно сменить' },
+  { id: 'interior', icon: '🏠', imgSrc: iconRoom, title: 'Дом', subtitle: 'можно открыть' },
 ];
 
 /** Renders a pet video with its black background keyed to true transparency.
@@ -465,9 +464,8 @@ export const LobbyScreen: React.FC = () => {
   );
   const featuredAchievements = earnedAchievements.length > 0
     ? earnedAchievements.slice(0, 4)
-    : ACHIEVEMENTS.slice(1, 5);
-  const hostAchievementCount = Math.max(playerData.achievements.length, 3);
-  const onlineCount = 1284;
+    : [];
+  const hostAchievementCount = playerData.achievements.length;
   const activeLobbyPet = useMemo(
     () => PET_ITEMS.find((pet) => pet.id === lobbyPetId) ?? PET_ITEMS[0] ?? null,
     [lobbyPetId],
@@ -533,7 +531,7 @@ export const LobbyScreen: React.FC = () => {
 
   const [multiMode, setMultiMode] = useState<MultiMode>('none');
   const [gameMode, setGameMode] = useState<'basic' | 'pro'>('basic');
-  const [roundPreset, setRoundPreset] = useState<number>(25);
+  const [roundPreset, setRoundPreset] = useState<number>(15);
   const [roomCode, setRoomCode] = useState('');
   const [roomSettingsOpen, setRoomSettingsOpen] = useState(false);
   const [joinInput, setJoinInput] = useState('');
@@ -762,6 +760,10 @@ export const LobbyScreen: React.FC = () => {
     startMatch(buildStarterRoster(players), { mode: 'classic', maxRounds: roundPreset, experienceMode: gameMode });
   };
 
+  const handleQuickBotMatch = () => {
+    startMatch(buildStarterRoster(players), { mode: 'classic', maxRounds: 15, experienceMode: 'basic' });
+  };
+
   const emptySlots = Math.max(0, 6 - players.length);
 
   if (isSettingsOpen) {
@@ -954,7 +956,7 @@ export const LobbyScreen: React.FC = () => {
             <section className="lobby-hook-hero" aria-label="DYOR lobby">
               <div className="lobby-hook-copy">
                 <img className="lobby-hook-logo-img" src={dyorClubLogo} alt="DYOR Club" draggable={false} />
-                <p>Лобби, где твой статус видно всем</p>
+                <p>15 раундов: сделки, кризисы, торг и чужие реакции</p>
               </div>
 
               <div className="lobby-hook-regalia">
@@ -1008,27 +1010,39 @@ export const LobbyScreen: React.FC = () => {
               )}
 
               {apiProbe !== 'ok' && apiProbe !== 'проверяю...' && (
-                <div style={{ fontSize: 11, fontFamily: 'monospace', padding: '4px 0', wordBreak: 'break-all', color: '#f87171' }}>
-                  сервер недоступен: {apiProbe}
+                <div role="status" style={{ fontSize: 12, lineHeight: 1.35, padding: '8px 10px', borderRadius: 10, color: '#F3C76A', background: 'rgba(243,199,106,.08)', border: '1px solid rgba(243,199,106,.16)' }}>
+                  Сетевой стол сейчас недоступен. Быстрый матч с ботами работает офлайн.
                 </div>
               )}
 
-              <button className="lobby-hook-play-now" onClick={() => setRoomsBrowserOpen(true)}>
+              <button className="lobby-hook-play-now" onClick={handleQuickBotMatch}>
                 <IconPlay size={22} />
                 <span>
-                  Играть
-                  <small>создай комнату или зайди к другим</small>
+                  Быстрый матч
+                  <small>15 раундов · 5 ботов · BASIC</small>
                 </span>
               </button>
 
-              <section className="lobby-hook-online" aria-label="Сейчас в сети">
+              <button
+                className="lobby-hook-play-now"
+                onClick={() => setRoomsBrowserOpen(true)}
+                style={{ background: 'rgba(17,22,30,.86)', color: '#F5F4ED', border: '1px solid rgba(255,255,255,.13)', boxShadow: 'none' }}
+              >
+                <IconLink size={20} />
+                <span>
+                  Играть с людьми
+                  <small>создать комнату или войти по коду</small>
+                </span>
+              </button>
+
+              <section className="lobby-hook-online" aria-label="Боты готовы к матчу">
                 <span className="lobby-online-dot" />
-                <span><b>Сейчас в сети</b><small>{onlineCount.toLocaleString('ru-RU')} игрока</small></span>
+                <span><b>Боты готовы</b><small>локальный стол без ожидания</small></span>
                 <div className="lobby-online-avatars">
                   {SOCIAL_PROOF_AVATARS.map((avatar) => (
                     <img key={avatar.id} src={avatar.src} alt={avatar.name} draggable={false} />
                   ))}
-                  <b>+1.2K</b>
+                  <b>5/5</b>
                 </div>
               </section>
             </div>
@@ -1064,8 +1078,8 @@ export const LobbyScreen: React.FC = () => {
               <img src={lobbyInterior} alt="" draggable={false} />
               <LobbyAmbientFx variant="showcase" />
               <div className="lobby-room-showcase-glass">
-                <span><b>128</b> реакций</span>
-                <span><b>312</b> просмотров</span>
+                <span><b>6</b> мест</span>
+                <span><b>{roundPreset}</b> раундов</span>
               </div>
             </section>
 
@@ -1098,7 +1112,7 @@ export const LobbyScreen: React.FC = () => {
                   готов
                 </span>
                 <div className="lobby-host-social-line">
-                  <span>👍 45</span>
+                  <span>{playerData.xp} XP</span>
                   <span>{hostAchievementCount} ачивки</span>
                 </div>
               </div>
@@ -1133,15 +1147,18 @@ export const LobbyScreen: React.FC = () => {
             </div>
 
             <div className="lobby-earned-row">
-              {featuredAchievements.map((achievement) => (
-                <span
-                  key={achievement.id}
-                  className={`lobby-earned-badge ${playerData.achievements.includes(achievement.id) ? 'lobby-earned-on' : ''}`}
-                  title={achievement.descRu}
-                >
-                  {achievement.icon} {achievement.nameRu}
-                </span>
-              ))}
+              {featuredAchievements.length > 0
+                ? featuredAchievements.map((achievement) => (
+                    <span
+                      key={achievement.id}
+                      className="lobby-earned-badge lobby-earned-on"
+                      title={achievement.descRu}
+                    >
+                      {achievement.icon} {achievement.nameRu}
+                    </span>
+                  ))
+                : <span className="lobby-earned-badge">Первая ачивка появится после матча</span>
+              }
             </div>
 
             {/* Player list — guests only (host lives in the card above) */}
@@ -1283,15 +1300,17 @@ export const LobbyScreen: React.FC = () => {
       {roomsBrowserOpen && (
         <div
           onClick={() => setRoomsBrowserOpen(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,9,12,0.92)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,9,12,0.92)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', padding: 'max(var(--safe-top), 12px) 12px max(var(--safe-bottom), 12px)' }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            style={{ margin: 'auto', width: 'min(440px, 92vw)', maxHeight: '82vh', display: 'flex', flexDirection: 'column', background: '#13151D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}
+            style={{ margin: 'auto', width: 'min(440px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', background: '#13151D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
               <span style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Комнаты</span>
-              <button onClick={() => setRoomsBrowserOpen(false)} aria-label="закрыть" style={{ background: 'transparent', border: 'none', color: '#8D8B7E', fontSize: 20, cursor: 'pointer', lineHeight: 1 }}>✕</button>
+              <button onClick={() => setRoomsBrowserOpen(false)} aria-label="Закрыть комнаты" style={{ display: 'grid', width: 44, height: 44, placeItems: 'center', borderRadius: 13, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#F5F4ED', cursor: 'pointer' }}>
+                <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 21, height: 21, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }}><path d="m7 7 10 10M17 7 7 17" /></svg>
+              </button>
             </div>
 
             <div style={{ padding: 12, borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', flexDirection: 'column', gap: 8 }}>

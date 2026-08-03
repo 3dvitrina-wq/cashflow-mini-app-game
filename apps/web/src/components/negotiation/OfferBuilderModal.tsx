@@ -24,8 +24,8 @@ const PRESETS: Preset[] = [
 const ENFORCEMENT_OPTS = [
   { id: 'word'    as const, label: 'На слово', icon: '💬', cost: 0 },
   { id: 'iou'    as const, label: 'IOU',       icon: '📋', cost: 0 },
-  { id: 'written' as const, label: 'Контракт', icon: '📝', cost: 50 },
-  { id: 'lawyer' as const, label: 'Юрист',     icon: '⚖️', cost: 200 },
+  { id: 'written' as const, label: 'Контракт', icon: '📝', cost: 0 },
+  { id: 'lawyer' as const, label: 'Юрист',     icon: '⚖️', cost: 0 },
 ];
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -43,7 +43,6 @@ interface Props {
   /** ID of the active card — included in offer so acceptDeal can run co-investment. */
   cardSourceId?: string;
   onAccept: (offer: OfferPayload) => void;
-  onCounter: (offer: OfferPayload) => void;
   onPass: () => void;
 }
 
@@ -78,7 +77,7 @@ export const FocusTokenEvent: React.FC<{ playerName: string }> = ({ playerName }
 // ─── Main modal ──────────────────────────────────────────────────────────────
 
 export const OfferBuilderModal: React.FC<Props> = ({
-  me, partner, cardTitle, cardCost, cardMonthlyIncome, cardMonthlyExpense, cardSourceId, onAccept, onCounter, onPass,
+  me, partner, cardTitle, cardCost, cardMonthlyIncome, cardMonthlyExpense, cardSourceId, onAccept, onPass,
 }) => {
   const { computeFairness } = useStore();
   const [presetId, setPresetId] = useState<OfferPayload['preset']>('split_50_50');
@@ -247,10 +246,9 @@ export const OfferBuilderModal: React.FC<Props> = ({
         {/* ── Actions ── */}
         <div className="negot-modal-actions">
           <button className="negot-action-accept" onClick={() => onAccept(offer)}>
-            ✓ ПРИНЯТЬ УСЛОВИЯ
+            ✓ ОТПРАВИТЬ ПРЕДЛОЖЕНИЕ
             {enforcementCost > 0 && <span className="negot-action-cost"> (−${enforcementCost})</span>}
           </button>
-          <button className="negot-action-counter" onClick={() => onCounter(offer)}>↺ ВСТРЕЧНОЕ</button>
           <button className="negot-action-pass" onClick={onPass}>ПРОПУСТИТЬ</button>
         </div>
 

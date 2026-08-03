@@ -173,6 +173,7 @@ export function buildSampleMeta(seed: string): PlayerData {
     onboardingComplete: true,
     dailyStreak: 0,
     lastDailyDate: null,
+    lastDailyClaimDate: null,
     xp,
     unlockedCharacters: [],
     lobbyPetId: pet,

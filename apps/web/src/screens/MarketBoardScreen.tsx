@@ -22,6 +22,7 @@ type AssetCategory = 'Все' | 'Недвижимость' | 'Бизнес' | '�
 interface AssetCard {
   id: string;
   name: string;
+  displayName?: string;
   image: string;
   price: number;
   income: number;
@@ -31,6 +32,39 @@ interface AssetCard {
 }
 
 const ASSETS: AssetCard[] = [
+  {
+    id: 'micro-coffee',
+    name: 'Coffee',
+    displayName: 'Кофейная стойка',
+    image: assetCoffee,
+    price: 1000,
+    income: 200,
+    risk: 'low',
+    category: 'Бизнес',
+    blurb: 'Маленький поток сейчас или большой актив когда-нибудь потом.',
+  },
+  {
+    id: 'micro-kiosk',
+    name: 'Kiosk',
+    displayName: 'Киоск у метро',
+    image: assetCoffee,
+    price: 1200,
+    income: 250,
+    risk: 'low',
+    category: 'Бизнес',
+    blurb: 'Никакого единорога. Только люди, сдача и ежемесячный плюс.',
+  },
+  {
+    id: 'micro-studio',
+    name: 'Studio',
+    displayName: 'Микростудия',
+    image: assetAiStartup,
+    price: 3000,
+    income: 600,
+    risk: 'medium',
+    category: 'Технологии',
+    blurb: 'Дорогой шаг для старта, зато поток уже чувствуется.',
+  },
   {
     id: 'office',
     name: 'Офисное здание',
@@ -115,12 +149,6 @@ const ASSETS: AssetCard[] = [
 
 const CATEGORY_ORDER: AssetCategory[] = ['Все', 'Недвижимость', 'Бизнес', 'Транспорт', 'Технологии', 'Крипто'];
 
-const RISK_COLORS: Record<RiskLevel, { bg: string; border: string; text: string; label: string }> = {
-  low: { bg: 'rgba(40, 199, 111, 0.14)', border: 'rgba(40, 199, 111, 0.32)', text: '#53E391', label: 'Низкий' },
-  medium: { bg: 'rgba(245, 197, 36, 0.14)', border: 'rgba(245, 197, 36, 0.32)', text: '#F5C524', label: 'Средний' },
-  high: { bg: 'rgba(232, 75, 42, 0.14)', border: 'rgba(232, 75, 42, 0.32)', text: '#FF8B70', label: 'Высокий' },
-};
-
 const CATEGORY_BACKDROPS: Record<Exclude<AssetCategory, 'Все'>, string> = {
   'Недвижимость': 'radial-gradient(circle at 50% 8%, rgba(245,197,36,.18), transparent 44%), linear-gradient(180deg, rgba(29,37,47,.96), rgba(15,18,24,.98))',
   'Бизнес': 'radial-gradient(circle at 50% 8%, rgba(245,140,36,.18), transparent 44%), linear-gradient(180deg, rgba(37,29,24,.96), rgba(16,16,18,.98))',
@@ -131,7 +159,13 @@ const CATEGORY_BACKDROPS: Record<Exclude<AssetCategory, 'Все'>, string> = {
 
 export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, onClose }) => {
   const buyAsset = useStore((s) => s.buyAsset);
+  const engineMatch = useStore((s) => s.engineMatch);
+  const localPlayerId = useStore((s) => s.localPlayerId);
   const [activeCategory, setActiveCategory] = useState<AssetCategory>('Все');
+  const me = (localPlayerId ? engineMatch?.players.find((player) => player.id === localPlayerId) : null)
+    ?? engineMatch?.players.find((player) => !player.isBot)
+    ?? engineMatch?.players[0]
+    ?? null;
 
   const filteredAssets = useMemo(
     () => (activeCategory === 'Все' ? ASSETS : ASSETS.filter((asset) => asset.category === activeCategory)),
@@ -141,15 +175,18 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
   const handleBuy = (asset: AssetCard) => {
     const ok = buyAsset(asset.name, asset.price, asset.income);
     if (!ok) {
-      showToast('Недостаточно наличных', 'error');
+      showToast(
+        me && me.businessSlotsUsed >= me.businessSlotsMax ? 'Нет свободного бизнес-слота' : 'Недостаточно наличных',
+        'error',
+      );
       return;
     }
-    showToast(`${asset.name} куплен за $${asset.price.toLocaleString()} · +$${asset.income}/мес пассив`, 'success');
+    showToast(`${asset.displayName ?? asset.name} куплен за $${asset.price.toLocaleString()} · +$${asset.income}/мес пассив`, 'success');
     onClose();
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="🏪 Рынок активов">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Рынок активов">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div
           style={{
@@ -167,7 +204,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
             Собирай скучные денежные машинки, а не красивые проблемы
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
-            Здесь уже не заглушки: активы показываются как игровые диорамы, чтобы сразу было видно, за что ты платишь и какой вайб у риска.
+            Сравни цену и реальный ежемесячный поток. Риск появится здесь только тогда, когда начнёт честно влиять на результат.
           </div>
         </div>
 
@@ -204,7 +241,9 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
           }}
         >
           {filteredAssets.map((asset) => {
-            const riskStyle = RISK_COLORS[asset.risk];
+            const hasCash = (me?.cash ?? 0) >= asset.price;
+            const hasSlot = !me || me.businessSlotsUsed < me.businessSlotsMax;
+            const canBuy = hasCash && hasSlot;
             return (
               <div
                 key={asset.id}
@@ -241,7 +280,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                   />
                   <img
                     src={asset.image}
-                    alt={asset.name}
+                    alt={asset.displayName ?? asset.name}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -252,23 +291,6 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                     }}
                     draggable={false}
                   />
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: 8,
-                      right: 8,
-                      padding: '4px 8px',
-                      borderRadius: 999,
-                      background: riskStyle.bg,
-                      border: `1px solid ${riskStyle.border}`,
-                      fontSize: 10,
-                      fontWeight: 800,
-                      color: riskStyle.text,
-                      backdropFilter: 'blur(8px)',
-                    }}
-                  >
-                    {riskStyle.label}
-                  </div>
                 </div>
 
                 <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -277,7 +299,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                       {asset.category}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED', lineHeight: 1.08 }}>
-                      {asset.name}
+                      {asset.displayName ?? asset.name}
                     </div>
                     <div style={{ fontSize: 11, color: '#9A978C', lineHeight: 1.28, marginTop: 4 }}>
                       {asset.blurb}
@@ -318,8 +340,10 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
 
                   <button
                     onClick={() => handleBuy(asset)}
+                    disabled={!canBuy}
                     style={{
                       width: '100%',
+                      minHeight: 44,
                       padding: '11px 12px',
                       borderRadius: 12,
                       background: 'linear-gradient(180deg, #28C76F, #1EA35A)',
@@ -327,10 +351,11 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                       fontSize: 12,
                       fontWeight: 900,
                       textTransform: 'uppercase',
-                      boxShadow: '0 8px 18px rgba(40, 199, 111, 0.26)',
+                      boxShadow: canBuy ? '0 8px 18px rgba(40, 199, 111, 0.26)' : 'none',
+                      opacity: canBuy ? 1 : 0.48,
                     }}
                   >
-                    Купить актив
+                    {!hasSlot ? 'Нет слота' : !hasCash ? 'Не хватает денег' : 'Купить актив'}
                   </button>
                 </div>
               </div>

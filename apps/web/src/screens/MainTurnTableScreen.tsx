@@ -423,7 +423,8 @@ export const MainTurnTableScreen: React.FC = () => {
   }, [!!incomingDeal, card?.id]);
   const reactionTimers = useRef<Record<string, number>>({});
   const reactionNonce = useRef(1);
-  const botReactionRound = useRef(-1);
+  const botLateReactionRound = useRef(-1);
+  const botCardReactionKey = useRef('');
   const devParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const devOpenMarket = devParams?.get('market') === '1';
   const devOpenLabor = devParams?.get('labor') === '1';
@@ -580,6 +581,32 @@ export const MainTurnTableScreen: React.FC = () => {
     const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 620);
     return () => window.clearTimeout(revealTimer);
   }, [card?.id, match.round, canActNow]);
+
+  useEffect(() => {
+    if (!card || !canActNow || isTutorialActive || isRoomTutorialPaused) return;
+    playSound(card.type === 'crisis' ? 'danger' : 'deal');
+  }, [canActNow, card?.id, card?.type, isRoomTutorialPaused, isTutorialActive]);
+
+  // A social table reacts when the event lands, not only when the timer is nearly
+  // empty. One context-aware bot response per card makes the room feel inhabited
+  // without turning the rail into notification spam.
+  useEffect(() => {
+    if (!card || !canActNow || cardRevealPhase !== 'ready' || isTutorialActive || isRoomTutorialPaused) return;
+    const reactionKey = `${match.round}:${card.id}`;
+    if (botCardReactionKey.current === reactionKey) return;
+    const bots = match.players.filter((player) => player.isBot && player.id !== me?.id);
+    if (bots.length === 0) return;
+    botCardReactionKey.current = reactionKey;
+    const bot = bots[(match.round + card.id.length) % bots.length];
+    const contextualLabels = card.type === 'crisis'
+      ? ['WTF', 'HMM']
+      : card.type === 'opportunity' || card.type === 'modern_earning'
+        ? ['OK', 'LOL']
+        : ['HMM', 'NEXT'];
+    const label = contextualLabels[(match.round + bot.id.length) % contextualLabels.length];
+    const reactionTimer = window.setTimeout(() => showPlayerReaction(bot.id, label), 540 + (match.round % 3) * 180);
+    return () => window.clearTimeout(reactionTimer);
+  }, [canActNow, card?.id, card?.type, cardRevealPhase, isRoomTutorialPaused, isTutorialActive, match.players, match.round, me?.id, showPlayerReaction]);
   const incomingPersonalOffers = !isProMode && me?.id
     ? (engineMatch?.personalCardOffers ?? []).filter((offer) =>
         offer.status === 'pending'
@@ -670,6 +697,8 @@ export const MainTurnTableScreen: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [card?.id, match.round, isTutorialActive, isRoomTutorialPaused]);
 
+  useEffect(() => () => dismissToast('host-moment'), []);
+
   const queueAdvance = useCallback(
     (choiceIdx: number) => {
       if (isAdvancingTime) return;
@@ -696,16 +725,16 @@ export const MainTurnTableScreen: React.FC = () => {
   useEffect(() => {
     if (isTutorialActive || isRoomTutorialPaused) return;
     if (timer > 7 || timer <= 0) return;
-    if (botReactionRound.current === match.round) return;
+    if (botLateReactionRound.current === match.round) return;
     const bots = match.players.filter((player) => player.isBot && player.id !== me?.id);
     if (bots.length === 0) return;
     if (Math.random() > 0.28) {
-      botReactionRound.current = match.round;
+      botLateReactionRound.current = match.round;
       return;
     }
     const bot = bots[(match.round + timer) % bots.length];
     const label = BOT_REACTION_LABELS[(match.round + bot.id.length + timer) % BOT_REACTION_LABELS.length];
-    botReactionRound.current = match.round;
+    botLateReactionRound.current = match.round;
     showPlayerReaction(bot.id, label);
   }, [me?.id, match.players, match.round, showPlayerReaction, timer, isTutorialActive, isRoomTutorialPaused]);
 
@@ -1136,14 +1165,40 @@ export const MainTurnTableScreen: React.FC = () => {
                       <em>{locale === 'ru' ? 'ДЕНЬГИ' : 'CASH'}</em>
                       <strong><IconCoin size={14} /> ${moneyShort(me.cash)}</strong>
                     </span>
-                    <span className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'} style={{ cursor: 'pointer' }} onClick={() => setCashflowSheet('income')}>
+                    <span
+                      className={(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? 'you-stat-card you-stat-good' : 'you-stat-card you-stat-bad'}
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(event) => { event.stopPropagation(); setCashflowSheet('income'); }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setCashflowSheet('income');
+                        }
+                      }}
+                    >
                       <em>{locale === 'ru' ? 'ПОТОК' : 'FLOW'}</em>
                       <strong>
                         <IconChart size={14} />
                         {(me.netCashflow ?? me.cashflowPerMonth) >= 0 ? '+' : '-'}${moneyShort(Math.abs(me.netCashflow ?? me.cashflowPerMonth))}
                       </strong>
                     </span>
-                    <span className="you-stat-card" style={{ cursor: 'pointer' }} onClick={() => setCashflowSheet('expense')}>
+                    <span
+                      className="you-stat-card"
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(event) => { event.stopPropagation(); setCashflowSheet('expense'); }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setCashflowSheet('expense');
+                        }
+                      }}
+                    >
                       <em>{locale === 'ru' ? 'РАСХОДЫ' : 'BURN'}</em>
                       <strong><IconDebt size={14} /> ${moneyShort(me.monthlyExpenses ?? 0)}</strong>
                     </span>
@@ -1740,15 +1795,15 @@ export const MainTurnTableScreen: React.FC = () => {
               const outcome = submitDealOffer(partner.id, offer);
               setIsOfferBuilderOpen(false);
               if (outcome === 'accepted') {
-                showToast(`${partner.name} принял сделку 🤝`, 'success');
+                showToast(
+                  isMultiplayer ? `Предложение отправлено ${partner.name}` : `${partner.name} принял сделку 🤝`,
+                  isMultiplayer ? 'info' : 'success',
+                );
               } else if (outcome === 'rejected') {
                 showToast(`${partner.name} отклонил сделку`, 'warning');
               } else {
                 showToast(locale === 'ru' ? 'Сделка не отправилась' : 'Deal could not be sent', 'error');
               }
-            }}
-            onCounter={() => {
-              // counter = stay open with swapped preset handled by component state
             }}
             onPass={() => setIsOfferBuilderOpen(false)}
           />

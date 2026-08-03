@@ -198,7 +198,7 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Бизнес-слоты">
       <div className="business-slots-sheet">
         <section className="business-slots-hero">
           <div className="business-slots-head">

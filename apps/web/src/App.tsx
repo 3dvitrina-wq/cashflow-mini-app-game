@@ -78,7 +78,7 @@ const App: React.FC = () => {
         mode="start"
         onComplete={() => {
           savePlayerData({ onboardingComplete: true });
-          startMatch(buildQuickStartRoster(), { mode: 'classic', maxRounds: 25 });
+          startMatch(buildQuickStartRoster(), { mode: 'classic', maxRounds: 15 });
         }}
         onRules={() => {
           savePlayerData({ onboardingComplete: true });

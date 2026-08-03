@@ -2,6 +2,15 @@ import { useCallback } from 'react';
 
 type HapticType = 'light' | 'medium' | 'heavy' | 'rigid' | 'soft';
 type NotificationType = 'error' | 'success' | 'warning';
+const HAPTICS_KEY = 'dyor_haptics_enabled';
+
+function isHapticsEnabled(): boolean {
+  try {
+    return typeof window === 'undefined' || window.localStorage?.getItem(HAPTICS_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
 
 function getHaptics() {
   return window.Telegram?.WebApp?.HapticFeedback;
@@ -17,6 +26,7 @@ const NOTIFY_MS: Record<NotificationType, number[]> = {
 };
 
 function webVibrate(pattern: number | number[]) {
+  if (!isHapticsEnabled()) return;
   try {
     if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
       navigator.vibrate(pattern);
@@ -28,6 +38,7 @@ function webVibrate(pattern: number | number[]) {
 
 export function useHaptics() {
   const impact = useCallback((style: HapticType = 'light') => {
+    if (!isHapticsEnabled()) return;
     try {
       const tg = getHaptics();
       if (tg) tg.impactOccurred(style);
@@ -38,6 +49,7 @@ export function useHaptics() {
   }, []);
 
   const notify = useCallback((type: NotificationType = 'success') => {
+    if (!isHapticsEnabled()) return;
     try {
       const tg = getHaptics();
       if (tg) tg.notificationOccurred(type);
@@ -48,6 +60,7 @@ export function useHaptics() {
   }, []);
 
   const selection = useCallback(() => {
+    if (!isHapticsEnabled()) return;
     try {
       getHaptics()?.selectionChanged();
     } catch {
@@ -82,6 +95,7 @@ export function useHaptics() {
 
 // Standalone functions for use outside components
 export const hapticImpact = (style: HapticType = 'light') => {
+  if (!isHapticsEnabled()) return;
   try {
     const tg = getHaptics();
     if (tg) tg.impactOccurred(style);
@@ -90,6 +104,7 @@ export const hapticImpact = (style: HapticType = 'light') => {
 };
 
 export const hapticNotify = (type: NotificationType = 'success') => {
+  if (!isHapticsEnabled()) return;
   try {
     const tg = getHaptics();
     if (tg) tg.notificationOccurred(type);

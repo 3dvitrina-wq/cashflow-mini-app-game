@@ -4,9 +4,11 @@ import App from './App';
 import './index.css';
 import { initLocale } from './i18n';
 import { ToastContainer } from './components/Toast';
+import { installAudioExperience } from './lib/sound';
 
 // Initialize locale from localStorage before rendering
 initLocale();
+installAudioExperience();
 
 declare global {
   interface Window {
@@ -52,13 +54,13 @@ function syncTelegramInsets(): void {
   // Older fullscreen clients keep floating Close/⋯ controls but expose no content
   // inset. Reserve the complete floating-control strip (status bar + controls),
   // not merely the device notch, so the first game row starts below Close/⋯.
-  const fullscreenTopFallback = tg?.isFullscreen ? 104 : 0;
+  const telegramControlsTop = tg ? 104 : 0;
   const values = {
-    top: Math.max(safe?.top ?? 0, fullscreenTopFallback),
+    top: Math.max(safe?.top ?? 0, telegramControlsTop),
     right: safe?.right ?? 0,
     bottom: safe?.bottom ?? 0,
     left: safe?.left ?? 0,
-    contentTop: Math.max(content?.top ?? 0, safe?.top ?? 0, fullscreenTopFallback),
+    contentTop: Math.max(content?.top ?? 0, safe?.top ?? 0, telegramControlsTop),
     contentRight: Math.max(content?.right ?? 0, safe?.right ?? 0),
     contentBottom: Math.max(content?.bottom ?? 0, safe?.bottom ?? 0),
     contentLeft: Math.max(content?.left ?? 0, safe?.left ?? 0),

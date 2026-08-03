@@ -14,6 +14,8 @@ export interface PlayerData {
   onboardingComplete: boolean;
   dailyStreak: number;
   lastDailyDate: string | null;
+  /** Separate from streak activity: guarantees the reward is credited once. */
+  lastDailyClaimDate: string | null;
   // ── Meta-progression (lobby social layer) ──
   /** Lifetime experience points. Drives level + XP-gated character unlocks. */
   xp: number;
@@ -41,6 +43,7 @@ const DEFAULT_DATA: PlayerData = {
   onboardingComplete: false,
   dailyStreak: 0,
   lastDailyDate: null,
+  lastDailyClaimDate: null,
   xp: 0,
   unlockedCharacters: [],
   lobbyPetId: null,

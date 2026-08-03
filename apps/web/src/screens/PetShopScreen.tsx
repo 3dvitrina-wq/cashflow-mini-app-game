@@ -26,13 +26,10 @@ const RARITY_CONFIG = {
   legendary: { label: 'Легендарный', color: '#F5C524', bg: 'rgba(245, 197, 36, 0.1)', border: 'rgba(245, 197, 36, 0.3)' },
 };
 
-const SYNERGIES = [
-  { pets: ['pet-dog', 'pet-parrot'], bonus: '🐕 + 🦜 = 2x контент', description: 'Вирусный контент' },
-  { pets: ['pet-cat', 'pet-fish'], bonus: '🐱 + 🐠 = Стресс -3', description: 'Дзен-максимум' },
-];
-
 export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose }) => {
   const buyPet = useStore((s) => s.buyPet);
+  const engineMatch = useStore((s) => s.engineMatch);
+  const localPlayerId = useStore((s) => s.localPlayerId);
   // Ownership is per-match (resets each session) — pets are an in-game purchase, not a
   // persistent collection. You must buy them again every new game.
   const ownedIds = useStore((s) => s.matchPetIds);
@@ -41,13 +38,18 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
   useEffect(() => {
     if (isOpen) {
       setShowArrival(true);
-      const timer = setTimeout(() => setShowArrival(false), 650);
+      const timer = setTimeout(() => setShowArrival(false), 240);
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
-  const myPets = PET_ITEMS.filter((p) => ownedIds.includes(p.id));
-  const availablePets = PET_ITEMS.filter((p) => !ownedIds.includes(p.id));
+  const me = (localPlayerId ? engineMatch?.players.find((player) => player.id === localPlayerId) : null)
+    ?? engineMatch?.players.find((player) => !player.isBot)
+    ?? engineMatch?.players[0]
+    ?? null;
+  const ownedPetId = ownedIds[ownedIds.length - 1];
+  const myPets = ownedPetId ? PET_ITEMS.filter((pet) => pet.id === ownedPetId) : [];
+  const availablePets = me?.pet ? [] : PET_ITEMS;
 
   const handleBuy = (pet: PetCatalogItem) => {
     // Spend live match cash (deducts visible balance); blocks if not enough.
@@ -79,22 +81,6 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
                 </div>
               </div>
             ))}
-          </div>
-        )}
-
-        {myPets.length > 0 && (
-          <div className="pet-synergy-card">
-            <h4>Синергии</h4>
-            {SYNERGIES.map((syn, i) => {
-              const active = syn.pets.every((id) => ownedIds.includes(id));
-              return (
-                <div key={i} style={{ opacity: active ? 1 : 0.45 }}>
-                  <strong>{syn.bonus}</strong>
-                  <br />
-                  <span>{active ? syn.description : 'Нужны оба питомца'}</span>
-                </div>
-              );
-            })}
           </div>
         )}
 
@@ -141,7 +127,7 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
                       ${pet.upkeep}/мес • {pet.personality}
                     </div>
                     <button onClick={() => handleBuy(pet)} className="craft-button craft-button-gold">
-                      🪙 {pet.price}
+                      Купить за ${pet.price}
                     </button>
                   </div>
                 );

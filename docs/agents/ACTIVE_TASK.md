@@ -53,6 +53,17 @@ night survival job. Do not “fix” this by removing losses.
   the phone viewport. Deal/meaning/action motion is staged and reduced-motion safe.
 - The waiting room now separates room status, seats, bot controls, match settings
   and sticky start/exit actions instead of presenting one undifferentiated stack.
+- Bank, market, labor, pets, events, player profiles, business slots and cashflow
+  use one Telegram-safe sheet hierarchy with a visible 44px Back control. The
+  own-profile sheet no longer collides with Telegram Close/ellipsis.
+- Daily reward is claim-once and explicitly closable. Settings exposes only
+  working controls: volume, original procedural music, action sounds, haptics,
+  host and language.
+- Generated character emotion sets now load from their real `.webp` files. Bots
+  react when a card lands instead of almost exclusively in the last seven seconds.
+- The default fast match is 15 rounds. The early market includes three canonical
+  $1K–$3K assets, while fake risk labels, labor auctions and pet synergies remain
+  hidden until they have authoritative mechanics.
 - Asset recurring income/upkeep has one ledger representation; duplicate passive
   effects were removed.
 - PRO-only partnership choices are visibly gated in BASIC.
@@ -66,14 +77,12 @@ night survival job. Do not “fix” this by removing losses.
 
 ## Next Step
 
-1. Publish the unified notice/onboarding build to the canonical old address;
-   the server behavior is unchanged by this UI pass.
-2. Run production reconnect smoke, a short six-seat room check and
-   `?autostart=1&tour=1` after deployment.
-3. Play a human-facing BASIC match and record where decisions feel flat,
+1. Publish the Telegram-safe/game-feel build to the canonical old address.
+2. Run production reconnect smoke, a short six-seat room check and the complete
+   sheet audit after deployment.
+3. Play a human-facing 15-round BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
-4. Audit the remaining content defects separately from engine correctness:
-   `prot-accountant:later`, P2P transfer/liability truth, market cards that only
-   add stress, Russian joke quality and repeated host memes.
-5. Expand the recovery UI only where the engine already has authoritative actions;
-   do not reintroduce client-only money mutations.
+4. Add review/confirmation for asset sale, transfer, surrender and leave, then
+   complete the server-authoritative deal lifecycle.
+5. Restore market risk only after macro/upkeep exposure exists in the engine;
+   do not reintroduce decorative promises.

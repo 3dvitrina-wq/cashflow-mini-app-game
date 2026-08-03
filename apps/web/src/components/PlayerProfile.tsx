@@ -26,7 +26,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
   const outfitLabel = t(`outfit.${player.outfit}`);
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose}>
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Профиль игрока">
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         {/* Avatar */}
         <div

@@ -68,7 +68,7 @@ const ALL_WORKERS: Worker[] = [
     isNew: true,
     bids: 2,
     accent: '#A78BFA',
-    status: 'contested',
+    status: 'available',
   },
   {
     id: 'chef',
@@ -77,7 +77,7 @@ const ALL_WORKERS: Worker[] = [
     age: 35,
     experience: '5 лет на кухне',
     salary: 600,
-    bonus: '+1 слот, контент +5%',
+    bonus: '+1 бизнес-слот',
     quote: 'Готовит и для контента',
     image: chefPortrait,
     slots: 1,
@@ -94,7 +94,7 @@ const ALL_WORKERS: Worker[] = [
     age: 45,
     experience: '15 лет практики',
     salary: 1500,
-    bonus: 'Щит от споров',
+    bonus: 'Редкий специалист',
     quote: 'Лучше заплатить сейчас',
     image: lawyerPortrait,
     slots: 0,
@@ -111,7 +111,7 @@ const ALL_WORKERS: Worker[] = [
     age: 50,
     experience: '20 лет цифр',
     salary: 900,
-    bonus: 'Щит от налогов',
+    bonus: 'Редкий специалист',
     quote: 'Налоги — не страшно',
     image: accountantPortrait,
     slots: 0,
@@ -119,7 +119,7 @@ const ALL_WORKERS: Worker[] = [
     isNew: true,
     bids: 3,
     accent: '#5BD7E0',
-    status: 'contested',
+    status: 'scarce',
   },
   {
     id: 'marketer',
@@ -128,7 +128,7 @@ const ALL_WORKERS: Worker[] = [
     age: 32,
     experience: '8 лет кампаний',
     salary: 1100,
-    bonus: '+15% доход',
+    bonus: '+$300/мес',
     quote: 'Продам даже снег',
     image: marketerPortrait,
     slots: 0,
@@ -158,7 +158,6 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
   const localPlayerId = useStore((s) => s.localPlayerId);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
-  const [bidAmount, setBidAmount] = useState(0);
   const [showArrival, setShowArrival] = useState(false);
   const [rotation, setRotation] = useState(0);
   const me = (localPlayerId ? engineMatch?.players.find((p) => p.id === localPlayerId) : null)
@@ -174,38 +173,23 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
     const timer = setTimeout(() => {
       setWorkers(getAvailableWorkers(0));
       setShowArrival(false);
-    }, 950);
+    }, 280);
     return () => clearTimeout(timer);
   }, [isOpen]);
 
   const handleBid = (worker: Worker) => {
     setSelectedWorker(worker);
-    setBidAmount(worker.salary);
   };
-
-  const rivalBid = (worker: Worker): number =>
-    worker.status === 'contested'
-      ? Math.round(worker.salary * (1 + 0.15 * Math.max(1, worker.bids)))
-      : worker.salary;
 
   const handleConfirmBid = () => {
     if (!selectedWorker) return;
-    if (bidAmount < selectedWorker.salary) {
-      showToast(`Ставка слишком низкая! Минимум $${selectedWorker.salary}`, 'warning');
-      return;
-    }
-    const rival = rivalBid(selectedWorker);
-    if (selectedWorker.status === 'contested' && bidAmount <= rival) {
-      showToast(`Тебя перебили! Конкурент дал $${rival.toLocaleString()}`, 'warning');
-      setSelectedWorker(null);
-      return;
-    }
-    const ok = hireStaff(selectedWorker.id, bidAmount, { slots: selectedWorker.slots, income: selectedWorker.incomeBonus });
+    const salary = selectedWorker.salary;
+    const ok = hireStaff(selectedWorker.id, salary, { slots: selectedWorker.slots, income: selectedWorker.incomeBonus });
     if (!ok) {
       showToast('Недостаточно наличных для найма', 'error');
       return;
     }
-    showToast(`${selectedWorker.name} нанят! -$${bidAmount} сейчас, $${bidAmount}/мес`, 'success');
+    showToast(`${selectedWorker.name} нанят! -$${salary} сейчас, $${salary}/мес`, 'success');
     setSelectedWorker(null);
   };
 
@@ -218,7 +202,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
       setWorkers(getAvailableWorkers(nextRotation));
       setShowArrival(false);
       showToast('Агентство привело новую тройку кандидатов', 'info');
-    }, 950);
+    }, 280);
   };
 
   const handleTakeSurvivalJob = (jobId: 'gig' | 'safe' | 'night', label: string) => {
@@ -231,7 +215,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="👷 Рынок труда">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Рынок труда">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div
           style={{
@@ -596,12 +580,6 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
                 </div>
               </div>
 
-              {selectedWorker.status === 'contested' && (
-                <p style={{ fontSize: 12, color: '#F5C524', fontWeight: 700, margin: '0 0 16px' }}>
-                  ⚔️ За него торгуются. Конкурент даёт ${rivalBid(selectedWorker).toLocaleString()} — перебей, чтобы нанять.
-                </p>
-              )}
-
               <div
                 style={{
                   display: 'flex',
@@ -614,50 +592,8 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
                   marginBottom: 16,
                 }}
               >
-                <span style={{ fontSize: 24, color: '#E84B2A' }}>$</span>
-                <input
-                  type="number"
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(Number(e.target.value))}
-                  style={{
-                    flex: 1,
-                    background: 'transparent',
-                    border: 'none',
-                    fontSize: 24,
-                    fontWeight: 900,
-                    color: '#F5C524',
-                    outline: 'none',
-                  }}
-                />
-                <span style={{ fontSize: 14, color: '#7D7B6F' }}>/мес</span>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-                {[0, 200, 500, 1000].map((extra) => (
-                  <button
-                    key={extra}
-                    onClick={() => setBidAmount(selectedWorker.salary + extra)}
-                    style={{
-                      flex: 1,
-                      padding: '8px',
-                      borderRadius: 9,
-                      background:
-                        bidAmount === selectedWorker.salary + extra
-                          ? 'rgba(245, 197, 36, 0.2)'
-                          : 'rgba(255, 255, 255, 0.04)',
-                      border: `1px solid ${
-                        bidAmount === selectedWorker.salary + extra
-                          ? 'rgba(245, 197, 36, 0.4)'
-                          : 'rgba(255, 255, 255, 0.08)'
-                      }`,
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#F5F4ED',
-                    }}
-                  >
-                    {extra === 0 ? 'Мин' : `+$${extra}`}
-                  </button>
-                ))}
+                <span style={{ flex: 1, fontSize: 12, color: '#7D7B6F' }}>Фиксированная зарплата</span>
+                <strong style={{ fontSize: 22, fontWeight: 900, color: '#F5C524' }}>${selectedWorker.salary}/мес</strong>
               </div>
 
               <div style={{ display: 'flex', gap: 8 }}>
@@ -689,7 +625,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
                     boxShadow: '0 8px 24px rgba(40, 199, 111, 0.32)',
                   }}
                 >
-                  Сделать ставку
+                  Нанять
                 </button>
               </div>
             </div>
@@ -711,7 +647,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
               marginTop: 6,
             }}
           >
-            🔄 Обновить рынок ($200)
+            🔄 Показать других кандидатов
           </button>
         )}
       </div>

@@ -89,7 +89,7 @@ export const CollaborationHubScreen: React.FC<CollaborationHubScreenProps> = ({
   const currentEnforcement = ENFORCEMENT_OPTIONS.find((e) => e.id === enforcement)!;
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="🤝 Сотрудничество">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Сотрудничество">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         {/* Partner selection */}
         <div>

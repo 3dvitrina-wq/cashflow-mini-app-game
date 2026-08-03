@@ -84,7 +84,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="🏦 Банк">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Банк">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
         <div
           style={{
@@ -254,7 +254,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
         >
           <div style={{ fontSize: 15, fontWeight: 900, color: '#F5F4ED', marginBottom: 4 }}>Скучные деньги</div>
           <div style={{ fontSize: 12, color: '#7D7B6F', marginBottom: 12, lineHeight: 1.35 }}>
-            Депозит не даёт хайпа, зато копится по формуле в engine и помогает переживать плохие месяцы.
+            Депозит не даёт хайпа, зато растёт каждый месяц и помогает переживать плохие сезоны.
             {depositBoost > 0 ? ` Твоя профессия добавляет ещё +${(depositBoost * 100).toFixed(2)}% годовой ставки.` : ''}
           </div>
           <div style={{ display: 'grid', gap: 8 }}>

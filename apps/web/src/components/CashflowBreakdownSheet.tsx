@@ -1,6 +1,7 @@
 import React from 'react';
 import { computeTax } from '../../../../packages/game-engine/src';
 import type { MatchState, PlayerState } from '../../../../packages/shared/src';
+import { BottomSheet } from './BottomSheet';
 
 interface Props {
   mode: 'income' | 'expense' | null;
@@ -83,36 +84,8 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   const net = totalIncome - totalExpense;
 
   return (
-    <div
-      style={{
-        position: 'fixed', inset: 0, zIndex: 9100,
-        background: 'rgba(0,0,0,0.75)',
-        display: 'flex', alignItems: 'flex-end',
-      }}
-      onClick={onClose}
-    >
-      <div
-        style={{
-          width: '100%', maxWidth: 480, margin: '0 auto',
-          background: '#16151A', borderRadius: '20px 20px 0 0',
-          padding: '20px 16px 36px', display: 'flex', flexDirection: 'column', gap: 0,
-          maxHeight: '80vh', overflow: 'hidden',
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <span style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED' }}>💸 Денежный поток</span>
-          <button
-            onClick={onClose}
-            style={{ background: 'transparent', border: 'none', color: '#7D7B6F', fontSize: 20, cursor: 'pointer', padding: '4px 8px' }}
-          >
-            ✕
-          </button>
-        </div>
-
-        {/* List */}
-        <div style={{ overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <BottomSheet isOpen={Boolean(mode)} onClose={onClose} title="Денежный поток">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
 
           {/* Income section label */}
           {incomeItems.length > 0 && (
@@ -196,8 +169,7 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
               {net >= 0 ? '+' : '−'}${fmt(net)}
             </span>
           </div>
-        </div>
       </div>
-    </div>
+    </BottomSheet>
   );
 };

@@ -122,8 +122,8 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   const levelProgress = useMemo(() => getLevelProgress(meta.xp), [meta.xp]);
   const enginePlayer = useMemo(
     () =>
-      (localPlayerId ? engineMatch?.players.find((p) => p.id === localPlayerId || p.id === player.id) : null)
-      ?? engineMatch?.players.find((p) => p.id === player.id)
+      engineMatch?.players.find((p) => p.id === player.id)
+      ?? (localPlayerId ? engineMatch?.players.find((p) => p.id === localPlayerId) : null)
       ?? null,
     [engineMatch, localPlayerId, player.id],
   );
@@ -380,7 +380,13 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
                 <PetStage pet={ownedPet} compact />
               </FeatureCard>
               <FeatureCard label="Ассистент" value="Нанять ассистента" tone="purple" icon="worker" locked />
-              <FeatureCard label="Защита" value={player.protections[0] ?? 'Бухгалтер'} tone="green" icon="shield" badge="Налог. иммунитет" />
+              <FeatureCard
+                label="Защита"
+                value={player.protections[0] ?? 'Нет'}
+                tone={player.protections.length > 0 ? 'green' : 'muted'}
+                icon="shield"
+                badge={player.protections.length > 0 ? 'Активна' : undefined}
+              />
             </section>
           </article>
 
@@ -404,10 +410,10 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
               }}
             >
               <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#FF8B70', textTransform: 'uppercase', marginBottom: 4 }}>
-                Recovery
+                План спасения
               </div>
               <div style={{ fontSize: 15, fontWeight: 900, color: '#F5F4ED', marginBottom: 8 }}>
-                Когда денег мало, тут уже не заглушки
+                Когда денег мало, здесь можно найти честный выход
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
                 {[

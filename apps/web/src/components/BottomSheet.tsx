@@ -24,6 +24,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
     };
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
     startY.current = e.touches[0].clientY;
@@ -59,6 +68,9 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
       <div
         ref={sheetRef}
         className="bottom-sheet"
+        role="dialog"
+        aria-modal="true"
+        aria-label={title ?? 'Окно игры'}
         style={{
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -89,24 +101,15 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
 
         {/* Header */}
         {title && (
-          <div
-            style={{
-              padding: '0 20px 16px',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
-            }}
-          >
-            <h2
-              style={{
-                fontSize: 18,
-                fontWeight: 900,
-                margin: 0,
-                color: '#F5F4ED',
-                textTransform: 'uppercase',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              {title}
-            </h2>
+          <div className="bottom-sheet-header">
+            <button type="button" className="bottom-sheet-back" onClick={onClose} aria-label="Вернуться в игру">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+            </button>
+            <div className="bottom-sheet-heading">
+              <span>ИГРОВОЕ МЕНЮ</span>
+              <h2>{title}</h2>
+            </div>
+            <span className="bottom-sheet-header-spacer" aria-hidden="true" />
           </div>
         )}
 

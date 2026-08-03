@@ -192,7 +192,7 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
           </>
         ) : (
           <section className="intro-fast-panel" aria-label={copy.warning}>
-            <span className="intro-section-label">Long 25 · bots ready</span>
+            <span className="intro-section-label">Sprint 15 · боты готовы</span>
             <h2>{copy.slides[0].title}</h2>
             <p>{copy.warning}</p>
           </section>

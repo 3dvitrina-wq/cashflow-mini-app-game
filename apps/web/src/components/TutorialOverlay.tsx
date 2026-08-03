@@ -24,8 +24,8 @@ const BASIC_STEPS: Step[] = [
   {
     id: 'card',
     selector: '[data-tour="card"]',
-    title: 'Эта карта принадлежит только вам',
-    copy: 'Стоп: у остальных игроков сейчас свои карты. Только вы решаете, как поступить со своей. Выгодную возможность позже можно предложить другому игроку.',
+    title: 'Эта карта — только ваша',
+    copy: 'У остальных свои карты. Вы решаете: купить, передать другому игроку или отказаться.',
   },
   {
     id: 'choices',
@@ -151,10 +151,14 @@ export function isFirstRunTourPending(): boolean {
 function telegramContentTop(): number {
   if (typeof window === 'undefined') return 0;
   const webApp = window.Telegram?.WebApp;
+  const cssInset = Number.parseFloat(
+    window.getComputedStyle(document.documentElement).getPropertyValue('--tg-content-safe-area-top-js'),
+  ) || 0;
   return Math.max(
+    cssInset,
     webApp?.safeAreaInset?.top ?? 0,
     webApp?.contentSafeAreaInset?.top ?? 0,
-    webApp?.isFullscreen ? 104 : 0,
+    webApp ? 104 : 0,
   );
 }
 
@@ -283,7 +287,8 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
   const spotHeight = rect ? Math.min(viewportHeight - spotTop - 4, rect.height + PAD * 2) : 0;
   const targetCenter = rect ? spotLeft + spotWidth / 2 : viewportWidth / 2;
   const roomBelow = rect ? viewportHeight - (spotTop + spotHeight) : 0;
-  const placement = rect && roomBelow >= tooltipHeight + 24 ? 'below' : 'above';
+  const roomAbove = rect ? spotTop - contentTop : 0;
+  const placement = rect && (roomBelow >= tooltipHeight + 24 || roomBelow > roomAbove) ? 'below' : 'above';
   const tooltipLeft = clamp(targetCenter - tooltipWidth / 2, EDGE, viewportWidth - tooltipWidth - EDGE);
   const tooltipTop = rect
     ? placement === 'below'

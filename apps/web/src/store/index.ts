@@ -319,7 +319,7 @@ function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): Matc
 function createInitialMatch(): MatchState {
   return {
     round: 0,
-    maxRounds: 25,
+    maxRounds: 15,
     phase: 'decision',
     timer: 90,
     epoch: 'CRYPTO WINTER',
@@ -378,7 +378,7 @@ function resolveStarterProfession(player: PlayerState, index: number): string {
 function createEngineMatch(
   players: PlayerState[],
   mode: 'classic' | 'draft' = 'classic',
-  maxRounds = 25,
+  maxRounds = 15,
   experienceMode: 'basic' | 'pro' = 'basic',
 ): EngineMatchState {
   const roster = orderedRoster(players);
@@ -1009,7 +1009,7 @@ export const useStore = create<AppState>((set, get) => ({
   startMatch: (players, options = {}) =>
     set(() => {
       const mode = options.mode ?? 'classic';
-      const maxRounds = options.maxRounds ?? 25;
+      const maxRounds = options.maxRounds ?? 15;
       const experienceMode = options.experienceMode ?? 'basic';
       const base = createEngineMatch(players, mode, maxRounds, experienceMode);
       // Draft: deal the 6-card central board. Classic: open a single-card intent window.

@@ -189,7 +189,7 @@ const CHARACTER_EMOTION_GLOB = import.meta.glob(
 
 const CHARACTER_EMOTION_SETS: Record<string, EmotionSet> = {};
 for (const [path, url] of Object.entries(CHARACTER_EMOTION_GLOB)) {
-  const match = path.match(/characters\/([^/]+)\/emotions\/\1_(.+)\.png$/);
+  const match = path.match(/characters\/([^/]+)\/emotions\/\1_(.+)\.webp$/);
   if (!match) continue;
   const [, id, key] = match;
   (CHARACTER_EMOTION_SETS[id] ??= {})[key] = url;

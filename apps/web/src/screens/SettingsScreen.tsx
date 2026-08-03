@@ -1,8 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useI18n, initLocale, type Locale } from '../i18n';
-import { isSoundEnabled, setSoundEnabled, playSound } from '../lib/sound';
+import {
+  getSoundVolume,
+  isMusicEnabled,
+  isSoundEnabled,
+  playSound,
+  setMusicEnabled,
+  setSoundEnabled,
+  setSoundVolume as persistSoundVolume,
+} from '../lib/sound';
 
 const HOST_KEY = 'dyor_host_enabled';
+const HAPTICS_KEY = 'dyor_haptics_enabled';
 
 interface SettingsScreenProps {
   onClose: () => void;
@@ -10,9 +19,10 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const { locale, setLocale, t } = useI18n();
-  const [soundVolume, setSoundVolume] = useState(70);
-  const [haptics, setHaptics] = useState(true);
+  const [soundVolume, setSoundVolume] = useState(() => Math.round(getSoundVolume() * 100));
+  const [haptics, setHaptics] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem(HAPTICS_KEY) !== '0' : true));
   const [sound, setSound] = useState(isSoundEnabled());
+  const [music, setMusic] = useState(isMusicEnabled());
   const [hostOn, setHostOn] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem(HOST_KEY) !== '0' : true));
   const [gameSpeed, setGameSpeed] = useState<'slow' | 'normal' | 'fast'>('normal');
   const [volatility, setVolatility] = useState<'calm' | 'normal' | 'wild'>('normal');
@@ -58,7 +68,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             textTransform: 'uppercase',
           }}
         >
-          ⚙️ {t('ui.settings')}
+          {t('ui.settings')}
         </h1>
       </div>
 
@@ -97,7 +107,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
             <span style={{ fontSize: 20 }}>🔊</span>
             <span style={{ fontSize: 14, fontWeight: 700 }}>
-              {locale === 'ru' ? 'Звуки' : 'Sounds'}
+              {locale === 'ru' ? 'Общая громкость' : 'Master volume'}
             </span>
             <span style={{ marginLeft: 'auto', fontSize: 13, color: '#7D7B6F' }}>
               {soundVolume}%
@@ -108,7 +118,11 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
             min="0"
             max="100"
             value={soundVolume}
-            onChange={(e) => setSoundVolume(Number(e.target.value))}
+            onChange={(e) => {
+              const next = Number(e.target.value);
+              setSoundVolume(next);
+              persistSoundVolume(next / 100);
+            }}
             style={{
               width: '100%',
               height: 6,
@@ -138,7 +152,12 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               </span>
             </div>
             <button
-              onClick={() => setHaptics(!haptics)}
+              aria-label={locale === 'ru' ? 'Вибрация' : 'Haptics'}
+              onClick={() => {
+                const next = !haptics;
+                setHaptics(next);
+                try { window.localStorage.setItem(HAPTICS_KEY, next ? '1' : '0'); } catch { /* ignore */ }
+              }}
               style={{
                 width: 56,
                 height: 32,
@@ -164,14 +183,35 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Sound */}
+        {/* Music */}
+        <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: 16, padding: 16, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ display: 'grid', width: 24, height: 24, placeItems: 'center', color: '#5BD7E0', fontSize: 22 }}>♪</span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Фоновая музыка' : 'Background music'}</span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,.5)' }}>{locale === 'ru' ? 'Оригинальная, генерируется в игре' : 'Original and generated in-game'}</span>
+              </div>
+            </div>
+            <button
+              aria-label={locale === 'ru' ? 'Фоновая музыка' : 'Background music'}
+              onClick={() => { const v = !music; setMusic(v); setMusicEnabled(v); if (v) playSound('select'); }}
+              style={{ width: 56, height: 32, borderRadius: 16, background: music ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
+            >
+              <div style={{ position: 'absolute', top: 4, left: music ? 28 : 4, width: 24, height: 24, borderRadius: 12, background: '#F5F4ED', transition: 'left 0.2s ease' }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Effects */}
         <div style={{ background: 'rgba(255, 255, 255, 0.04)', borderRadius: 16, padding: 16, border: '1px solid rgba(255, 255, 255, 0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 20 }}>🔊</span>
-              <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Звук' : 'Sound'}</span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Звуки действий' : 'Action sounds'}</span>
             </div>
             <button
+              aria-label={locale === 'ru' ? 'Звуки действий' : 'Action sounds'}
               onClick={() => { const v = !sound; setSound(v); setSoundEnabled(v); if (v) playSound('select'); }}
               style={{ width: 56, height: 32, borderRadius: 16, background: sound ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
             >
@@ -244,6 +284,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           </div>
         </div>
 
+        {/* These legacy controls are intentionally not exposed until they are wired
+            to authoritative room settings. A smaller truthful menu is preferable
+            to choices that appear to work but do not affect the match. */}
+        <div hidden aria-hidden="true">
         {/* Game Speed */}
         <div
           style={{
@@ -459,6 +503,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           >
             ⚠️ {locale === 'ru' ? 'Сдаться' : 'Surrender'}
           </button>
+        </div>
         </div>
       </div>
     </div>

@@ -20,30 +20,32 @@ const DAY_REWARDS = [
   { label: '+200 монет', value: 200, type: 'coins' },
   { label: '+300 монет', value: 300, type: 'coins' },
   { label: '+500 монет', value: 500, type: 'coins' },
-  { label: '🐾 Корм для питомца', value: 1, type: 'pet_food' },
-  { label: '🎴 Редкая карта', value: 1, type: 'card' },
-  { label: '🎁 1000 монет + 🌟 Star', value: 1000, type: 'jackpot' },
+  { label: '+700 монет', value: 700, type: 'coins' },
+  { label: '+850 монет', value: 850, type: 'coins' },
+  { label: '+1000 монет', value: 1000, type: 'coins' },
 ];
 
 export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => {
   const { streak } = checkDailyStreak();
   const currentDay = Math.min(streak, 7);
-  const [revealed, setRevealed] = useState(false);
+  const today = new Date().toISOString().split('T')[0];
+  const alreadyClaimed = loadPlayerData().lastDailyClaimDate === today;
+  const [revealed, setRevealed] = useState(alreadyClaimed);
+  const [claimed, setClaimed] = useState(alreadyClaimed);
 
   const reward = DAY_REWARDS[currentDay - 1] || DAY_REWARDS[0];
   const dayImage = DAY_IMAGES[currentDay - 1] || DAY_IMAGES[0];
 
   const handleReveal = () => {
-    setRevealed(true);
-    // Credit the reward idempotently — checkDailyStreak() already stamped lastDailyDate,
-    // so calling it again returns isNewDay=false; we credit only on first reveal per day.
     const data = loadPlayerData();
-    if (reward.type === 'coins' || reward.type === 'jackpot') {
-      savePlayerData({ coins: data.coins + reward.value });
-    } else if (reward.type === 'pet_food') {
-      savePlayerData({ coins: data.coins + 50 }); // pet food credited as 50 coins
+    if (data.lastDailyClaimDate === today) {
+      setRevealed(true);
+      setClaimed(true);
+      return;
     }
-    // 'card' type reward is cosmetic only — no persistent store for spare cards yet
+    setRevealed(true);
+    setClaimed(true);
+    savePlayerData({ coins: data.coins + reward.value, lastDailyClaimDate: today });
     showToast(`Награда получена: ${reward.label}!`, 'success');
   };
 
@@ -75,6 +77,30 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
           overflow: 'hidden',
         }}
       >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Закрыть ежедневную карту"
+          style={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 3,
+            display: 'grid',
+            width: 44,
+            height: 44,
+            placeItems: 'center',
+            borderRadius: 14,
+            border: '1px solid rgba(255,255,255,.12)',
+            background: 'rgba(5,8,13,.72)',
+            color: '#F5F4ED',
+          }}
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 22, height: 22, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }}>
+            <path d="m7 7 10 10M17 7 7 17" />
+          </svg>
+        </button>
+
         {/* Background glow */}
         <div
           style={{
@@ -235,7 +261,7 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
             boxShadow: revealed ? '0 8px 24px rgba(245, 197, 36, 0.3)' : 'none',
           }}
         >
-          {revealed ? 'Забрать' : 'Открой сначала'}
+          {revealed ? (claimed ? 'Закрыть' : 'Забрать') : 'Открой сначала'}
         </button>
       </div>
     </div>
