@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { PlayerState } from '../store/types';
 import { BottomSheet } from '../components/BottomSheet';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { CharacterAvatar } from '../assets/CharacterAvatar';
 import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
 import { SHOP_ITEMS, type ShopItem } from '../assets/shopCatalog';
@@ -114,6 +115,12 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   const takeSurvivalJob = useStore((s) => s.takeSurvivalJob);
   const [activeTab, setActiveTab] = useState<ProfileTab>('status');
   const [showPowerDetail, setShowPowerDetail] = useState(false);
+  const [pendingSale, setPendingSale] = useState<{
+    assetId: string;
+    name: string;
+    price: number;
+    monthlyDelta: number;
+  } | null>(null);
   const touchStartX = useRef(0);
   const playerData = useMemo(() => loadPlayerData(), [isOpen]);
   // When visiting another player we render THEIR meta (home/pet/achievements);
@@ -176,13 +183,15 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
     shiftTab(deltaX < 0 ? 1 : -1);
   };
 
-  const handleSellAsset = (assetId: string, assetName: string) => {
-    const ok = sellAsset(assetId);
+  const handleSellAsset = () => {
+    if (!pendingSale) return;
+    const ok = sellAsset(pendingSale.assetId);
     if (!ok) {
       showToast('Не получилось продать актив', 'error');
       return;
     }
-    showToast(`${assetName} продан и освободил слот`, 'success');
+    showToast(`${pendingSale.name} продан и освободил слот`, 'success');
+    setPendingSale(null);
   };
 
   const handleRestructure = (liabilityId: string, creditor: string) => {
@@ -204,6 +213,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   };
 
   return (
+    <>
     <BottomSheet isOpen={isOpen} onClose={onClose}>
       <div className="you-sheet" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
         <header className="you-profile-header">
@@ -538,7 +548,15 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
                       </div>
                     </div>
                     <button
-                      onClick={() => handleSellAsset(asset.id, asset.name)}
+                      onClick={() => {
+                        const saleBonus = profession?.heroPower.type === 'asset_sale_bonus' ? profession.heroPower.value : 0;
+                        setPendingSale({
+                          assetId: asset.id,
+                          name: asset.name,
+                          price: Math.max(100, Math.round(asset.value * (0.72 + saleBonus))),
+                          monthlyDelta: asset.upkeepPerRound - asset.incomePerRound,
+                        });
+                      }}
                       style={{
                         padding: '8px 10px',
                         borderRadius: 10,
@@ -580,6 +598,24 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
         </section>
       </div>
     </BottomSheet>
+    <ConfirmDialog
+      isOpen={pendingSale !== null}
+      title={`Продать «${pendingSale?.name ?? ''}»?`}
+      description="Актив исчезнет сразу. Отменить продажу после подтверждения нельзя."
+      confirmLabel="Да, продать"
+      tone="danger"
+      facts={pendingSale ? [
+        { label: 'Наличные', value: `+$${pendingSale.price.toLocaleString()}`, tone: 'positive' },
+        {
+          label: 'Поток / месяц',
+          value: `${pendingSale.monthlyDelta >= 0 ? '+' : '-'}$${Math.abs(pendingSale.monthlyDelta).toLocaleString()}`,
+          tone: pendingSale.monthlyDelta >= 0 ? 'positive' : 'negative',
+        },
+      ] : []}
+      onCancel={() => setPendingSale(null)}
+      onConfirm={handleSellAsset}
+    />
+    </>
   );
 };
 

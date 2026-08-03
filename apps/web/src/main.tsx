@@ -26,6 +26,9 @@ declare global {
         version?: string;
         platform?: string;
         isFullscreen?: boolean;
+        initDataUnsafe?: {
+          user?: { id?: number | string };
+        };
         safeAreaInset?: { top: number; right: number; bottom: number; left: number };
         contentSafeAreaInset?: { top: number; right: number; bottom: number; left: number };
         isVersionAtLeast?: (v: string) => boolean;

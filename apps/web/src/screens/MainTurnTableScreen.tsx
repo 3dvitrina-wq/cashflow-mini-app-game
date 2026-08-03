@@ -702,21 +702,44 @@ export const MainTurnTableScreen: React.FC = () => {
   const queueAdvance = useCallback(
     (choiceIdx: number) => {
       if (isAdvancingTime) return;
+      if (isMultiplayer && networkStatus !== 'connected') {
+        showToast(
+          locale === 'ru' ? 'Решение не отправлено. Возвращаем связь со столом.' : 'Decision not sent. Reconnecting to the table.',
+          'warning',
+          { dedupeKey: 'action-not-sent' },
+        );
+        wsClient.reconnectNow();
+        return;
+      }
       setIsAdvancingTime(true);
       playSound('select');
       hapticImpact('medium');
       // Simultaneous round: submit locks the human in, bots lock in at the same
       // time, then the window resolves + settlement reveal in one step.
-      setTimeout(() => submitIntent(choiceIdx), 200);
+      setTimeout(() => {
+        if (isMultiplayer && !wsClient.isConnected()) {
+          setIsAdvancingTime(false);
+          showToast(
+            locale === 'ru' ? 'Связь пропала до отправки. Нажмите ещё раз после подключения.' : 'Connection dropped before sending. Try again when connected.',
+            'warning',
+            { dedupeKey: 'action-not-sent' },
+          );
+          wsClient.reconnectNow();
+          return;
+        }
+        submitIntent(choiceIdx);
+      }, 200);
       setTimeout(() => setIsAdvancingTime(false), 1280);
     },
-    [submitIntent, isAdvancingTime]
+    [isAdvancingTime, isMultiplayer, locale, networkStatus, submitIntent]
   );
 
   const handleReaction = (reaction: string) => {
     if (!me?.id) return;
     if (isMultiplayer) {
-      wsClient.send({ type: 'reaction', playerId: me.id, label: reaction });
+      if (!wsClient.send({ type: 'reaction', playerId: me.id, label: reaction })) {
+        showToast(locale === 'ru' ? 'Реакция не отправлена: нет связи' : 'Reaction not sent: offline', 'warning');
+      }
     } else {
       showPlayerReaction(me.id, reaction);
     }
@@ -751,10 +774,13 @@ export const MainTurnTableScreen: React.FC = () => {
 
   const handleSendReaction = (playerId: string, label: string) => {
     setIsProfileOpen(false);
-    showPlayerReaction(playerId, label);
     if (isMultiplayer && me?.id) {
-      wsClient.send({ type: 'reaction', playerId: me.id, targetPlayerId: playerId, label });
+      if (!wsClient.send({ type: 'reaction', playerId: me.id, targetPlayerId: playerId, label })) {
+        showToast(locale === 'ru' ? 'Реакция не отправлена: нет связи' : 'Reaction not sent: offline', 'warning');
+        return;
+      }
     }
+    showPlayerReaction(playerId, label);
     showToast(
       locale === 'ru' ? `Реакция отправлена ${selectedPlayer?.name ?? 'игроку'}` : `Reaction sent to ${selectedPlayer?.name ?? 'player'}`,
       'success',
@@ -882,8 +908,13 @@ export const MainTurnTableScreen: React.FC = () => {
       label: locale === 'ru' ? 'Помощь' : 'Help',
       tone: 'cyan',
       onClick: () => {
-        requestTableHelp();
-        showToast(locale === 'ru' ? 'Стол помог наличными. Доверие снизилось.' : 'The table sent cash. Trust went down.', 'success');
+        const ok = requestTableHelp();
+        showToast(
+          ok
+            ? (locale === 'ru' ? 'Стол помог наличными. Доверие снизилось.' : 'The table sent cash. Trust went down.')
+            : (locale === 'ru' ? 'Запрос не отправлен. Проверьте связь или условия помощи.' : 'Request not sent. Check the connection or help conditions.'),
+          ok ? 'success' : 'warning',
+        );
         setFabExpanded(false);
       },
     },
@@ -1701,7 +1732,10 @@ export const MainTurnTableScreen: React.FC = () => {
                   Принять
                 </button>
                 <button
-                  onClick={() => { rejectIncomingDeal(); showToast('Инвайт отклонён', 'info'); }}
+                  onClick={() => {
+                    const ok = rejectIncomingDeal();
+                    showToast(ok ? 'Инвайт отклонён' : 'Не удалось отправить отказ', ok ? 'info' : 'warning');
+                  }}
                   style={{ flex: 1, height: 40, borderRadius: 12, fontWeight: 800, fontSize: 13, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#B8B6A9' }}
                 >
                   Отклонить
@@ -1758,7 +1792,11 @@ export const MainTurnTableScreen: React.FC = () => {
               </div>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
                 <button
-                  onClick={() => { setShowDealConfirm(false); acceptIncomingDeal(); showToast('Партнёрство принято 🤝', 'success'); }}
+                  onClick={() => {
+                    const ok = acceptIncomingDeal();
+                    if (ok) setShowDealConfirm(false);
+                    showToast(ok ? 'Партнёрство принято 🤝' : 'Не удалось принять партнёрство', ok ? 'success' : 'warning');
+                  }}
                   style={{ flex: 2, height: 48, borderRadius: 14, border: 'none', fontWeight: 900, fontSize: 15, background: '#28C76F', color: '#0B0B0C' }}
                 >
                   Подтвердить

@@ -2,6 +2,27 @@ import type { Outfit } from '../store/types';
 
 const STORAGE_KEY = 'dyor_player_data';
 
+function playerStorageKey(): string {
+  if (typeof window === 'undefined') return STORAGE_KEY;
+  const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  return telegramUserId === undefined || telegramUserId === null
+    ? STORAGE_KEY
+    : `${STORAGE_KEY}:telegram:${String(telegramUserId)}`;
+}
+
+function loadStoredPlayerData(): string | null {
+  const accountKey = playerStorageKey();
+  const accountData = localStorage.getItem(accountKey);
+  if (accountData || accountKey === STORAGE_KEY) return accountData;
+  const legacyData = localStorage.getItem(STORAGE_KEY);
+  if (!legacyData) return null;
+  // Attribute the one pre-account profile to the first Telegram account that
+  // opens this build, then remove the shared key so later accounts start fresh.
+  localStorage.setItem(accountKey, legacyData);
+  localStorage.removeItem(STORAGE_KEY);
+  return legacyData;
+}
+
 export interface PlayerData {
   outfit: Outfit;
   characterId?: string;
@@ -56,7 +77,7 @@ const DEFAULT_DATA: PlayerData = {
 
 export function loadPlayerData(): PlayerData {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = loadStoredPlayerData();
     if (!raw) return { ...DEFAULT_DATA };
     const parsed = JSON.parse(raw);
     return { ...DEFAULT_DATA, ...parsed };
@@ -69,7 +90,7 @@ export function savePlayerData(data: Partial<PlayerData>): void {
   try {
     const current = loadPlayerData();
     const merged = { ...current, ...data };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    localStorage.setItem(playerStorageKey(), JSON.stringify(merged));
   } catch {
     // silently fail if storage is full
   }

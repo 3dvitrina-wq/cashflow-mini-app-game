@@ -12,6 +12,8 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   const [isDragging, setIsDragging] = useState(false);
   const startY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -26,11 +28,19 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
 
   useEffect(() => {
     if (!isOpen) return;
+    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const frame = requestAnimationFrame(() => {
+      (backButtonRef.current ?? sheetRef.current)?.focus({ preventScroll: true });
+    });
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape' && !document.querySelector('[role="alertdialog"][aria-modal="true"]')) onClose();
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('keydown', handleKeyDown);
+      restoreFocusRef.current?.focus({ preventScroll: true });
+    };
   }, [isOpen, onClose]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -71,6 +81,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
         role="dialog"
         aria-modal="true"
         aria-label={title ?? 'Окно игры'}
+        tabIndex={-1}
         style={{
           transform: `translateY(${dragY}px)`,
           transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -102,7 +113,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
         {/* Header */}
         {title && (
           <div className="bottom-sheet-header">
-            <button type="button" className="bottom-sheet-back" onClick={onClose} aria-label="Вернуться в игру">
+            <button ref={backButtonRef} type="button" className="bottom-sheet-back" onClick={onClose} aria-label="Вернуться в игру">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
             </button>
             <div className="bottom-sheet-heading">

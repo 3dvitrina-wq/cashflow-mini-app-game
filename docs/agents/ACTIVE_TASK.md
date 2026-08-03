@@ -2,8 +2,8 @@
 
 ## Session
 
-- Date: 2026-08-03
-- Session log: `docs/agents/sessions/2026-08-03.md`
+- Date: 2026-08-04
+- Session log: `docs/agents/sessions/2026-08-04.md`
 
 ## Task
 
@@ -37,6 +37,11 @@ night survival job. Do not “fix” this by removing losses.
   real choice, opens the authoritative `?` preview and tries a profile reaction
   while the match remains paused. The
   `?tour=1` QA route forces a replay for browser inspection.
+- Player identity, onboarding completion, progression and the guided-tour flag
+  are scoped to `Telegram.WebApp.initDataUnsafe.user.id`. A second Telegram
+  account on the same device starts fresh; ordinary browser QA remains scoped to
+  that browser. Pre-account data migrates once to the first Telegram account
+  opening this release.
 - Tutorial time is authoritative pause time: local countdown, server deadline and
   bot cascade stay frozen until all first-run humans finish or skip.
 - Tutorial player portraits are interactive and open the real profile/reactions.
@@ -44,6 +49,9 @@ night survival job. Do not “fix” this by removing losses.
   to the match and destructive actions are visually separate.
 - WebSocket sessions reconnect with a stable resume token, restore the server
   snapshot and display transport status instead of silently dropping messages.
+- Multiplayer economy and deal actions now report transport failure instead of
+  optimistically claiming success. A card decision is not animated as sent when
+  the socket is down; the UI reconnects and tells the player to repeat it.
 - Transient results, errors, connection state and host remarks now use one global
   notice lane with one visual hierarchy. The host no longer repeats its line in
   a separate floating bubble; ownership and market scope remain persistent in
@@ -64,6 +72,12 @@ night survival job. Do not “fix” this by removing losses.
 - The default fast match is 15 rounds. The early market includes three canonical
   $1K–$3K assets, while fake risk labels, labor auctions and pet synergies remain
   hidden until they have authoritative mechanics.
+- The early market now sends the exact canonical upkeep contract. Coffee, kiosk
+  and studio purchases reach the engine, appear in the asset ledger and show
+  asset income minus upkeep instead of a decorative income-only number.
+- Sale, gift/transfer and revenue-share actions open one shared review dialog.
+  It names the asset/recipient, shows cash and monthly-flow consequences, places
+  focus on Cancel and keeps the underlying Telegram-safe sheet open on Escape.
 - Asset recurring income/upkeep has one ledger representation; duplicate passive
   effects were removed.
 - PRO-only partnership choices are visibly gated in BASIC.
@@ -77,12 +91,13 @@ night survival job. Do not “fix” this by removing losses.
 
 ## Next Step
 
-1. Publish the Telegram-safe/game-feel build to the canonical old address.
-2. Run production reconnect smoke, a short six-seat room check and the complete
+1. Run production reconnect smoke, a short six-seat room check and the complete
    sheet audit after deployment.
-3. Play a human-facing 15-round BASIC match and record where decisions feel flat,
+2. Play a human-facing 15-round BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
-4. Add review/confirmation for asset sale, transfer, surrender and leave, then
-   complete the server-authoritative deal lifecycle.
+3. Add authoritative surrender/leave commands before exposing destructive
+   settings controls; do not restore the old dead buttons.
+4. Complete the server-authoritative deal lifecycle: sent, viewed, countered,
+   accepted, rejected and settled.
 5. Restore market risk only after macro/upkeep exposure exists in the engine;
    do not reintroduce decorative promises.

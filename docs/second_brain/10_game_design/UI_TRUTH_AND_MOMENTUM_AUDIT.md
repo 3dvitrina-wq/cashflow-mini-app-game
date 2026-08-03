@@ -39,11 +39,32 @@ Every CTA, price, bonus, risk label, setting and reward must have:
 - a specific failure reason;
 - no claim that the engine or persistence layer cannot prove.
 
+Transport success is part of this contract. A client-side affordability check
+is not proof that an online command reached the table. Economy, deal and reaction
+controls must distinguish `sent` from `not sent`; they must never spend, close a
+request or announce success after a failed WebSocket write.
+
+For irreversible asset actions, truth also requires a review state. Sale,
+transfer and opening a revenue share show the exact asset, recipient, money and
+monthly-flow consequence before the command is sent. Cancel is the initial focus.
+
 A smaller truthful screen is preferable to a rich screen with decorative
 controls. This audit therefore hides unwired match settings, removes fake labor
 auctions and pet synergies, removes unimplemented market-risk labels, makes
 daily claims idempotent, and stops multiplayer offers from claiming acceptance
 before the server answers.
+
+## Account-scoped first run
+
+First run belongs to a Telegram user, not to a phone or WebView storage bucket.
+Profile progression, onboarding completion and the match coach marks use the
+Telegram user id as their local namespace. A second account on the same device
+must see a fresh profile and both learning layers. Non-Telegram browser QA keeps
+the legacy browser-local namespace, and `?tour=1` remains the explicit replay.
+
+Legacy unscoped data migrates once to the first Telegram account opening the
+account-aware build. Removing the shared key after migration is required; merely
+copying it would incorrectly mark every later account as experienced.
 
 ## Telegram window contract
 
@@ -109,10 +130,19 @@ profile bust and no emotion set: `street_hustler`, `vibe_coder`, and
   detect automatically.
 - Keep visual polish and economy truth in the same review, but do not use
   simulation win rates as a proxy for fun.
+- Validate a catalog purchase through the rendered UI, not only an engine unit
+  test. The market and engine both listed Coffee, Kiosk and Studio, but the UI
+  omitted canonical upkeep and every purchase was rejected despite passing
+  engine tests. The full path exposed the contract mismatch immediately.
+- Suppress routine build asset listings in agent summaries. A successful Vite
+  build can emit hundreds of image rows that consume context without improving
+  the decision; retain the exit result and warnings, then investigate only the
+  relevant chunk or error.
 
 ## Remaining product work
 
-- Add confirmation/review for asset sale, transfer, surrender and leave.
+- Add surrender/leave only after server-authoritative commands exist; then reuse
+  the same confirmation contract as asset actions.
 - Complete the authoritative deal lifecycle: sent, viewed, countered, accepted,
   rejected and settled.
 - Give market archetypes real macro/upkeep exposure before restoring risk badges.

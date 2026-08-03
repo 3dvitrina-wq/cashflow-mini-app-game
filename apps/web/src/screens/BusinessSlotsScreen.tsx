@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { getProfession, type Asset, type EnforcementLevel, type PlayerState as EnginePlayerState } from '../../../../packages/shared/src';
 import { BottomSheet } from '../components/BottomSheet';
+import { ConfirmDialog, type ConfirmFact } from '../components/ConfirmDialog';
 import { showToast } from '../components/Toast';
 import { IconChart, IconGiftBurst, IconHandshake, IconShop, IconUsers } from '../assets/Icons';
 import { resolveGameplayCardArtwork } from '../assets/cardArtwork';
@@ -19,6 +20,11 @@ const ENFORCEMENT_OPTIONS: { id: EnforcementLevel; label: string }[] = [
 ];
 
 type BusinessPanel = 'sale' | 'partner';
+
+type PendingBusinessAction =
+  | { kind: 'sale'; assetId: string; assetName: string; price: number; monthlyDelta: number }
+  | { kind: 'transfer'; assetId: string; assetName: string; targetId: string; targetName: string; monthlyDelta: number }
+  | { kind: 'share'; assetId: string; assetName: string; targetId: string; targetName: string; share: number; partnerMonthly: number; ownerMonthly: number; enforcement: EnforcementLevel };
 
 const BUSINESS_PANEL_TABS: { id: BusinessPanel; label: string }[] = [
   { id: 'sale', label: 'Продажа' },
@@ -139,6 +145,7 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
   const [enforcement, setEnforcement] = useState<EnforcementLevel>('written');
   const [customSalePrice, setCustomSalePrice] = useState(100);
   const [activePanel, setActivePanel] = useState<BusinessPanel>('sale');
+  const [pendingAction, setPendingAction] = useState<PendingBusinessAction | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -159,45 +166,125 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
     setCustomSalePrice(selectedMaxSalePrice);
   }, [selectedAsset?.id, selectedMaxSalePrice]);
 
-  const handleSell = (asset: Asset) => {
+  const requestSell = (asset: Asset) => {
     const price = clampSalePrice(customSalePrice, minSalePrice(asset), Math.max(100, Math.round(asset.value * assetSaleMultiplier(enginePlayer))));
-    const ok = sellAsset(asset.id, price);
-    if (!ok) {
-      showToast('Не получилось продать бизнес', 'error');
-      return;
-    }
-    showToast(`${asset.name} продан за ${formatMoney(price)}`, 'success');
+    setPendingAction({
+      kind: 'sale',
+      assetId: asset.id,
+      assetName: assetDisplayName(asset),
+      price,
+      monthlyDelta: asset.upkeepPerRound - asset.incomePerRound,
+    });
   };
 
-  const handleTransfer = (asset: Asset) => {
-    if (!selectedTargetId) {
+  const requestTransfer = (asset: Asset) => {
+    if (!selectedTargetId || !selectedTarget) {
       showToast('Выбери игрока для передачи', 'warning');
       return;
     }
-    const ok = transferAsset(asset.id, selectedTargetId);
-    if (!ok) {
-      showToast('Передача не прошла', 'error');
-      return;
-    }
-    const target = otherPlayers.find((player) => player.id === selectedTargetId);
-    showToast(`${asset.name} передан${target ? ` игроку ${target.name}` : ''}`, 'success');
+    setPendingAction({
+      kind: 'transfer',
+      assetId: asset.id,
+      assetName: assetDisplayName(asset),
+      targetId: selectedTargetId,
+      targetName: selectedTarget.name,
+      monthlyDelta: asset.upkeepPerRound - asset.incomePerRound,
+    });
   };
 
-  const handleShare = (asset: Asset) => {
-    if (!selectedTargetId) {
+  const requestShare = (asset: Asset) => {
+    if (!selectedTargetId || !selectedTarget) {
       showToast('Выбери партнёра', 'warning');
       return;
     }
-    const ok = shareAsset(asset.id, selectedTargetId, partnerShare / 100, enforcement);
-    if (!ok) {
-      showToast('Не получилось открыть долю', 'error');
-      return;
-    }
-    const target = otherPlayers.find((player) => player.id === selectedTargetId);
-    showToast(`${asset.name} теперь делится с ${target?.name ?? 'партнёром'}`, 'success');
+    setPendingAction({
+      kind: 'share',
+      assetId: asset.id,
+      assetName: assetDisplayName(asset),
+      targetId: selectedTargetId,
+      targetName: selectedTarget.name,
+      share: partnerShare,
+      partnerMonthly: partnerMonthlyShare,
+      ownerMonthly: ownerMonthlyShare,
+      enforcement,
+    });
   };
 
+  const confirmPendingAction = () => {
+    if (!pendingAction) return;
+    if (pendingAction.kind === 'sale') {
+      const ok = sellAsset(pendingAction.assetId, pendingAction.price);
+      if (!ok) {
+        showToast('Не получилось продать бизнес', 'error');
+        return;
+      }
+      showToast(`${pendingAction.assetName} продан за ${formatMoney(pendingAction.price)}`, 'success');
+    } else if (pendingAction.kind === 'transfer') {
+      const ok = transferAsset(pendingAction.assetId, pendingAction.targetId);
+      if (!ok) {
+        showToast('Передача не прошла', 'error');
+        return;
+      }
+      showToast(`${pendingAction.assetName} передан игроку ${pendingAction.targetName}`, 'success');
+    } else {
+      const ok = shareAsset(
+        pendingAction.assetId,
+        pendingAction.targetId,
+        pendingAction.share / 100,
+        pendingAction.enforcement,
+      );
+      if (!ok) {
+        showToast('Не получилось открыть долю', 'error');
+        return;
+      }
+      showToast(`${pendingAction.assetName}: ${pendingAction.share}% теперь у ${pendingAction.targetName}`, 'success');
+    }
+    setPendingAction(null);
+  };
+
+  const confirmationFacts: ConfirmFact[] = pendingAction?.kind === 'sale'
+    ? [
+        { label: 'Наличные', value: `+${formatMoney(pendingAction.price)}`, tone: 'positive' },
+        {
+          label: 'Поток / месяц',
+          value: `${pendingAction.monthlyDelta >= 0 ? '+' : '-'}${formatMoney(Math.abs(pendingAction.monthlyDelta))}`,
+          tone: pendingAction.monthlyDelta >= 0 ? 'positive' : 'negative',
+        },
+      ]
+    : pendingAction?.kind === 'transfer'
+      ? [
+          { label: 'Получатель', value: pendingAction.targetName },
+          {
+            label: 'Ваш поток / месяц',
+            value: `${pendingAction.monthlyDelta >= 0 ? '+' : '-'}${formatMoney(Math.abs(pendingAction.monthlyDelta))}`,
+            tone: pendingAction.monthlyDelta >= 0 ? 'positive' : 'negative',
+          },
+        ]
+      : pendingAction?.kind === 'share'
+        ? [
+            { label: 'Партнёр', value: pendingAction.targetName },
+            { label: 'Его доля', value: `${pendingAction.share}% · +${formatMoney(pendingAction.partnerMonthly)}/мес`, tone: 'positive' },
+            { label: 'Ваш остаток', value: `+${formatMoney(pendingAction.ownerMonthly)}/мес` },
+            { label: 'Фиксация', value: ENFORCEMENT_OPTIONS.find((item) => item.id === pendingAction.enforcement)?.label ?? pendingAction.enforcement },
+          ]
+        : [];
+
+  const confirmationTitle = pendingAction?.kind === 'sale'
+    ? `Продать «${pendingAction.assetName}»?`
+    : pendingAction?.kind === 'transfer'
+      ? `Передать «${pendingAction.assetName}»?`
+      : pendingAction?.kind === 'share'
+        ? `Отдать ${pendingAction.share}% бизнеса?`
+        : '';
+
+  const confirmationDescription = pendingAction?.kind === 'sale'
+    ? 'Актив исчезнет сразу, а его доход и расходы уйдут из вашего потока.'
+    : pendingAction?.kind === 'transfer'
+      ? 'Вы не получите наличных. Актив и весь его будущий поток перейдут выбранному игроку.'
+      : 'После подтверждения доход бизнеса будет разделён. Проверьте партнёра и долю.';
+
   return (
+    <>
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Бизнес-слоты">
       <div className="business-slots-sheet">
         <section className="business-slots-hero">
@@ -309,7 +396,7 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
                       onChange={(event) => setCustomSalePrice(clampSalePrice(Number(event.target.value) || selectedMinSalePrice, selectedMinSalePrice, selectedMaxSalePrice))}
                     />
                   </label>
-                  <button className="business-primary-action business-sell-now" type="button" onClick={() => handleSell(selectedAsset)}>
+                  <button className="business-primary-action business-sell-now" type="button" onClick={() => requestSell(selectedAsset)}>
                     Продать
                   </button>
                 </div>
@@ -358,7 +445,7 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
                   <button
                     className="business-secondary-action business-transfer-action"
                     type="button"
-                    onClick={() => handleTransfer(selectedAsset)}
+                    onClick={() => requestTransfer(selectedAsset)}
                     disabled={!selectedTargetId || (selectedAsset.coOwners?.length ?? 0) > 1}
                   >
                     <IconGiftBurst size={16} />
@@ -393,7 +480,7 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
                       </button>
                     ))}
                   </div>
-                  <button className="business-secondary-action business-share-action" type="button" onClick={() => handleShare(selectedAsset)} disabled={!selectedTargetId}>
+                  <button className="business-secondary-action business-share-action" type="button" onClick={() => requestShare(selectedAsset)} disabled={!selectedTargetId}>
                     <IconShop size={16} />
                     Открыть долю
                   </button>
@@ -405,6 +492,17 @@ export const BusinessSlotsScreen: React.FC<BusinessSlotsScreenProps> = ({ isOpen
         )}
       </div>
     </BottomSheet>
+    <ConfirmDialog
+      isOpen={pendingAction !== null}
+      title={confirmationTitle}
+      description={confirmationDescription}
+      confirmLabel={pendingAction?.kind === 'sale' ? 'Да, продать' : pendingAction?.kind === 'transfer' ? 'Да, передать' : 'Открыть долю'}
+      tone={pendingAction?.kind === 'share' ? 'warning' : 'danger'}
+      facts={confirmationFacts}
+      onCancel={() => setPendingAction(null)}
+      onConfirm={confirmPendingAction}
+    />
+    </>
   );
 };
 

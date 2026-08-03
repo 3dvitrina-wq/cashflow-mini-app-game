@@ -138,11 +138,27 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
 
+function tutorialStorageKey(): string {
+  if (typeof window === 'undefined') return STORAGE_KEY;
+  const telegramUserId = window.Telegram?.WebApp?.initDataUnsafe?.user?.id;
+  return telegramUserId === undefined || telegramUserId === null
+    ? STORAGE_KEY
+    : `${STORAGE_KEY}:telegram:${String(telegramUserId)}`;
+}
+
 export function isFirstRunTourPending(): boolean {
   if (typeof window === 'undefined') return false;
   if (new URLSearchParams(window.location.search).get('tour') === '1') return true;
   try {
-    return localStorage.getItem(STORAGE_KEY) !== '1';
+    const accountKey = tutorialStorageKey();
+    if (accountKey !== STORAGE_KEY && localStorage.getItem(accountKey) !== '1' && localStorage.getItem(STORAGE_KEY) === '1') {
+      // One-time migration: the legacy flag belonged to the Telegram account
+      // that opens the first account-aware build. Remove it so a later account
+      // on the same device still receives its own tutorial.
+      localStorage.setItem(accountKey, '1');
+      localStorage.removeItem(STORAGE_KEY);
+    }
+    return localStorage.getItem(accountKey) !== '1';
   } catch {
     return true;
   }
@@ -191,7 +207,7 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({
 
   const dismiss = useCallback(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, '1');
+      localStorage.setItem(tutorialStorageKey(), '1');
     } catch {
       // Storage is optional; closing the live overlay must still work.
     }

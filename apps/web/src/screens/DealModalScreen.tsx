@@ -28,6 +28,7 @@ import {
   IconWarning,
 } from '../assets/Icons';
 import { useStore } from '../store';
+import { showToast } from '../components/Toast';
 import {
   DEAL_PRESETS,
   ENFORCEMENT_OPTIONS,
@@ -158,13 +159,13 @@ export const DealModalScreen: React.FC = () => {
   };
 
   const handleAccept = () => {
-    acceptIncomingDeal();
-    setScreen('main');
+    if (acceptIncomingDeal()) setScreen('main');
+    else showToast('Не удалось принять сделку. Проверьте связь.', 'warning');
   };
 
   const handleDecline = () => {
-    rejectIncomingDeal();
-    setScreen('main');
+    if (rejectIncomingDeal()) setScreen('main');
+    else showToast('Не удалось отклонить сделку. Проверьте связь.', 'warning');
   };
 
   const handleCounter = () => {

@@ -88,10 +88,10 @@ interface AppState {
   // Per-choice affordability for the local player; UI disables the rest.
   affordableChoices: () => boolean[];
   submitDealOffer: (targetId: string, offer: OfferPayload) => 'accepted' | 'rejected' | 'failed';
-  requestTableHelp: () => void;
+  requestTableHelp: () => boolean;
   // Engine-connected economy actions
   hireStaff: (staffId: string, salary: number, bonus?: { slots?: number; income?: number }) => boolean;
-  openFutures: (tokenSymbol: string, direction: FuturesDirection, leverage: number, amount: number) => void;
+  openFutures: (tokenSymbol: string, direction: FuturesDirection, leverage: number, amount: number) => boolean;
   buyPet: (petId: string, price: number, upkeep: number, bonus?: { passive?: number; stress?: number }) => boolean;
   buyAsset: (name: string, price: number, income: number, kind?: string, upkeep?: number, slotsUsed?: number) => boolean;
   sellAsset: (assetId: string, salePrice?: number) => boolean;
@@ -103,8 +103,8 @@ interface AppState {
   repayLoan: (loanId: string) => boolean;
   restructureDebt: (liabilityId: string) => boolean;
   takeSurvivalJob: (jobId: 'gig' | 'safe' | 'night') => boolean;
-  acceptIncomingDeal: () => void;
-  rejectIncomingDeal: () => void;
+  acceptIncomingDeal: () => boolean;
+  rejectIncomingDeal: () => boolean;
   // Phase 3: Negotiation actions
   triggerInterestWindow: () => void;
   expressInterest: () => void;
@@ -613,7 +613,7 @@ export const useStore = create<AppState>((set, get) => ({
     };
 
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: proposeCmd });
+      if (!wsClient.send({ type: 'command', command: proposeCmd })) return 'failed';
       // Optimistic — server broadcasts outcome via state_update; target sees incomingDeal
       return 'accepted';
     }
@@ -647,23 +647,18 @@ export const useStore = create<AppState>((set, get) => ({
     return 'accepted';
   },
 
-  requestTableHelp: () =>
-    set((st) => {
-      if (!st.engineMatch) return st;
-      const me = getLocalPlayer(st);
-      if (!me) return st;
-
-      const cmd: Command = {
-        type: 'request_help',
-        playerId: me.id,
-      };
-      if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
-        return st;
-      }
-      const result = resolveCommand(st.engineMatch, cmd);
-      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) };
-    }),
+  requestTableHelp: () => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    const me = getLocalPlayer(st);
+    if (!me) return false;
+    const cmd: Command = { type: 'request_help', playerId: me.id };
+    if (st.isMultiplayer) return wsClient.send({ type: 'command', command: cmd });
+    const result = resolveCommand(st.engineMatch, cmd);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
+    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
+    return !rejected;
+  },
 
   hireStaff: (staffId, salary, bonus) => {
     const st = get();
@@ -673,8 +668,7 @@ export const useStore = create<AppState>((set, get) => ({
     const cmd: Command = { type: 'hire_staff', playerId: meP.id, staffId, salary, bonus };
     if (st.isMultiplayer) {
       if (meP.cash < salary) return false;
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     if (meP.cash < salary) return false; // engine also guards; fail fast for UI
     const result = resolveCommand(st.engineMatch, cmd);
@@ -683,19 +677,18 @@ export const useStore = create<AppState>((set, get) => ({
     return !rejected;
   },
 
-  openFutures: (tokenSymbol, direction, leverage, amount) =>
-    set((st) => {
-      if (!st.engineMatch) return st;
-      const meP = getLocalPlayer(st);
-      if (!meP) return st;
-      const cmd: Command = { type: 'open_futures_position', playerId: meP.id, tokenSymbol, direction, leverage, amount };
-      if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
-        return st;
-      }
-      const result = resolveCommand(st.engineMatch, cmd);
-      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) };
-    }),
+  openFutures: (tokenSymbol, direction, leverage, amount) => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    const meP = getLocalPlayer(st);
+    if (!meP) return false;
+    const cmd: Command = { type: 'open_futures_position', playerId: meP.id, tokenSymbol, direction, leverage, amount };
+    if (st.isMultiplayer) return wsClient.send({ type: 'command', command: cmd });
+    const result = resolveCommand(st.engineMatch, cmd);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
+    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
+    return !rejected;
+  },
 
   // Pet purchase spends the live match cash; upkeep + bonus are mirrored into the
   // match economy (recurring expense + passive/stress). Returns false if the human
@@ -715,7 +708,7 @@ export const useStore = create<AppState>((set, get) => ({
       stressBonus: bonus?.stress,
     };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
+      if (!wsClient.send({ type: 'command', command: cmd })) return false;
       set({ matchPetIds: st.matchPetIds.includes(petId) ? st.matchPetIds : [...st.matchPetIds, petId] });
       return true;
     }
@@ -745,8 +738,7 @@ export const useStore = create<AppState>((set, get) => ({
       slotsUsed,
     };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -761,8 +753,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me) return false;
     const cmd: Command = { type: 'sell_asset', playerId: me.id, assetId, salePrice };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -777,8 +768,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me || me.id === targetPlayerId) return false;
     const cmd: Command = { type: 'transfer_asset', playerId: me.id, assetId, targetPlayerId };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -793,8 +783,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me || me.id === targetPlayerId) return false;
     const cmd: Command = { type: 'share_asset', playerId: me.id, assetId, targetPlayerId, partnerShare, enforcement };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -809,8 +798,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me || me.cash < amount) return false;
     const cmd: Command = { type: 'deposit', playerId: me.id, amount, lockPeriod };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -825,8 +813,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me) return false;
     const cmd: Command = { type: 'withdraw', playerId: me.id, depositId };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -841,8 +828,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!meP) return false;
     const cmd: Command = { type: 'take_loan', playerId: meP.id, amount };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -859,8 +845,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!meP) return false;
     const cmd: Command = { type: 'repay_loan', playerId: meP.id, loanId };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -875,8 +860,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me) return false;
     const cmd: Command = { type: 'restructure_debt', playerId: me.id, liabilityId };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -891,8 +875,7 @@ export const useStore = create<AppState>((set, get) => ({
     if (!me) return false;
     const cmd: Command = { type: 'take_survival_job', playerId: me.id, jobId };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command: cmd });
-      return true;
+      return wsClient.send({ type: 'command', command: cmd });
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
@@ -900,43 +883,52 @@ export const useStore = create<AppState>((set, get) => ({
     return !rejected;
   },
 
-  acceptIncomingDeal: () =>
-    set((st) => {
-      if (!st.engineMatch || !st.incomingDeal) return st;
-      const me = getLocalPlayer(st);
-      if (!me) return st;
-      const humanCashBefore = me.cash;
-      const cmd: Command = { type: 'accept_deal', playerId: me.id, dealId: st.incomingDeal.id };
-      if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
-        return { incomingDeal: null } as Partial<AppState>;
-      }
-      const result = resolveCommand(st.engineMatch, cmd);
-      // Card-linked deal: assets were created, now close the card by advancing the round.
-      const cardConsumed = result.events.some(
-        (e) => e.type === 'effect' && (e.payload as Record<string, unknown>)?.cardConsumed === true,
-      );
-      if (cardConsumed) {
-        const withWindow = openIntentWindow(result.state);
-        const resolved = resolveAllIntents(withWindow).state;
-        return { ...advanceAndOpen(resolved, st.negotiatingPlayerIds, humanCashBefore), incomingDeal: null };
-      }
-      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds), incomingDeal: null };
-    }),
+  acceptIncomingDeal: () => {
+    const st = get();
+    if (!st.engineMatch || !st.incomingDeal) return false;
+    const me = getLocalPlayer(st);
+    if (!me) return false;
+    const humanCashBefore = me.cash;
+    const cmd: Command = { type: 'accept_deal', playerId: me.id, dealId: st.incomingDeal.id };
+    if (st.isMultiplayer) {
+      if (!wsClient.send({ type: 'command', command: cmd })) return false;
+      set({ incomingDeal: null });
+      return true;
+    }
+    const result = resolveCommand(st.engineMatch, cmd);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
+    if (rejected) return false;
+    // Card-linked deal: assets were created, now close the card by advancing the round.
+    const cardConsumed = result.events.some(
+      (event) => event.type === 'effect' && (event.payload as Record<string, unknown>)?.cardConsumed === true,
+    );
+    if (cardConsumed) {
+      const withWindow = openIntentWindow(result.state);
+      const resolved = resolveAllIntents(withWindow).state;
+      set({ ...advanceAndOpen(resolved, st.negotiatingPlayerIds, humanCashBefore), incomingDeal: null });
+    } else {
+      set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds), incomingDeal: null });
+    }
+    return true;
+  },
 
-  rejectIncomingDeal: () =>
-    set((st) => {
-      if (!st.engineMatch || !st.incomingDeal) return st;
-      const me = getLocalPlayer(st);
-      if (!me) return st;
-      const cmd: Command = { type: 'reject_deal', playerId: me.id, dealId: st.incomingDeal.id };
-      if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
-        return { incomingDeal: null } as Partial<AppState>;
-      }
-      const result = resolveCommand(st.engineMatch, cmd);
-      return { engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds), incomingDeal: null };
-    }),
+  rejectIncomingDeal: () => {
+    const st = get();
+    if (!st.engineMatch || !st.incomingDeal) return false;
+    const me = getLocalPlayer(st);
+    if (!me) return false;
+    const cmd: Command = { type: 'reject_deal', playerId: me.id, dealId: st.incomingDeal.id };
+    if (st.isMultiplayer) {
+      if (!wsClient.send({ type: 'command', command: cmd })) return false;
+      set({ incomingDeal: null });
+      return true;
+    }
+    const result = resolveCommand(st.engineMatch, cmd);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
+    if (rejected) return false;
+    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds), incomingDeal: null });
+    return true;
+  },
 
   startMultiplayerMatch: (serverState, localPlayerId) =>
     set(() => {
@@ -1038,7 +1030,7 @@ export const useStore = create<AppState>((set, get) => ({
       const humanCashBefore = human.cash; // for an honest round-delta reveal
       const humanCmd: Command = { type: 'choose_option', playerId: human.id, choiceIndex: choiceIdx };
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: humanCmd });
+        if (!wsClient.send({ type: 'command', command: humanCmd })) return st;
         return st;
       }
       let state = st.engineMatch.phase === 'intent_window' ? st.engineMatch : openIntentWindow(st.engineMatch);
@@ -1070,7 +1062,7 @@ export const useStore = create<AppState>((set, get) => ({
       askingPrice,
     };
     if (st.isMultiplayer) {
-      wsClient.send({ type: 'command', command });
+      if (!wsClient.send({ type: 'command', command })) return 'failed';
       return audience === 'table' ? 'listed' : 'pending';
     }
 
@@ -1125,7 +1117,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!me) return st;
       const command: Command = { type: 'accept_personal_card', playerId: me.id, offerId };
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command });
+        if (!wsClient.send({ type: 'command', command })) return st;
         return st;
       }
       const result = resolveCommand(st.engineMatch, command);
@@ -1139,7 +1131,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!me) return st;
       const command: Command = { type: 'decline_personal_card', playerId: me.id, offerId };
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command });
+        if (!wsClient.send({ type: 'command', command })) return st;
         return st;
       }
       const result = resolveCommand(st.engineMatch, command);
@@ -1156,7 +1148,7 @@ export const useStore = create<AppState>((set, get) => ({
         ?? st.engineMatch.players[0];
       if (!human) return st;
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: { type: 'submit_draft', playerId: human.id, peeks: [], claims } });
+        if (!wsClient.send({ type: 'command', command: { type: 'submit_draft', playerId: human.id, peeks: [], claims } })) return st;
         return st;
       }
       let state = resolveCommand(st.engineMatch, { type: 'submit_draft', playerId: human.id, peeks: [], claims }).state;
@@ -1183,7 +1175,7 @@ export const useStore = create<AppState>((set, get) => ({
         ?? st.engineMatch.players[0];
       if (!human) return st;
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: { type: 'draft_pick_option', playerId: human.id, index, choiceIndex: choiceIdx } });
+        if (!wsClient.send({ type: 'command', command: { type: 'draft_pick_option', playerId: human.id, index, choiceIndex: choiceIdx } })) return st;
         return st;
       }
       let state = resolveCommand(st.engineMatch, { type: 'draft_pick_option', playerId: human.id, index, choiceIndex: choiceIdx }).state;
@@ -1212,7 +1204,7 @@ export const useStore = create<AppState>((set, get) => ({
         const inIntentWindow = st.engineMatch?.phase === 'intent_window';
         const isMyTurn = me && active && me.id === active.id;
         if (me && (isMyTurn || inIntentWindow)) {
-          wsClient.send({ type: 'command', command: { type: 'pass', playerId: me.id } });
+          if (!wsClient.send({ type: 'command', command: { type: 'pass', playerId: me.id } })) return st;
         }
         return st;
       }
@@ -1274,7 +1266,7 @@ export const useStore = create<AppState>((set, get) => ({
       };
       // In multiplayer, route to server; state updates via receiveServerState broadcast.
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
+        if (!wsClient.send({ type: 'command', command: cmd })) return st;
         return st;
       }
 
@@ -1319,7 +1311,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!me) return st;
       const cmd: Command = { type: 'express_interest', playerId: me.id, targetPlayerId: me.id };
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
+        if (!wsClient.send({ type: 'command', command: cmd })) return st;
         return st;
       }
       const result = resolveCommand(st.engineMatch, cmd);
@@ -1340,7 +1332,7 @@ export const useStore = create<AppState>((set, get) => ({
       if (!me) return st;
       const cmd: Command = { type: 'close_interest_window', playerId: me.id };
       if (st.isMultiplayer) {
-        wsClient.send({ type: 'command', command: cmd });
+        if (!wsClient.send({ type: 'command', command: cmd })) return st;
         return { interestWindow: null, negotiatingPlayerIds: [] } as Partial<AppState>;
       }
       const result = resolveCommand(st.engineMatch, cmd);

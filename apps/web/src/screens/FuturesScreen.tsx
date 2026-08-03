@@ -104,7 +104,12 @@ export const FuturesScreen: React.FC = () => {
     setTimeout(() => {
       // Engine clamps leverage to 3x and deducts the margin from cash immediately;
       // P&L resolves at the end of the round (next turn).
-      openFutures(selectedToken.name, position, Math.min(3, leverage), bet);
+      const ok = openFutures(selectedToken.name, position, Math.min(3, leverage), bet);
+      if (!ok) {
+        setLoading(false);
+        showToast('Позиция не открыта. Проверь связь и доступную маржу.', 'warning');
+        return;
+      }
       setOpened(true);
       setLoading(false);
       showToast(`Маржа $${bet.toLocaleString()} списана. P&L на след. ходу.`, 'info');

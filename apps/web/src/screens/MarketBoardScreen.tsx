@@ -26,6 +26,7 @@ interface AssetCard {
   image: string;
   price: number;
   income: number;
+  upkeep: number;
   risk: RiskLevel;
   category: Exclude<AssetCategory, 'Все'>;
   blurb: string;
@@ -39,6 +40,7 @@ const ASSETS: AssetCard[] = [
     image: assetCoffee,
     price: 1000,
     income: 200,
+    upkeep: 10,
     risk: 'low',
     category: 'Бизнес',
     blurb: 'Маленький поток сейчас или большой актив когда-нибудь потом.',
@@ -50,6 +52,7 @@ const ASSETS: AssetCard[] = [
     image: assetCoffee,
     price: 1200,
     income: 250,
+    upkeep: 20,
     risk: 'low',
     category: 'Бизнес',
     blurb: 'Никакого единорога. Только люди, сдача и ежемесячный плюс.',
@@ -61,6 +64,7 @@ const ASSETS: AssetCard[] = [
     image: assetAiStartup,
     price: 3000,
     income: 600,
+    upkeep: 50,
     risk: 'medium',
     category: 'Технологии',
     blurb: 'Дорогой шаг для старта, зато поток уже чувствуется.',
@@ -71,6 +75,7 @@ const ASSETS: AssetCard[] = [
     image: assetOffice,
     price: 24000,
     income: 2100,
+    upkeep: 0,
     risk: 'low',
     category: 'Недвижимость',
     blurb: 'Стабильная аренда и минимум драмы.',
@@ -81,6 +86,7 @@ const ASSETS: AssetCard[] = [
     image: assetCoffee,
     price: 8500,
     income: 980,
+    upkeep: 0,
     risk: 'low',
     category: 'Бизнес',
     blurb: 'Скромный кэшфлоу, зато люди всегда хотят кофе.',
@@ -91,6 +97,7 @@ const ASSETS: AssetCard[] = [
     image: assetLogistics,
     price: 18000,
     income: 1350,
+    upkeep: 0,
     risk: 'medium',
     category: 'Транспорт',
     blurb: 'Растёт на спросе, но любит хаос цепочек.',
@@ -101,6 +108,7 @@ const ASSETS: AssetCard[] = [
     image: assetStorage,
     price: 12000,
     income: 1100,
+    upkeep: 0,
     risk: 'low',
     category: 'Недвижимость',
     blurb: 'Скучно выглядит, зато сдаётся без понтов.',
@@ -111,6 +119,7 @@ const ASSETS: AssetCard[] = [
     image: assetAiStartup,
     price: 15000,
     income: 1800,
+    upkeep: 0,
     risk: 'high',
     category: 'Технологии',
     blurb: 'Взлетит быстро. Или испарится с runway.',
@@ -121,6 +130,7 @@ const ASSETS: AssetCard[] = [
     image: assetNft,
     price: 10000,
     income: 1200,
+    upkeep: 0,
     risk: 'high',
     category: 'Крипто',
     blurb: 'Ярко выглядит, но рынок любит издеваться.',
@@ -131,6 +141,7 @@ const ASSETS: AssetCard[] = [
     image: assetLaundromat,
     price: 9000,
     income: 950,
+    upkeep: 0,
     risk: 'low',
     category: 'Бизнес',
     blurb: 'Неброский актив для взрослых денег.',
@@ -141,6 +152,7 @@ const ASSETS: AssetCard[] = [
     image: assetCryptoMining,
     price: 20000,
     income: 2200,
+    upkeep: 0,
     risk: 'high',
     category: 'Крипто',
     blurb: 'Шумит, жрёт электричество и любит боль.',
@@ -173,7 +185,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
   );
 
   const handleBuy = (asset: AssetCard) => {
-    const ok = buyAsset(asset.name, asset.price, asset.income);
+    const ok = buyAsset(asset.name, asset.price, asset.income, 'business', asset.upkeep, 1);
     if (!ok) {
       showToast(
         me && me.businessSlotsUsed >= me.businessSlotsMax ? 'Нет свободного бизнес-слота' : 'Недостаточно наличных',
@@ -181,7 +193,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
       );
       return;
     }
-    showToast(`${asset.displayName ?? asset.name} куплен за $${asset.price.toLocaleString()} · +$${asset.income}/мес пассив`, 'success');
+    showToast(`${asset.displayName ?? asset.name} куплен за $${asset.price.toLocaleString()} · поток актива +$${asset.income - asset.upkeep}/мес`, 'success');
     onClose();
   };
 
@@ -331,9 +343,12 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                         textAlign: 'right',
                       }}
                     >
-                      <div style={{ fontSize: 10, color: '#7D7B6F' }}>Доход</div>
+                      <div style={{ fontSize: 10, color: '#7D7B6F' }}>Поток актива</div>
                       <div style={{ fontSize: 15, fontWeight: 900, color: '#39D884' }}>
-                        +${asset.income.toLocaleString()}
+                        +${(asset.income - asset.upkeep).toLocaleString()}
+                      </div>
+                      <div style={{ fontSize: 8, color: '#7D7B6F', marginTop: 2 }}>
+                        +${asset.income.toLocaleString()} −${asset.upkeep.toLocaleString()}
                       </div>
                     </div>
                   </div>
