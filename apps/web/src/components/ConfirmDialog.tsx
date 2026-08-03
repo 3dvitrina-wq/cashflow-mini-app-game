@@ -1,4 +1,5 @@
 import React, { useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useModalLayer } from '../hooks/useModalLayer';
 
 export interface ConfirmFact {
@@ -13,6 +14,7 @@ interface ConfirmDialogProps {
   description: string;
   confirmLabel: string;
   facts?: ConfirmFact[];
+  visual?: React.ReactNode;
   tone?: 'danger' | 'warning';
   onConfirm: () => void;
   onCancel: () => void;
@@ -24,6 +26,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   description,
   confirmLabel,
   facts = [],
+  visual,
   tone = 'warning',
   onConfirm,
   onCancel,
@@ -39,9 +42,9 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     initialFocusRef: cancelRef,
   });
 
-  if (!isOpen) return null;
+  if (!isOpen || typeof document === 'undefined') return null;
 
-  return (
+  return createPortal(
     <div className="confirm-dialog-layer" onClick={onCancel}>
       <div
         ref={dialogRef}
@@ -61,6 +64,8 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           <h2 id={titleId}>{title}</h2>
           <p id={descriptionId}>{description}</p>
         </div>
+
+        {visual && <div className="confirm-dialog-visual">{visual}</div>}
 
         {facts.length > 0 && (
           <dl className="confirm-dialog-facts">
@@ -82,6 +87,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

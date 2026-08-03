@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
 import welderPortrait from '../assets/generated/labor-v2/worker-welder-v2.webp';
@@ -523,113 +524,35 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
           })}
 
         {selectedWorker && (
-          <div
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(0, 0, 0, 0.7)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              zIndex: 10000,
-              padding: 20,
-              animation: 'fadeIn 0.2s ease',
-            }}
-            onClick={() => setSelectedWorker(null)}
-          >
-            <div
-              style={{
-                width: '100%',
-                maxWidth: 344,
-                background: '#131722',
-                borderRadius: 22,
-                padding: 22,
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                boxShadow: '0 18px 44px rgba(0,0,0,.34)',
-                animation: 'scaleIn 0.3s ease',
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <ConfirmDialog
+            isOpen
+            title={`Нанять ${selectedWorker.name}?`}
+            description={`${selectedWorker.profession} · ${selectedWorker.experience}. ${selectedWorker.quote}.`}
+            confirmLabel={`Нанять за $${selectedWorker.salary.toLocaleString('ru-RU')}`}
+            facts={[
+              { label: 'Сейчас', value: `−$${selectedWorker.salary.toLocaleString('ru-RU')}`, tone: 'negative' },
+              { label: 'Каждый месяц', value: `−$${selectedWorker.salary.toLocaleString('ru-RU')}`, tone: 'negative' },
+              { label: 'Что даст', value: selectedWorker.bonus, tone: 'positive' },
+            ]}
+            visual={(
+              <div className="labor-confirm-person">
                 <div
+                  className="labor-confirm-portrait"
                   style={{
-                    width: 88,
-                    height: 100,
-                    borderRadius: 16,
                     background: `radial-gradient(circle at 50% 10%, ${selectedWorker.accent}20, transparent 44%), linear-gradient(180deg, rgba(18,22,30,.92), rgba(8,10,14,.98))`,
-                    border: '1px solid rgba(255,255,255,.08)',
-                    overflow: 'hidden',
-                    flexShrink: 0,
                   }}
                 >
-                  <img src={selectedWorker.image} alt={selectedWorker.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable={false} />
+                  <img src={selectedWorker.image} alt={selectedWorker.name} draggable={false} />
                 </div>
-                <div style={{ minWidth: 0 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 900, color: '#F5F4ED', margin: '2px 0 4px' }}>
-                    {selectedWorker.name}
-                  </h3>
-                  <p style={{ fontSize: 12, color: '#A78BFA', fontWeight: 700, margin: '0 0 4px' }}>
-                    {selectedWorker.profession}
-                  </p>
-                  <p style={{ fontSize: 11, color: '#7D7B6F', margin: '0 0 8px' }}>
-                    {selectedWorker.experience} • {selectedWorker.age} лет
-                  </p>
-                  <div style={{ fontSize: 12, color: '#B8B6A9', lineHeight: 1.3 }}>
-                    {selectedWorker.bonus}
-                  </div>
+                <div>
+                  <strong>{selectedWorker.name}</strong>
+                  <span>{selectedWorker.age} лет · {selectedWorker.bonus}</span>
                 </div>
               </div>
-
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: 16,
-                  borderRadius: 14,
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  marginBottom: 16,
-                }}
-              >
-                <span style={{ flex: 1, fontSize: 12, color: '#7D7B6F' }}>Фиксированная зарплата</span>
-                <strong style={{ fontSize: 22, fontWeight: 900, color: '#F5C524' }}>${selectedWorker.salary}/мес</strong>
-              </div>
-
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setSelectedWorker(null)}
-                  style={{
-                    flex: 1,
-                    padding: '14px',
-                    borderRadius: 12,
-                    background: 'rgba(255, 255, 255, 0.06)',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    fontSize: 14,
-                    fontWeight: 700,
-                    color: '#7D7B6F',
-                  }}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={handleConfirmBid}
-                  style={{
-                    flex: 2,
-                    padding: '14px',
-                    borderRadius: 12,
-                    background: 'linear-gradient(180deg, #28C76F, #1EA35A)',
-                    color: '#fff',
-                    fontSize: 14,
-                    fontWeight: 900,
-                    boxShadow: '0 8px 24px rgba(40, 199, 111, 0.32)',
-                  }}
-                >
-                  Нанять
-                </button>
-              </div>
-            </div>
-          </div>
+            )}
+            onConfirm={handleConfirmBid}
+            onCancel={() => setSelectedWorker(null)}
+          />
         )}
 
         {!showArrival && (

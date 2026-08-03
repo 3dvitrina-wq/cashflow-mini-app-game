@@ -3613,6 +3613,56 @@ button {
   line-height: 1.45;
 }
 
+.confirm-dialog-visual {
+  margin-top: 14px;
+}
+
+.labor-confirm-person {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(255,255,255,.04);
+}
+
+.labor-confirm-portrait {
+  width: 62px;
+  height: 72px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+}
+
+.labor-confirm-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.labor-confirm-person > div:last-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+}
+
+.labor-confirm-person strong {
+  color: #F5F4ED;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.labor-confirm-person span {
+  color: #B8B6A9;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .confirm-dialog-facts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

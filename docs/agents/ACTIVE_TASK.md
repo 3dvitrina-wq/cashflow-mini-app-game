@@ -68,6 +68,9 @@ night survival job. Do not “fix” this by removing losses.
   full-screen routes now share one topmost focus/Escape/Telegram Back stack.
   Action-required offers have a bounded decision tray and transient notices or
   tutorial coach marks yield while a higher-priority surface owns attention.
+  Shared confirmations portal above transformed sheets; Labor hire uses the same
+  cancel-first contract and shows the candidate, immediate cost, monthly salary
+  and engine-owned bonus.
 - Choice submission now stages decision lock, night/settlement and new-month
   reveal before the next card becomes actionable. A delayed multiplayer snapshot
   cannot briefly display the previous month's settlement as the new result.
