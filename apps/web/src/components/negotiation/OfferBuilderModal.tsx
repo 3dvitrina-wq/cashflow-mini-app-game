@@ -1,9 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import type { OfferPayload } from '../../../../../packages/shared/src';
 import type { FairnessResult } from '../../../../../packages/game-engine/src';
 import { useStore } from '../../store';
 import type { PlayerState } from '../../store/types';
 import { resolveCharacterPortrait } from '../../assets/generatedCharacterCatalog';
+import { useModalLayer } from '../../hooks/useModalLayer';
 
 // ─── Preset definitions ──────────────────────────────────────────────────────
 
@@ -83,6 +84,14 @@ export const OfferBuilderModal: React.FC<Props> = ({
   const [presetId, setPresetId] = useState<OfferPayload['preset']>('split_50_50');
   const [sidePayment, setSidePayment] = useState(0);
   const [enforcement, setEnforcement] = useState<'word' | 'iou' | 'written' | 'lawyer'>('iou');
+  const modalRef = useRef<HTMLDivElement>(null);
+  const backRef = useRef<HTMLButtonElement>(null);
+  useModalLayer({
+    isOpen: true,
+    onClose: onPass,
+    containerRef: modalRef,
+    initialFocusRef: backRef,
+  });
 
   const preset = PRESETS.find((p) => p.id === presetId) ?? PRESETS[0]!;
 
@@ -106,12 +115,20 @@ export const OfferBuilderModal: React.FC<Props> = ({
   const partnerPortrait = resolveCharacterPortrait(partner.characterId) ?? resolveCharacterPortrait(partner.name);
 
   return (
-    <div className="negot-modal-overlay">
-      <div className="negot-modal">
+    <div className="negot-modal-overlay" onClick={onPass}>
+      <div
+        ref={modalRef}
+        className="negot-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Конструктор предложения"
+        tabIndex={-1}
+        onClick={(event) => event.stopPropagation()}
+      >
 
         {/* ── Header ── */}
         <div className="negot-modal-header">
-          <button className="negot-modal-back" onClick={onPass} aria-label="Назад">‹</button>
+          <button ref={backRef} className="negot-modal-back" onClick={onPass} aria-label="Вернуться к столу">‹</button>
           <div className="negot-modal-heading">
             <span className="negot-modal-title">ПЕРЕГОВОРЫ</span>
             <span className="negot-modal-subtitle">{cardTitle.toUpperCase()}</span>

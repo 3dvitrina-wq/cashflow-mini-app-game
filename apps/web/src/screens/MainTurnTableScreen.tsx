@@ -20,16 +20,33 @@ import { PlayerStatsScreen } from './PlayerStatsScreen';
 import { BusinessSlotsScreen } from './BusinessSlotsScreen';
 import { ProtectionScreen } from './ProtectionScreen';
 import { CashflowBreakdownSheet } from '../components/CashflowBreakdownSheet';
+import { ConfirmDialog } from '../components/ConfirmDialog';
 import { dismissToast, showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
+import { useModalLayer } from '../hooks/useModalLayer';
 import { playSound } from '../lib/sound';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
+import { monthlyCashflow } from '../../../../packages/game-engine/src';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
 type HostMoment = {
   cue: string;
   tone: 'event' | 'check' | 'deal' | 'warning';
+};
+
+type RoundTransition = {
+  phase: 'closing' | 'night' | 'opening';
+  fromRound: number;
+  fromTimeline: string;
+};
+
+type SettlementLedgerLine = {
+  id: string;
+  icon: string;
+  label: string;
+  income?: number;
+  expense?: number;
 };
 
 // The host is a guest, not a narrator: it only has something to say when a market
@@ -401,6 +418,8 @@ export const MainTurnTableScreen: React.FC = () => {
   const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
+  const [roundTransition, setRoundTransition] = useState<RoundTransition | null>(null);
+  const transitionTimers = useRef<number[]>([]);
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   const [isPersonalOfferPickerOpen, setIsPersonalOfferPickerOpen] = useState(false);
   const [personalOfferPrice, setPersonalOfferPrice] = useState(0);
@@ -408,6 +427,16 @@ export const MainTurnTableScreen: React.FC = () => {
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
   const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | null>(null);
+  const reactionsDialogRef = useRef<HTMLDivElement>(null);
+  const firstReactionRef = useRef<HTMLButtonElement>(null);
+
+  useModalLayer({
+    isOpen: reactionsOpen,
+    onClose: () => setReactionsOpen(false),
+    containerRef: reactionsDialogRef,
+    initialFocusRef: firstReactionRef,
+  });
+
   const card = match.currentCard ? tCard(match.currentCard) : null;
   const globalCard = match.globalCard ? tCard(match.globalCard) : null;
   // Deal banner shown with delay when card is active, hidden while interestWindow is open
@@ -450,6 +479,8 @@ export const MainTurnTableScreen: React.FC = () => {
   useEffect(() => () => {
     Object.values(reactionTimers.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
     reactionTimers.current = {};
+    transitionTimers.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+    transitionTimers.current = [];
   }, []);
 
   useEffect(() => wsClient.addStatusListener(setNetworkStatus), []);
@@ -573,6 +604,13 @@ export const MainTurnTableScreen: React.FC = () => {
       setCardRevealPhase('ready');
       return;
     }
+    // The next card must reveal only after the month-change scene. Keeping it in
+    // the ready state under the opaque transition lets the dealing class restart
+    // once the overlay leaves instead of playing invisibly behind it.
+    if (isAdvancingTime) {
+      setCardRevealPhase('ready');
+      return;
+    }
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       setCardRevealPhase('ready');
       return;
@@ -580,7 +618,7 @@ export const MainTurnTableScreen: React.FC = () => {
     setCardRevealPhase('dealing');
     const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 620);
     return () => window.clearTimeout(revealTimer);
-  }, [card?.id, match.round, canActNow]);
+  }, [card?.id, match.round, canActNow, isAdvancingTime]);
 
   useEffect(() => {
     if (!card || !canActNow || isTutorialActive || isRoomTutorialPaused) return;
@@ -613,6 +651,99 @@ export const MainTurnTableScreen: React.FC = () => {
         && offer.fromPlayerId !== me.id
         && (offer.audience === 'table' || offer.toPlayerId === me.id))
     : [];
+  const settlementLedger = useMemo(() => {
+    if (!engineMatch) return null;
+    const player = engineMatch.players.find((candidate) => candidate.id === localPlayerId)
+      ?? engineMatch.players.find((candidate) => !candidate.isBot);
+    if (!player) return null;
+
+    const flow = monthlyCashflow(engineMatch, player);
+    const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
+    const assetUpkeep = player.assets.reduce((sum, asset) => sum + asset.upkeepPerRound, 0);
+    const workIncome = Math.max(0, flow.income - player.passiveIncome - assetIncome);
+    const otherRecurringExpense = Math.max(0, flow.expense - assetUpkeep);
+    const recurringLines: SettlementLedgerLine[] = [];
+
+    if (workIncome > 0) {
+      recurringLines.push({ id: 'work', icon: '💼', label: locale === 'ru' ? 'Работа' : 'Work', income: workIncome });
+    }
+    if (player.passiveIncome > 0) {
+      recurringLines.push({ id: 'passive', icon: '🌱', label: locale === 'ru' ? 'Пассивный доход' : 'Passive income', income: player.passiveIncome });
+    }
+
+    const assetsWithFlow = player.assets.filter((asset) => asset.incomePerRound > 0 || asset.upkeepPerRound > 0);
+    const shownAssets = assetsWithFlow.slice(0, assetsWithFlow.length > 3 ? 2 : 3);
+    for (const asset of shownAssets) {
+      recurringLines.push({
+        id: `asset-${asset.id}`,
+        icon: '🏢',
+        label: asset.name,
+        income: asset.incomePerRound || undefined,
+        expense: asset.upkeepPerRound || undefined,
+      });
+    }
+    if (assetsWithFlow.length > shownAssets.length) {
+      const rest = assetsWithFlow.slice(shownAssets.length);
+      recurringLines.push({
+        id: 'assets-rest',
+        icon: '🏙️',
+        label: locale === 'ru' ? `Ещё активы · ${rest.length}` : `More assets · ${rest.length}`,
+        income: rest.reduce((sum, asset) => sum + asset.incomePerRound, 0) || undefined,
+        expense: rest.reduce((sum, asset) => sum + asset.upkeepPerRound, 0) || undefined,
+      });
+    }
+    if (otherRecurringExpense > 0) {
+      recurringLines.push({
+        id: 'recurring-expense',
+        icon: '🧾',
+        label: locale === 'ru' ? 'Жизнь, команда, кредиты и налог' : 'Life, staff, debt and tax',
+        expense: otherRecurringExpense,
+      });
+    }
+
+    // lastSettlement is the true wallet delta for the entire resolved round.
+    // The residual reconciles immediate card/event/futures cash with recurring flow.
+    const decisionDelta = Math.round(match.lastSettlement - flow.net);
+    if (decisionDelta !== 0) {
+      recurringLines.push({
+        id: 'round-events',
+        icon: '⚡',
+        label: locale === 'ru' ? 'Решение и события раунда' : 'Decision and round events',
+        income: decisionDelta > 0 ? decisionDelta : undefined,
+        expense: decisionDelta < 0 ? Math.abs(decisionDelta) : undefined,
+      });
+    }
+
+    return {
+      lines: recurringLines,
+      income: flow.income + Math.max(0, decisionDelta),
+      expense: flow.expense + Math.max(0, -decisionDelta),
+      net: match.lastSettlement,
+    };
+  }, [engineMatch, localPlayerId, locale, match.lastSettlement]);
+  const isTutorialSuspended = Boolean(
+    isProfileOpen
+    || isMarketOpen
+    || isLaborOpen
+    || isPetsOpen
+    || isBankOpen
+    || isEventLogOpen
+    || isCollabOpen
+    || isDailyOpen
+    || isPlayerStatsOpen
+    || isBusinessSlotsOpen
+    || isProtectionOpen
+    || isOfferBuilderOpen
+    || showDealConfirm
+    || cashflowSheet
+    || reactionsOpen
+    || fabExpanded
+    || isPersonalOfferPickerOpen
+    || roundTransition
+    || incomingPersonalOffers.length > 0
+    || interestWindow?.status === 'open'
+    || (incomingDeal && dealBannerReady)
+  );
   const outgoingPersonalOffer = !isProMode && me?.id
     ? engineMatch?.personalCardOffers?.find((offer) => offer.status === 'pending' && offer.fromPlayerId === me.id)
     : undefined;
@@ -711,14 +842,22 @@ export const MainTurnTableScreen: React.FC = () => {
         wsClient.reconnectNow();
         return;
       }
+      transitionTimers.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      transitionTimers.current = [];
       setIsAdvancingTime(true);
+      setRoundTransition({
+        phase: 'closing',
+        fromRound: match.round,
+        fromTimeline: match.timelineLabel,
+      });
       playSound('select');
       hapticImpact('medium');
       // Simultaneous round: submit locks the human in, bots lock in at the same
       // time, then the window resolves + settlement reveal in one step.
-      setTimeout(() => {
+      transitionTimers.current.push(window.setTimeout(() => {
         if (isMultiplayer && !wsClient.isConnected()) {
           setIsAdvancingTime(false);
+          setRoundTransition(null);
           showToast(
             locale === 'ru' ? 'Связь пропала до отправки. Нажмите ещё раз после подключения.' : 'Connection dropped before sending. Try again when connected.',
             'warning',
@@ -728,11 +867,50 @@ export const MainTurnTableScreen: React.FC = () => {
           return;
         }
         submitIntent(choiceIdx);
-      }, 200);
-      setTimeout(() => setIsAdvancingTime(false), 1280);
+      }, 180));
+      transitionTimers.current.push(window.setTimeout(() => {
+        setRoundTransition((current) => current ? { ...current, phase: 'night' } : current);
+        playSound('whoosh');
+      }, 360));
     },
-    [isAdvancingTime, isMultiplayer, locale, networkStatus, submitIntent]
+    [isAdvancingTime, isMultiplayer, locale, match.round, match.timelineLabel, networkStatus, submitIntent]
   );
+
+  // Keep the night ledger on-screen long enough to connect decisions to money.
+  // In multiplayer it waits for the authoritative next round instead of showing
+  // the previous settlement or revealing the next card on a guessed timer.
+  useEffect(() => {
+    if (!roundTransition || roundTransition.phase !== 'night') return;
+    if (match.round <= roundTransition.fromRound) {
+      const stalledTimer = window.setTimeout(() => {
+        setRoundTransition(null);
+        setIsAdvancingTime(false);
+        showToast(
+          locale === 'ru' ? 'Стол ещё не подтвердил новый месяц. Проверьте связь и повторите решение.' : 'The table did not confirm the next month. Check the connection and retry.',
+          'warning',
+          { dedupeKey: 'round-not-confirmed' },
+        );
+        if (isMultiplayer) wsClient.reconnectNow();
+      }, 8000);
+      return () => window.clearTimeout(stalledTimer);
+    }
+
+    playSound(match.lastSettlement >= 0 ? 'coin' : 'spend');
+    hapticImpact(match.lastSettlement >= 0 ? 'light' : 'medium');
+    const openingTimer = window.setTimeout(() => {
+      setRoundTransition((current) => current ? { ...current, phase: 'opening' } : current);
+    }, 1800);
+    return () => window.clearTimeout(openingTimer);
+  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition]);
+
+  useEffect(() => {
+    if (!roundTransition || roundTransition.phase !== 'opening') return;
+    const finishTimer = window.setTimeout(() => {
+      setRoundTransition(null);
+      setIsAdvancingTime(false);
+    }, 620);
+    return () => window.clearTimeout(finishTimer);
+  }, [roundTransition]);
 
   const handleReaction = (reaction: string) => {
     if (!me?.id) return;
@@ -944,15 +1122,81 @@ export const MainTurnTableScreen: React.FC = () => {
   return (
     <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
       <div className="game-bg-noise" />
-      {isAdvancingTime && (
-        <div className="time-advance-overlay">
-          <div className="time-advance-card">
-            <span className="time-advance-kicker">{t('ui.settlement') || 'Settlement'}</span>
-            <strong>{match.timelineLabel}</strong>
-            <span>
-              {match.lastSettlement >= 0 ? '+' : '-'}${Math.abs(match.lastSettlement).toLocaleString()} ·{' '}
-              {t('ui.nextMonth') || 'next month'}
+      {isAdvancingTime && roundTransition && (
+        <div className={`time-advance-overlay time-advance-${roundTransition.phase}`} aria-live="assertive">
+          <div className="time-advance-sky" aria-hidden="true">
+            <span className="time-advance-sun" />
+            <span className="time-advance-moon" />
+            <span className="time-advance-horizon" />
+          </div>
+          <div
+            key={roundTransition.phase}
+            className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}`}
+          >
+            <span className="time-advance-kicker">
+              {roundTransition.phase === 'closing'
+                ? (locale === 'ru' ? 'РЕШЕНИЕ ЗАФИКСИРОВАНО' : 'DECISION LOCKED')
+                : roundTransition.phase === 'night'
+                  ? match.round > roundTransition.fromRound
+                    ? (locale === 'ru' ? 'ДЕНЬГИ ЗА МЕСЯЦ' : 'THIS MONTH IN MONEY')
+                    : (locale === 'ru' ? 'НОЧЬ · СВОДИМ БАЛАНС' : 'NIGHT · BALANCING BOOKS')
+                  : match.round > roundTransition.fromRound
+                    ? (locale === 'ru' ? 'НОВЫЙ МЕСЯЦ' : 'NEW MONTH')
+                    : (locale === 'ru' ? 'ЖДЁМ СТОЛ' : 'WAITING FOR TABLE')}
             </span>
+            {roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? (
+              <div className="settlement-ledger" aria-label={locale === 'ru' ? 'Расчёт денег за месяц' : 'Monthly money breakdown'}>
+                <div className="settlement-ledger-lines">
+                  {settlementLedger.lines.map((line, index) => (
+                    <div
+                      key={line.id}
+                      className="settlement-ledger-line"
+                      style={{ ['--ledger-index' as string]: index } as React.CSSProperties}
+                    >
+                      <span aria-hidden="true">{line.icon}</span>
+                      <b>{line.label}</b>
+                      <em>
+                        {line.income ? <span className="settlement-ledger-income">+${line.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
+                        {line.expense ? <span className="settlement-ledger-expense">−${line.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
+                      </em>
+                    </div>
+                  ))}
+                </div>
+                <div
+                  className="settlement-ledger-totals"
+                  style={{ ['--ledger-count' as string]: settlementLedger.lines.length } as React.CSSProperties}
+                >
+                  <span>{locale === 'ru' ? 'Пришло' : 'In'} <b className="settlement-ledger-income">+${settlementLedger.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
+                  <span>{locale === 'ru' ? 'Ушло' : 'Out'} <b className="settlement-ledger-expense">−${settlementLedger.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
+                </div>
+                <div
+                  className={`settlement-ledger-net ${settlementLedger.net >= 0 ? 'settlement-ledger-net-positive' : 'settlement-ledger-net-negative'}`}
+                  style={{ ['--ledger-count' as string]: settlementLedger.lines.length } as React.CSSProperties}
+                >
+                  <span>{locale === 'ru' ? 'ИТОГ ЗА РАУНД' : 'ROUND TOTAL'}</span>
+                  <strong>{settlementLedger.net >= 0 ? '+' : '−'}${Math.abs(settlementLedger.net).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</strong>
+                </div>
+              </div>
+            ) : (
+              <>
+                <strong>
+                  {roundTransition.phase === 'closing'
+                    ? (locale === 'ru' ? `Раунд ${roundTransition.fromRound} закрывается` : `Round ${roundTransition.fromRound} is closing`)
+                    : roundTransition.phase === 'night'
+                      ? roundTransition.fromTimeline
+                      : match.round > roundTransition.fromRound
+                        ? match.timelineLabel
+                        : (locale === 'ru' ? 'Ваш выбор принят' : 'Your choice is locked')}
+                </strong>
+                <span>
+                  {roundTransition.phase === 'night'
+                    ? (locale === 'ru' ? 'Стол считает последствия' : 'The table is resolving consequences')
+                    : roundTransition.phase === 'opening' && match.round > roundTransition.fromRound
+                      ? `${locale === 'ru' ? 'Раунд' : 'Round'} ${match.round}/${match.maxRounds} · ${locale === 'ru' ? 'новая карта уже в пути' : 'a new card is on its way'}`
+                      : (locale === 'ru' ? 'Стол считает последствия' : 'The table is resolving consequences')}
+                </span>
+              </>
+            )}
             <i />
           </div>
         </div>
@@ -1554,9 +1798,9 @@ export const MainTurnTableScreen: React.FC = () => {
       </section>
 
       {fabExpanded && (
-        <div className="table-tools-menu">
+        <div className="table-tools-menu" role="menu" aria-label={locale === 'ru' ? 'Действия за столом' : 'Table actions'}>
           {tableToolItems.map((item) => (
-            <button key={item.label} onClick={item.onClick} className="table-tools-menu-item">
+            <button key={item.label} role="menuitem" onClick={item.onClick} className="table-tools-menu-item">
               <span className={`table-tools-menu-icon table-tools-menu-icon-${item.tone}`}>{item.icon}</span>
               <span>{item.label}</span>
             </button>
@@ -1566,10 +1810,19 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* Reactions — revealed by swiping the character left→right */}
       {reactionsOpen && (
-        <div className="reaction-veil" onClick={() => setReactionsOpen(false)}>
-          <div className="reaction-stack" onClick={(event) => event.stopPropagation()}>
+        <div className="reaction-veil" role="presentation" onClick={() => setReactionsOpen(false)}>
+          <div
+            ref={reactionsDialogRef}
+            className="reaction-stack"
+            role="dialog"
+            aria-modal="true"
+            aria-label={locale === 'ru' ? 'Быстрые реакции' : 'Quick reactions'}
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+          >
             {REACTIONS.map((reaction, idx) => (
               <button
+                ref={idx === 0 ? firstReactionRef : undefined}
                 key={idx}
                 className={`reaction-pop ${reaction.className}`}
                 style={{ ['--i' as string]: idx } as React.CSSProperties}
@@ -1599,40 +1852,8 @@ export const MainTurnTableScreen: React.FC = () => {
         />
       )}
 
-      {/* A4: spectator stake banner — shown to non-active players when a deal/interest window is live */}
-      {isProMode && !canActNow && (interestWindow?.status === 'open' || (incomingDeal && dealBannerReady)) && (
-        <div style={{
-          position: 'fixed',
-          top: 'max(var(--safe-top), 12px)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 180,
-          background: 'rgba(91,215,224,0.10)',
-          border: '1px solid rgba(91,215,224,0.35)',
-          borderRadius: 14,
-          padding: '8px 16px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          maxWidth: 320,
-          width: 'calc(100% - 32px)',
-        }}>
-          <span style={{ fontSize: 16 }}>🤝</span>
-          <span style={{ fontSize: 12, color: '#F5F4ED', fontWeight: 700, flex: 1, lineHeight: 1.3 }}>
-            {interestWindow?.status === 'open'
-              ? (locale === 'ru' ? `${activePlayer.name} рассматривает сделку` : `${activePlayer.name} is reviewing a deal`)
-              : incomingDeal
-                ? (locale === 'ru'
-                    ? `${match.players.find(p => p.id === incomingDeal.proposerId)?.name ?? 'Игрок'} предлагает партнёрство`
-                    : `${match.players.find(p => p.id === incomingDeal.proposerId)?.name ?? 'Player'} proposes a deal`)
-                : ''}
-          </span>
-          <span style={{ fontSize: 11, color: '#7D7B6F' }}>{timer}s</span>
-        </div>
-      )}
-
       {incomingPersonalOffers.length > 0 && (
-        <div className="negot-banner-wrapper" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div className="negot-banner-wrapper" role="region" aria-label={locale === 'ru' ? 'Требуется решение' : 'Decision required'} aria-live="polite" data-label={locale === 'ru' ? 'ТРЕБУЕТСЯ РЕШЕНИЕ' : 'DECISION REQUIRED'} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {incomingPersonalOffers.map((incomingPersonalOffer) => {
         const from = match.players.find((player) => player.id === incomingPersonalOffer.fromPlayerId);
         const incomingPersonalCard = getLocalizedCard(incomingPersonalOffer.cardId, locale);
@@ -1687,7 +1908,7 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* Phase 3: Interest Window Banner */}
       {isProMode && interestWindow?.status === 'open' && (
-        <div className="negot-banner-wrapper">
+        <div className="negot-banner-wrapper" role="region" aria-label={locale === 'ru' ? 'Требуется решение' : 'Decision required'} aria-live="polite" data-label={locale === 'ru' ? 'ТРЕБУЕТСЯ РЕШЕНИЕ' : 'DECISION REQUIRED'}>
           <InterestWindowBanner
             window={interestWindow}
             myPlayerId={me.id}
@@ -1708,7 +1929,7 @@ export const MainTurnTableScreen: React.FC = () => {
         const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
         const cashOffer = incomingDeal.offer.cashOffer ?? 0;
         return (
-          <div className="negot-banner-wrapper">
+          <div className="negot-banner-wrapper" role="region" aria-label={locale === 'ru' ? 'Требуется решение' : 'Decision required'} aria-live="polite" data-label={locale === 'ru' ? 'ТРЕБУЕТСЯ РЕШЕНИЕ' : 'DECISION REQUIRED'}>
             <div className="incoming-deal-banner" style={{
               background: 'rgba(91, 215, 224, 0.12)',
               border: '1px solid rgba(91, 215, 224, 0.4)',
@@ -1746,7 +1967,7 @@ export const MainTurnTableScreen: React.FC = () => {
         );
       })()}
 
-      {/* Deal confirmation sheet */}
+      {/* Deal confirmation uses the same authoritative confirmation surface as every economy action. */}
       {isProMode && showDealConfirm && incomingDeal && (() => {
         const proposer = match.players.find((p) => p.id === incomingDeal.proposerId);
         const myShareFrac = incomingDeal.offer.shareSplit?.[me.id] ?? 0.5;
@@ -1755,62 +1976,23 @@ export const MainTurnTableScreen: React.FC = () => {
         const myInvest = Math.round(cardCostFull * myShareFrac);
         const myMonthly = Math.round(monthlyFull * myShareFrac);
         const newPassive = (me.passiveIncome ?? 0) + myMonthly;
-        return (
-          <div style={{
-            position: 'fixed', inset: 0, zIndex: 9000,
-            background: 'rgba(0,0,0,0.7)',
-            display: 'flex', alignItems: 'flex-end',
-          }}>
-            <div style={{
-              width: '100%', maxWidth: 480, margin: '0 auto',
-              background: '#16151A', borderRadius: '20px 20px 0 0',
-              padding: '24px 20px 32px', display: 'flex', flexDirection: 'column', gap: 16,
-            }}>
-              <div style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED' }}>
-                🤝 Подтвердить партнёрство
-              </div>
-              <div style={{ fontSize: 13, color: '#7D7B6F' }}>
-                {proposer?.name ?? 'Игрок'} · {incomingDeal.offer.description}
-              </div>
-              <div style={{
-                background: 'rgba(255,255,255,0.04)', borderRadius: 14,
-                padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: '#B8B6A9' }}>Ваш вклад</span>
-                  <span style={{ color: '#E84B2A', fontWeight: 900 }}>−${myInvest.toLocaleString('ru-RU')}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: '#B8B6A9' }}>Ваш доход</span>
-                  <span style={{ color: '#28C76F', fontWeight: 900 }}>+${myMonthly.toLocaleString('ru-RU')}/мес</span>
-                </div>
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.07)' }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: '#B8B6A9' }}>Пассивный доход после</span>
-                  <span style={{ color: '#F5C524', fontWeight: 900 }}>${newPassive.toLocaleString('ru-RU')}/мес</span>
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <button
-                  onClick={() => {
-                    const ok = acceptIncomingDeal();
-                    if (ok) setShowDealConfirm(false);
-                    showToast(ok ? 'Партнёрство принято 🤝' : 'Не удалось принять партнёрство', ok ? 'success' : 'warning');
-                  }}
-                  style={{ flex: 2, height: 48, borderRadius: 14, border: 'none', fontWeight: 900, fontSize: 15, background: '#28C76F', color: '#0B0B0C' }}
-                >
-                  Подтвердить
-                </button>
-                <button
-                  onClick={() => setShowDealConfirm(false)}
-                  style={{ flex: 1, height: 48, borderRadius: 14, fontWeight: 800, fontSize: 14, background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', color: '#B8B6A9' }}
-                >
-                  Назад
-                </button>
-              </div>
-            </div>
-          </div>
-        );
+        return <ConfirmDialog
+          isOpen
+          title="Подтвердить партнёрство?"
+          description={`${proposer?.name ?? 'Игрок'} · ${incomingDeal.offer.description}`}
+          confirmLabel="Принять сделку"
+          facts={[
+            { label: 'Ваш вклад', value: `−$${myInvest.toLocaleString('ru-RU')}`, tone: 'negative' },
+            { label: 'Ваш доход', value: `+$${myMonthly.toLocaleString('ru-RU')}/мес`, tone: 'positive' },
+            { label: 'Пассив после', value: `$${newPassive.toLocaleString('ru-RU')}/мес`, tone: 'positive' },
+          ]}
+          onConfirm={() => {
+            const ok = acceptIncomingDeal();
+            if (ok) setShowDealConfirm(false);
+            showToast(ok ? 'Партнёрство принято 🤝' : 'Не удалось принять партнёрство', ok ? 'success' : 'warning');
+          }}
+          onCancel={() => setShowDealConfirm(false)}
+        />;
       })()}
 
       {/* Phase 3: Offer Builder Modal */}
@@ -1903,7 +2085,7 @@ export const MainTurnTableScreen: React.FC = () => {
       {card && canActNow && (
         <TutorialOverlay
           mode={isProMode ? 'pro' : 'basic'}
-          suspended={isProfileOpen}
+          suspended={isTutorialSuspended}
           onActiveChange={setIsTutorialActive}
         />
       )}

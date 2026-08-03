@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useModalLayer } from '../hooks/useModalLayer';
 
 interface BottomSheetProps {
   isOpen: boolean;
@@ -13,35 +14,12 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
   const startY = useRef(0);
   const sheetRef = useRef<HTMLDivElement>(null);
   const backButtonRef = useRef<HTMLButtonElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isOpen]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => {
-      (backButtonRef.current ?? sheetRef.current)?.focus({ preventScroll: true });
-    });
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && !document.querySelector('[role="alertdialog"][aria-modal="true"]')) onClose();
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', handleKeyDown);
-      restoreFocusRef.current?.focus({ preventScroll: true });
-    };
-  }, [isOpen, onClose]);
+  useModalLayer({
+    isOpen,
+    onClose,
+    containerRef: sheetRef,
+    initialFocusRef: backButtonRef,
+  });
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);

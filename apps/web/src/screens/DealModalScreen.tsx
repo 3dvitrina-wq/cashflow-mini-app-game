@@ -14,12 +14,9 @@ import {
   IconCheckCircle,
   IconChevronDown,
   IconChevronRight,
-  IconClose,
   IconCounterChat,
   IconDeclineX,
   IconDoc,
-  IconDots,
-  IconHelp,
   IconInfo,
   IconIOU,
   IconRadio,
@@ -177,11 +174,13 @@ export const DealModalScreen: React.FC = () => {
     return (
       <div className="deal-shell">
         <header className="deal-mini-topbar">
-          <div className="left" />
+          <div className="left">
+            <button className="deal-route-back" onClick={() => setScreen('main')} aria-label="Вернуться к столу">
+              <IconChevronRight size={18} />
+            </button>
+          </div>
           <div className="center">СДЕЛКИ</div>
-          <button className="right" onClick={() => setScreen('main')} aria-label="закрыть">
-            <IconDots size={18} />
-          </button>
+          <div className="right" aria-hidden="true" />
         </header>
         <div className="deal-sheet no-scrollbar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, padding: 32 }}>
           <IconInfo size={36} style={{ color: '#7D7B6F' }} />
@@ -206,15 +205,15 @@ export const DealModalScreen: React.FC = () => {
       {/* === Mini topbar — no fake timer === */}
       <header className="deal-mini-topbar">
         <div className="left">
-          <IconTimer size={14} />
-          <span style={{ fontFamily: 'JetBrains Mono, ui-monospace, monospace', opacity: 0.5 }}>
-            раунд {incomingDeal.expiresRound}
-          </span>
+          <button className="deal-route-back" onClick={() => setScreen('main')} aria-label="Вернуться к столу">
+            <IconChevronRight size={18} />
+          </button>
         </div>
-        <div className="center">ВАШ ХОД</div>
-        <button className="right" onClick={() => setScreen('main')} aria-label="more">
-          <IconDots size={18} />
-        </button>
+        <div className="center">ПРЕДЛОЖЕНИЕ</div>
+        <div className="right deal-expiry">
+          <IconTimer size={14} />
+          <span>до {incomingDeal.expiresRound} раунда</span>
+        </div>
       </header>
 
       {/* === Ticker === */}
@@ -248,13 +247,9 @@ export const DealModalScreen: React.FC = () => {
 
         {/* Header */}
         <div className="deal-sheet-header">
-          <button className="deal-sheet-icon-btn" onClick={() => setScreen('main')} aria-label="close">
-            <IconClose size={14} />
-          </button>
+          <span className="deal-sheet-header-spacer" aria-hidden="true" />
           <h2 className="deal-sheet-title">Совместная инвестиция</h2>
-          <button className="deal-sheet-icon-btn" aria-label="help">
-            <IconHelp size={14} />
-          </button>
+          <span className="deal-sheet-header-spacer" aria-hidden="true" />
         </div>
 
         {/* Hero */}

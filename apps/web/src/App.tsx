@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { useStore } from './store';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { MainTurnTableScreen } from './screens/MainTurnTableScreen';
@@ -12,6 +12,7 @@ import { CharacterEditorScreen } from './screens/CharacterEditorScreen';
 import { CharacterPreviewScreen } from './screens/CharacterPreviewScreen';
 import { savePlayerData } from './store/persistence';
 import { buildQuickStartRoster } from './lib/quickStartRoster';
+import { useTelegramBackButton } from './hooks/useModalLayer';
 
 const tg = typeof window !== 'undefined' ? (window as any).Telegram?.WebApp : null;
 
@@ -34,6 +35,22 @@ const App: React.FC = () => {
       tg.disableClosingConfirmation?.();
     }
   }, [screen]);
+
+  const returnFromRoute = useCallback(() => {
+    if (screen === 'rules') setScreen(rulesReturnScreen);
+    else if (screen === 'settings') setScreen(settingsReturnScreen);
+    else if (screen === 'shop' || screen === 'recap') setScreen('lobby');
+    else setScreen('main');
+  }, [rulesReturnScreen, screen, setScreen, settingsReturnScreen]);
+  const hasInAppBackRoute = screen === 'rules'
+    || screen === 'settings'
+    || screen === 'editor'
+    || screen === 'deal'
+    || screen === 'futures'
+    || screen === 'recap'
+    || screen === 'shop';
+  useTelegramBackButton(hasInAppBackRoute, returnFromRoute);
+
   const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const preview = params?.get('preview');
   const forceRules = params?.get('rules') === '1';

@@ -64,6 +64,15 @@ night survival job. Do not “fix” this by removing losses.
 - Bank, market, labor, pets, events, player profiles, business slots and cashflow
   use one Telegram-safe sheet hierarchy with a visible 44px Back control. The
   own-profile sheet no longer collides with Telegram Close/ellipsis.
+- Bottom sheets, confirmations, lobby rooms, reaction pickers, negotiation and
+  full-screen routes now share one topmost focus/Escape/Telegram Back stack.
+  Action-required offers have a bounded decision tray and transient notices or
+  tutorial coach marks yield while a higher-priority surface owns attention.
+- Choice submission now stages decision lock, night/settlement and new-month
+  reveal before the next card becomes actionable. A delayed multiplayer snapshot
+  cannot briefly display the previous month's settlement as the new result.
+  The night ledger reveals each income/cost source, asset upkeep, one-off round
+  impact, total inflow, total outflow and the reconciled wallet delta in sequence.
 - Daily reward is claim-once and explicitly closable. Settings exposes only
   working controls: volume, original procedural music, action sounds, haptics,
   host and language.
@@ -101,3 +110,7 @@ night survival job. Do not “fix” this by removing losses.
    accepted, rejected and settled.
 5. Restore market risk only after macro/upkeep exposure exists in the engine;
    do not reintroduce decorative promises.
+6. Repair futures as a ledger task before balancing outcomes: unify opening and
+   liquidation rules, make losses monotonic, charge flow/funding against all-in
+   margin, return server acknowledgements/net P&L, hide predictable RNG state and
+   replace the decorative chart with authoritative price history.

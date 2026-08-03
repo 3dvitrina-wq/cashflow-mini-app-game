@@ -1,4 +1,5 @@
-import React, { useEffect, useId, useRef } from 'react';
+import React, { useId, useRef } from 'react';
+import { useModalLayer } from '../hooks/useModalLayer';
 
 export interface ConfirmFact {
   label: string;
@@ -30,33 +31,26 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
   const titleId = useId();
   const descriptionId = useId();
   const cancelRef = useRef<HTMLButtonElement>(null);
-  const restoreFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    restoreFocusRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const frame = requestAnimationFrame(() => cancelRef.current?.focus({ preventScroll: true }));
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onCancel();
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('keydown', onKeyDown);
-      restoreFocusRef.current?.focus({ preventScroll: true });
-    };
-  }, [isOpen, onCancel]);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useModalLayer({
+    isOpen,
+    onClose: onCancel,
+    containerRef: dialogRef,
+    initialFocusRef: cancelRef,
+  });
 
   if (!isOpen) return null;
 
   return (
     <div className="confirm-dialog-layer" onClick={onCancel}>
       <div
+        ref={dialogRef}
         className={`confirm-dialog confirm-dialog-${tone}`}
         role="alertdialog"
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={descriptionId}
+        tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="confirm-dialog-signal" aria-hidden="true">

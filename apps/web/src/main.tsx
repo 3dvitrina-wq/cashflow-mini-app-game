@@ -43,6 +43,13 @@ declare global {
           notificationOccurred: (type: string) => void;
           selectionChanged: () => void;
         };
+        BackButton?: {
+          show?: () => void;
+          hide?: () => void;
+          onClick?: (callback: () => void) => void;
+          offClick?: (callback: () => void) => void;
+          isVisible?: boolean;
+        };
       };
     };
   }

@@ -7,6 +7,7 @@ import day5 from '../assets/generated/daily/day-5.webp';
 import day6 from '../assets/generated/daily/day-6.webp';
 import day7 from '../assets/generated/daily/day-7.webp';
 import { showToast } from '../components/Toast';
+import { BottomSheet } from '../components/BottomSheet';
 import { checkDailyStreak, loadPlayerData, savePlayerData } from '../store/persistence';
 
 interface DailyCardScreenProps {
@@ -50,23 +51,13 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
   };
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        background: 'rgba(0, 0, 0, 0.8)',
-        backdropFilter: 'blur(8px)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 9999,
-        padding: 20,
-      }}
-    >
+    <BottomSheet isOpen onClose={onClose} title="Ежедневная карта">
       <div
+        className="daily-card-sheet"
         style={{
           width: '100%',
           maxWidth: 360,
+          margin: '0 auto',
           background: 'linear-gradient(180deg, #1B202B, #131722)',
           borderRadius: 24,
           border: '2px solid rgba(245, 197, 36, 0.3)',
@@ -77,30 +68,6 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
           overflow: 'hidden',
         }}
       >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Закрыть ежедневную карту"
-          style={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            zIndex: 3,
-            display: 'grid',
-            width: 44,
-            height: 44,
-            placeItems: 'center',
-            borderRadius: 14,
-            border: '1px solid rgba(255,255,255,.12)',
-            background: 'rgba(5,8,13,.72)',
-            color: '#F5F4ED',
-          }}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 22, height: 22, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }}>
-            <path d="m7 7 10 10M17 7 7 17" />
-          </svg>
-        </button>
-
         {/* Background glow */}
         <div
           style={{
@@ -116,19 +83,8 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
           }}
         />
 
-        {/* Header */}
+        {/* The sheet owns the title; this row only describes progress. */}
         <div style={{ position: 'relative', marginBottom: 20 }}>
-          <h1
-            style={{
-              fontSize: 22,
-              fontWeight: 900,
-              margin: '0 0 4px',
-              color: '#F5C524',
-              textTransform: 'uppercase',
-            }}
-          >
-            🎁 Ежедневная карта
-          </h1>
           <div
             style={{
               display: 'inline-flex',
@@ -176,9 +132,13 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
         </div>
 
         {/* Card image */}
-        <div
+        <button
+          type="button"
           onClick={!revealed ? handleReveal : undefined}
+          disabled={revealed}
+          aria-label={revealed ? `Награда открыта: ${reward.label}` : 'Открыть ежедневную награду'}
           style={{
+            display: 'block',
             width: 180,
             height: 240,
             margin: '0 auto 20px',
@@ -216,7 +176,7 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
               <span style={{ fontSize: 48 }}>❓</span>
             </div>
           )}
-        </div>
+        </button>
 
         {/* Reward */}
         {revealed ? (
@@ -264,6 +224,6 @@ export const DailyCardScreen: React.FC<DailyCardScreenProps> = ({ onClose }) => 
           {revealed ? (claimed ? 'Закрыть' : 'Забрать') : 'Открой сначала'}
         </button>
       </div>
-    </div>
+    </BottomSheet>
   );
 };

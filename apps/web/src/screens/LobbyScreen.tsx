@@ -45,6 +45,7 @@ import { levelFromXp, buildSampleMeta, xpToReachLevel } from '../lib/progression
 import { ACHIEVEMENTS } from '../assets/achievementsCatalog';
 import { REACTIONS } from '../assets/reactions';
 import { hapticImpact } from '../hooks/useHaptics';
+import { useModalLayer } from '../hooks/useModalLayer';
 import { showToast } from '../components/Toast';
 import { getAllProfessions, type ProfessionDefinition } from '../../../../packages/shared/src';
 
@@ -544,6 +545,23 @@ export const LobbyScreen: React.FC = () => {
   const [roomPrivate, setRoomPrivate] = useState(false);
   const [roomsBrowserOpen, setRoomsBrowserOpen] = useState(false);
   const [publicRooms, setPublicRooms] = useState<PublicRoom[]>([]);
+  const roomsBrowserRef = useRef<HTMLDivElement>(null);
+  const roomsBrowserCloseRef = useRef<HTMLButtonElement>(null);
+  const reactionsDialogRef = useRef<HTMLDivElement>(null);
+  const firstReactionRef = useRef<HTMLButtonElement>(null);
+
+  useModalLayer({
+    isOpen: roomsBrowserOpen,
+    onClose: () => setRoomsBrowserOpen(false),
+    containerRef: roomsBrowserRef,
+    initialFocusRef: roomsBrowserCloseRef,
+  });
+  useModalLayer({
+    isOpen: reactionsOpen,
+    onClose: () => setReactionsOpen(false),
+    containerRef: reactionsDialogRef,
+    initialFocusRef: firstReactionRef,
+  });
 
   // Poll the public rooms list while the browser overlay is open.
   useEffect(() => {
@@ -1300,15 +1318,21 @@ export const LobbyScreen: React.FC = () => {
       {roomsBrowserOpen && (
         <div
           onClick={() => setRoomsBrowserOpen(false)}
+          role="presentation"
           style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,9,12,0.92)', backdropFilter: 'blur(6px)', display: 'flex', flexDirection: 'column', padding: 'max(var(--safe-top), 12px) 12px max(var(--safe-bottom), 12px)' }}
         >
           <div
+            ref={roomsBrowserRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rooms-browser-title"
+            tabIndex={-1}
             onClick={(e) => e.stopPropagation()}
             style={{ margin: 'auto', width: 'min(440px, 100%)', maxHeight: '100%', display: 'flex', flexDirection: 'column', background: '#13151D', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 18, overflow: 'hidden' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-              <span style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Комнаты</span>
-              <button onClick={() => setRoomsBrowserOpen(false)} aria-label="Закрыть комнаты" style={{ display: 'grid', width: 44, height: 44, placeItems: 'center', borderRadius: 13, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#F5F4ED', cursor: 'pointer' }}>
+              <span id="rooms-browser-title" style={{ fontSize: 15, fontWeight: 800, color: '#F5F4ED' }}>Комнаты</span>
+              <button ref={roomsBrowserCloseRef} onClick={() => setRoomsBrowserOpen(false)} aria-label="Закрыть комнаты" style={{ display: 'grid', width: 44, height: 44, placeItems: 'center', borderRadius: 13, background: 'rgba(255,255,255,.06)', border: '1px solid rgba(255,255,255,.1)', color: '#F5F4ED', cursor: 'pointer' }}>
                 <svg viewBox="0 0 24 24" aria-hidden="true" style={{ width: 21, height: 21, fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' }}><path d="m7 7 10 10M17 7 7 17" /></svg>
               </button>
             </div>
@@ -1383,10 +1407,19 @@ export const LobbyScreen: React.FC = () => {
         </button>
       )}
       {reactionsOpen && (
-        <div className="reaction-veil" onClick={() => setReactionsOpen(false)}>
-          <div className="reaction-stack" onClick={(event) => event.stopPropagation()}>
+        <div className="reaction-veil" role="presentation" onClick={() => setReactionsOpen(false)}>
+          <div
+            ref={reactionsDialogRef}
+            className="reaction-stack"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Быстрые реакции"
+            tabIndex={-1}
+            onClick={(event) => event.stopPropagation()}
+          >
             {REACTIONS.map((reaction, idx) => (
               <button
+                ref={idx === 0 ? firstReactionRef : undefined}
                 key={idx}
                 className={`reaction-pop ${reaction.className}`}
                 style={{ ['--i' as string]: idx } as React.CSSProperties}
