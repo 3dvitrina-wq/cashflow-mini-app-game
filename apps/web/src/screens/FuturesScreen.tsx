@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { showToast } from '../components/Toast';
+import { ScreenHeader } from '../components/ScreenHeader';
 
 export const FuturesScreen: React.FC = () => {
   const { setScreen, match, openFutures } = useStore();
@@ -124,19 +125,15 @@ export const FuturesScreen: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col safe-top safe-bottom">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
-        <button
-          onClick={() => setScreen('main')}
-          aria-label="Вернуться к столу"
-          className="grid h-11 w-11 place-items-center rounded-xl border border-border-subtle bg-surface-elev text-xl text-text-secondary active:scale-95 transition-transform"
-        >
-          ←
-        </button>
-        <h2 className="text-lg font-bold">📈 FUTURES</h2>
-        <span className="w-11 text-right text-xs text-text-muted">PRO</span>
-      </div>
+    <div className="route-screen min-h-screen bg-canvas flex flex-col safe-bottom">
+      <ScreenHeader
+        eyebrow="РИСК-ЛАБОРАТОРИЯ"
+        title="Futures"
+        subtitle="Вымышленный рынок · не финансовый совет"
+        onBack={() => setScreen('main')}
+        backLabel="Вернуться к столу"
+        endSlot={<span className="route-header-badge">PRO</span>}
+      />
 
       {/* Token selector */}
       <div className="flex gap-2 px-4 overflow-x-auto no-scrollbar">

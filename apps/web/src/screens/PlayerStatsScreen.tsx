@@ -333,6 +333,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
                   <button
                     onClick={() => setShowPowerDetail((value) => !value)}
                     style={{
+                      minHeight: 44,
                       padding: '9px 12px',
                       borderRadius: 12,
                       border: '1px solid rgba(245, 197, 36, 0.32)',
@@ -585,16 +586,18 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
           </article>
         </div>
 
-        <section className="you-page-dots" aria-hidden="true">
-          <button className="you-page-arrow" onClick={() => shiftTab(-1)}>‹</button>
+        <section className="you-page-dots" aria-label="Разделы профиля">
+          <button className="you-page-arrow" onClick={() => shiftTab(-1)} aria-label="Предыдущий раздел">‹</button>
           {PROFILE_TABS.map((tab) => (
             <button
               key={tab.id}
               className={tab.id === activeTab ? 'you-page-dot you-page-dot-active' : 'you-page-dot'}
               onClick={() => setActiveTab(tab.id)}
+              aria-label={tab.label}
+              aria-current={tab.id === activeTab ? 'page' : undefined}
             />
           ))}
-          <button className="you-page-arrow" onClick={() => shiftTab(1)}>›</button>
+          <button className="you-page-arrow" onClick={() => shiftTab(1)} aria-label="Следующий раздел">›</button>
         </section>
       </div>
     </BottomSheet>

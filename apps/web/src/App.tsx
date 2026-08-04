@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import { useStore } from './store';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { MainTurnTableScreen } from './screens/MainTurnTableScreen';
@@ -20,6 +20,11 @@ const GAME_SCREENS = new Set(['main', 'deal', 'futures', 'recap']);
 
 const App: React.FC = () => {
   const { screen, rulesReturnScreen, settingsReturnScreen, setScreen, openRules, startMatch } = useStore();
+  const editorReturnScreenRef = useRef(screen === 'editor' ? 'main' : screen);
+
+  useEffect(() => {
+    if (screen !== 'editor') editorReturnScreenRef.current = screen;
+  }, [screen]);
 
   useEffect(() => {
     if (!tg) return;
@@ -39,6 +44,7 @@ const App: React.FC = () => {
   const returnFromRoute = useCallback(() => {
     if (screen === 'rules') setScreen(rulesReturnScreen);
     else if (screen === 'settings') setScreen(settingsReturnScreen);
+    else if (screen === 'editor') setScreen(editorReturnScreenRef.current);
     else if (screen === 'shop' || screen === 'recap') setScreen('lobby');
     else setScreen('main');
   }, [rulesReturnScreen, screen, setScreen, settingsReturnScreen]);
@@ -80,7 +86,7 @@ const App: React.FC = () => {
 
   // Dev QA harness: ?editor=1 opens character editor directly.
   if (forceEditor) {
-    return <CharacterEditorScreen onClose={() => setScreen('main')} />;
+    return <CharacterEditorScreen onClose={() => setScreen(editorReturnScreenRef.current)} />;
   }
 
   // Dev QA harness: ?autostart=1 lets mobile screenshots skip onboarding.
@@ -117,7 +123,7 @@ const App: React.FC = () => {
 
   // Character editor
   if (screen === 'editor') {
-    return <CharacterEditorScreen onClose={() => setScreen('main')} />;
+    return <CharacterEditorScreen onClose={() => setScreen(editorReturnScreenRef.current)} />;
   }
 
   // Modal screens (no tab bar)

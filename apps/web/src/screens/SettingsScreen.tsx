@@ -9,6 +9,7 @@ import {
   setSoundEnabled,
   setSoundVolume as persistSoundVolume,
 } from '../lib/sound';
+import { ScreenHeader } from '../components/ScreenHeader';
 
 const HOST_KEY = 'dyor_host_enabled';
 const HAPTICS_KEY = 'dyor_haptics_enabled';
@@ -40,58 +41,16 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   };
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#0B0D11',
-        color: '#F5F4ED',
-        paddingTop: 'max(var(--safe-top), 20px)',
-        paddingRight: 'max(var(--safe-right), 20px)',
-        paddingBottom: 'max(var(--safe-bottom), 20px)',
-        paddingLeft: 'max(var(--safe-left), 20px)',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          marginBottom: 14,
-        }}
-      >
-        <h1
-          style={{
-            fontSize: 24,
-            fontWeight: 900,
-            margin: 0,
-            color: '#F5F4ED',
-            textTransform: 'uppercase',
-          }}
-        >
-          {t('ui.settings')}
-        </h1>
-      </div>
+    <div className="settings-route route-screen">
+      <ScreenHeader
+        eyebrow={locale === 'ru' ? 'ИГРОВОЕ МЕНЮ' : 'GAME MENU'}
+        title={t('ui.settings')}
+        subtitle={locale === 'ru' ? 'Звук, язык и обратная связь' : 'Sound, language and feedback'}
+        onBack={onClose}
+        backLabel={locale === 'ru' ? 'Вернуться назад' : 'Go back'}
+      />
 
-      <button
-        type="button"
-        onClick={onClose}
-        style={{
-          display: 'flex',
-          width: '100%',
-          minHeight: 52,
-          alignItems: 'center',
-          justifyContent: 'center',
-          marginBottom: 24,
-          borderRadius: 14,
-          background: '#5BD7E0',
-          color: '#071013',
-          fontSize: 15,
-          fontWeight: 900,
-          boxShadow: '0 8px 22px rgba(91, 215, 224, 0.2)',
-        }}
-      >
-        ← {locale === 'ru' ? 'Вернуться в игру' : 'Return to game'}
-      </button>
+      <main className="settings-content">
 
       {/* Settings sections */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -152,7 +111,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               </span>
             </div>
             <button
+              className="settings-switch"
               aria-label={locale === 'ru' ? 'Вибрация' : 'Haptics'}
+              aria-pressed={haptics}
               onClick={() => {
                 const next = !haptics;
                 setHaptics(next);
@@ -194,7 +155,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               </div>
             </div>
             <button
+              className="settings-switch"
               aria-label={locale === 'ru' ? 'Фоновая музыка' : 'Background music'}
+              aria-pressed={music}
               onClick={() => { const v = !music; setMusic(v); setMusicEnabled(v); if (v) playSound('select'); }}
               style={{ width: 56, height: 32, borderRadius: 16, background: music ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
             >
@@ -211,7 +174,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               <span style={{ fontSize: 14, fontWeight: 700 }}>{locale === 'ru' ? 'Звуки действий' : 'Action sounds'}</span>
             </div>
             <button
+              className="settings-switch"
               aria-label={locale === 'ru' ? 'Звуки действий' : 'Action sounds'}
+              aria-pressed={sound}
               onClick={() => { const v = !sound; setSound(v); setSoundEnabled(v); if (v) playSound('select'); }}
               style={{ width: 56, height: 32, borderRadius: 16, background: sound ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
             >
@@ -231,6 +196,9 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
               </div>
             </div>
             <button
+              className="settings-switch"
+              aria-label={locale === 'ru' ? 'Ведущий' : 'AI Host'}
+              aria-pressed={hostOn}
               onClick={() => { const v = !hostOn; setHostOn(v); try { window.localStorage.setItem(HOST_KEY, v ? '1' : '0'); } catch { /* ignore */ } }}
               style={{ width: 56, height: 32, borderRadius: 16, background: hostOn ? '#28C76F' : 'rgba(255, 255, 255, 0.1)', position: 'relative', transition: 'background 0.2s ease' }}
             >
@@ -506,6 +474,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
         </div>
         </div>
       </div>
+      </main>
     </div>
   );
 };

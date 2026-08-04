@@ -410,7 +410,7 @@ export const LobbyScreen: React.FC = () => {
   // Kinetic parallax drag on background — the pet rides along, glued to the scene.
   // Pet is optional: kinetics works whether or not a pet is present (petRef may be null).
   const bgRef = useRef<HTMLImageElement>(null);
-  const petRef = useRef<HTMLButtonElement>(null);
+  const petRef = useRef<HTMLDivElement>(null);
   const drag = useRef({ active: false, sx: 0, sy: 0, bx: 0, by: 0, raf: 0 });
   const applyParallax = useRef((bx: number, by: number) => {
     if (bgRef.current) {
@@ -1239,7 +1239,7 @@ export const LobbyScreen: React.FC = () => {
                   key={m}
                   onClick={() => setGameMode(m)}
                   style={{
-                    flex: 1, height: 42, borderRadius: 12, fontSize: 13, fontWeight: 800,
+                    flex: 1, height: 44, borderRadius: 12, fontSize: 13, fontWeight: 800,
                     background: gameMode === m ? '#F5C524' : 'rgba(255,255,255,0.05)',
                     color: gameMode === m ? '#0B0B0C' : '#B8B6A9',
                     border: gameMode === m ? 'none' : '1px solid rgba(255,255,255,0.1)',
@@ -1267,7 +1267,7 @@ export const LobbyScreen: React.FC = () => {
                   onClick={() => setRoundPreset(preset.id)}
                   style={{
                     flex: 1,
-                    height: 42,
+                    height: 44,
                     borderRadius: 12,
                     fontSize: 13,
                     fontWeight: 800,
@@ -1299,19 +1299,19 @@ export const LobbyScreen: React.FC = () => {
         )}
       </div>
 
-      {/* Pet — fixed on background layer, does not scroll with lobby-content */}
+      {/* Decorative pet rides over the room artwork. The actual, unobstructed
+          control lives in the "Питомцы" collection tile below. */}
       {lobbyPetId && activeLobbyPet && multiMode === 'none' && !isRoomOpen && (
-        <button
+        <div
           ref={petRef}
           className={`lobby-hook-pet-stage${activeLobbyPet.videoSrc ? ' lobby-hook-pet-stage--video' : ''}`}
-          onClick={() => setIsPetSheetOpen(true)}
-          aria-label={`Выбрать питомца: ${activeLobbyPet.name}`}
+          aria-hidden="true"
         >
           {activeLobbyPet.videoSrc
             ? <AnimatedPet src={activeLobbyPet.videoSrc} scale={activeLobbyPet.videoScale ?? 1} />
             : <img src={activeLobbyPet.image} alt={activeLobbyPet.name} draggable={false} />
           }
-        </button>
+        </div>
       )}
 
       {/* Public rooms browser — opened from the "Комнаты" button */}

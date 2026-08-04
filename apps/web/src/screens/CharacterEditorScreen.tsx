@@ -9,6 +9,7 @@ import {
   type GeneratedCharacter,
 } from '../assets/generatedCharacterCatalog';
 import { getCharacterEmotionStates } from '../assets/characterRenderer';
+import { ScreenHeader } from '../components/ScreenHeader';
 
 interface CharacterEditorScreenProps {
   onClose: () => void;
@@ -179,16 +180,21 @@ export const CharacterEditorScreen: React.FC<CharacterEditorScreenProps> = ({ on
   };
 
   return (
-    <div className="editor-shell">
-      <div className="editor-header">
-        <button onClick={onClose} className="chip-button">
-          Закрыть
-        </button>
-        <h1>Редактор персонажа</h1>
-        <button onClick={handleRandomize} className="chip-button chip-button-gold" aria-label="Случайный образ">
-          🎲
-        </button>
-      </div>
+    <div className="editor-shell route-screen">
+      <ScreenHeader
+        eyebrow="ПРОФИЛЬ"
+        title="Редактор персонажа"
+        subtitle="Образ не меняет финансовые правила"
+        onBack={onClose}
+        backLabel="Закрыть редактор"
+        endSlot={(
+          <button type="button" onClick={handleRandomize} className="route-header-action" aria-label="Случайный образ">
+            <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+              <path d="M20 7h-4V3M4 17h4v4M19 12a7 7 0 0 0-12-5L4 10M5 12a7 7 0 0 0 12 5l3-3" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
+        )}
+      />
 
       <div className="editor-preview-wrap">
         <div className="editor-preview-shell">

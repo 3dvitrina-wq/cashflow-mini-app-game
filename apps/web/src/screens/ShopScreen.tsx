@@ -7,6 +7,8 @@ import { SHOP_ITEMS, SHOP_TABS, type ShopItem, type ShopTab } from '../assets/sh
 import starsIcon from '../assets/generated/ui/stars-icon.svg';
 import { resolveAvatarImage } from '../assets/characterRenderer';
 import dogCostume from '../assets/generated/pets-v2/dog/states/dog_costume.webp';
+import { ScreenHeader } from '../components/ScreenHeader';
+import { IconCoin } from '../assets/Icons';
 
 function owned(item: ShopItem, ownedItems: string[]): boolean {
   return Boolean(item.starterOwned || ownedItems.includes(item.id));
@@ -39,13 +41,19 @@ export const ShopScreen: React.FC = () => {
   };
 
   return (
-    <div className="shop-shell">
-      <div style={{ marginBottom: 16 }}>
-        <h1 className="screen-title">{locale === 'ru' ? 'Магазин' : 'Shop'}</h1>
-
+    <div className="shop-shell route-screen">
+      <ScreenHeader
+        eyebrow={locale === 'ru' ? 'КОЛЛЕКЦИЯ' : 'COLLECTION'}
+        title={locale === 'ru' ? 'Магазин' : 'Shop'}
+        subtitle={locale === 'ru' ? 'Только косметика — без pay-to-win' : 'Cosmetics only — no pay-to-win'}
+        onBack={() => setScreen('lobby')}
+        backLabel={locale === 'ru' ? 'Вернуться в лобби' : 'Return to lobby'}
+      />
+      <main className="shop-content">
+      <div className="shop-balance-row">
         <div style={{ display: 'flex', gap: 12 }}>
           <BalancePill icon={<img src={starsIcon} alt="stars" style={{ width: 16, height: 16 }} />} value={playerData.stars} color="#F5C524" />
-          <BalancePill icon={<span style={{ fontSize: 14 }}>🪙</span>} value={playerData.coins} color="#28C76F" />
+          <BalancePill icon={<IconCoin size={16} />} value={playerData.coins} color="#28C76F" />
         </div>
       </div>
 
@@ -148,6 +156,7 @@ export const ShopScreen: React.FC = () => {
           );
         })}
       </div>
+      </main>
     </div>
   );
 };

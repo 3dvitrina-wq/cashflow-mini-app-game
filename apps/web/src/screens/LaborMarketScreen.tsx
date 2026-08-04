@@ -491,6 +491,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
                   disabled={worker.status === 'hired' || worker.status === 'scarce'}
                   style={{
                     alignSelf: 'center',
+                    minHeight: 44,
                     padding: '11px 14px',
                     borderRadius: 12,
                     background:

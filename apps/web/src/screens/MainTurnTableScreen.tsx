@@ -429,12 +429,28 @@ export const MainTurnTableScreen: React.FC = () => {
   const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | null>(null);
   const reactionsDialogRef = useRef<HTMLDivElement>(null);
   const firstReactionRef = useRef<HTMLButtonElement>(null);
+  const fabMenuRef = useRef<HTMLDivElement>(null);
+  const firstFabItemRef = useRef<HTMLButtonElement>(null);
+  const personalOfferPickerRef = useRef<HTMLDivElement>(null);
+  const personalOfferCloseRef = useRef<HTMLButtonElement>(null);
 
   useModalLayer({
     isOpen: reactionsOpen,
     onClose: () => setReactionsOpen(false),
     containerRef: reactionsDialogRef,
     initialFocusRef: firstReactionRef,
+  });
+  useModalLayer({
+    isOpen: fabExpanded,
+    onClose: () => setFabExpanded(false),
+    containerRef: fabMenuRef,
+    initialFocusRef: firstFabItemRef,
+  });
+  useModalLayer({
+    isOpen: isPersonalOfferPickerOpen,
+    onClose: () => setIsPersonalOfferPickerOpen(false),
+    containerRef: personalOfferPickerRef,
+    initialFocusRef: personalOfferCloseRef,
   });
 
   const card = match.currentCard ? tCard(match.currentCard) : null;
@@ -1583,12 +1599,30 @@ export const MainTurnTableScreen: React.FC = () => {
                       {locale === 'ru' ? '↗ ПРОДАТЬ ПРАВО НА ЭТУ КАРТУ' : '↗ SELL ACCESS TO THIS CARD'}
                     </button>
                     {isPersonalOfferPickerOpen && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '9px', borderRadius: 12, border: '1px solid rgba(91,215,224,.22)', background: 'rgba(5,10,14,.92)' }}>
-                        <span style={{ color: '#D8D4C8', fontSize: 11, lineHeight: 1.35 }}>
-                          {locale === 'ru'
-                            ? 'Цена — ваша. Покупатель платит сейчас за право решить, брать актив или нет.'
-                            : 'You set the price. The buyer pays now for the right to decide.'}
-                        </span>
+                      <div
+                        ref={personalOfferPickerRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label={locale === 'ru' ? 'Продать право на карту' : 'Sell card access'}
+                        tabIndex={-1}
+                        style={{ display: 'flex', flexDirection: 'column', gap: 9, padding: '9px', borderRadius: 12, border: '1px solid rgba(91,215,224,.22)', background: 'rgba(5,10,14,.96)' }}
+                      >
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 44px', alignItems: 'center', gap: 8 }}>
+                          <span style={{ color: '#D8D4C8', fontSize: 11, lineHeight: 1.35 }}>
+                            {locale === 'ru'
+                              ? 'Цена — ваша. Покупатель платит сейчас за право решить, брать актив или нет.'
+                              : 'You set the price. The buyer pays now for the right to decide.'}
+                          </span>
+                          <button
+                            ref={personalOfferCloseRef}
+                            type="button"
+                            onClick={() => setIsPersonalOfferPickerOpen(false)}
+                            aria-label={locale === 'ru' ? 'Закрыть продажу карты' : 'Close card sale'}
+                            style={{ width: 44, height: 44, borderRadius: 12, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', color: '#F5F4ED', fontSize: 22 }}
+                          >
+                            ×
+                          </button>
+                        </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 6 }}>
                           {[0, opportunityReferencePrice, opportunityReferencePrice * 2, opportunityReferencePrice * 3].map((price, index) => (
                             <button
@@ -1798,9 +1832,16 @@ export const MainTurnTableScreen: React.FC = () => {
       </section>
 
       {fabExpanded && (
-        <div className="table-tools-menu" role="menu" aria-label={locale === 'ru' ? 'Действия за столом' : 'Table actions'}>
-          {tableToolItems.map((item) => (
-            <button key={item.label} role="menuitem" onClick={item.onClick} className="table-tools-menu-item">
+        <div
+          ref={fabMenuRef}
+          className="table-tools-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label={locale === 'ru' ? 'Действия за столом' : 'Table actions'}
+          tabIndex={-1}
+        >
+          {tableToolItems.map((item, index) => (
+            <button ref={index === 0 ? firstFabItemRef : undefined} key={item.label} onClick={item.onClick} className="table-tools-menu-item">
               <span className={`table-tools-menu-icon table-tools-menu-icon-${item.tone}`}>{item.icon}</span>
               <span>{item.label}</span>
             </button>
@@ -1948,7 +1989,7 @@ export const MainTurnTableScreen: React.FC = () => {
               <div style={{ display: 'flex', gap: 10 }}>
                 <button
                   onClick={() => setShowDealConfirm(true)}
-                  style={{ flex: 1, height: 40, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
+                  style={{ flex: 1, height: 44, borderRadius: 12, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
                 >
                   Принять
                 </button>
@@ -1957,7 +1998,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     const ok = rejectIncomingDeal();
                     showToast(ok ? 'Инвайт отклонён' : 'Не удалось отправить отказ', ok ? 'info' : 'warning');
                   }}
-                  style={{ flex: 1, height: 40, borderRadius: 12, fontWeight: 800, fontSize: 13, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#B8B6A9' }}
+                  style={{ flex: 1, height: 44, borderRadius: 12, fontWeight: 800, fontSize: 13, background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: '#B8B6A9' }}
                 >
                   Отклонить
                 </button>

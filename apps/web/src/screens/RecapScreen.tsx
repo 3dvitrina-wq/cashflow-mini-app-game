@@ -8,6 +8,7 @@ import { playSound } from '../lib/sound';
 import { hapticImpact, hapticNotify } from '../hooks/useHaptics';
 import { recordMatchResult } from '../lib/progression';
 import { showToast } from '../components/Toast';
+import { ScreenHeader } from '../components/ScreenHeader';
 
 // ─── Count-up number that animates 0 → value when `run` flips true ────────────
 const CountUp: React.FC<{ value: number; run: boolean; durationMs?: number; prefix?: string; onDone?: () => void }> = ({
@@ -155,14 +156,27 @@ export const RecapScreen: React.FC = () => {
 
   if (!me || !bd) {
     return (
-      <div className="min-h-screen bg-canvas flex items-center justify-center text-text-secondary">
-        {t('ui.matchComplete')}
+      <div className="route-screen min-h-screen bg-canvas flex flex-col text-text-secondary">
+        <ScreenHeader
+          eyebrow={ru ? 'МАТЧ ЗАВЕРШЁН' : 'MATCH COMPLETE'}
+          title={t('ui.recapTitle')}
+          onBack={() => setScreen('lobby')}
+          backLabel={ru ? 'Вернуться в лобби' : 'Return to lobby'}
+        />
+        <div className="flex flex-1 items-center justify-center">{t('ui.matchComplete')}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-canvas flex flex-col safe-top safe-bottom">
+    <div className="route-screen min-h-screen bg-canvas flex flex-col safe-bottom">
+      <ScreenHeader
+        eyebrow={ru ? 'МАТЧ ЗАВЕРШЁН' : 'MATCH COMPLETE'}
+        title={t('ui.recapTitle')}
+        subtitle={ru ? `Место #${myRank}` : `Place #${myRank}`}
+        onBack={() => setScreen('lobby')}
+        backLabel={ru ? 'Вернуться в лобби' : 'Return to lobby'}
+      />
       <div className="text-center py-5 px-4">
         <p className="text-text-secondary text-sm font-semibold">{t('ui.matchComplete')}</p>
         <h1 className="text-3xl font-extrabold mt-1">{t('ui.recapTitle')}</h1>
@@ -276,19 +290,7 @@ export const RecapScreen: React.FC = () => {
       </div>
 
       {/* Actions */}
-      <div className="flex gap-3 px-4 py-4 mt-auto">
-        <button
-          onClick={() => { playSound('tap'); hapticImpact('light'); setScreen('lobby'); }}
-          className="flex-1 h-14 rounded-2xl bg-surface-elev border border-border-strong text-text-secondary font-bold text-sm active:scale-95 transition-transform"
-        >
-          🏠 {ru ? 'Лобби' : 'Lobby'}
-        </button>
-        <button
-          onClick={() => { playSound('tap'); void shareSummary(); }}
-          className="flex-1 h-14 rounded-2xl bg-accent-partner text-white font-bold text-sm active:scale-95 transition-transform"
-        >
-          📤 {ru ? 'Поделиться' : 'Share'}
-        </button>
+      <div className="recap-actions">
         <button
           onClick={() => {
             playSound('whoosh');
@@ -299,9 +301,21 @@ export const RecapScreen: React.FC = () => {
               experienceMode: match.experienceMode ?? 'basic',
             });
           }}
-          className="flex-1 h-14 rounded-2xl bg-accent-cash text-canvas font-bold text-sm active:scale-95 transition-transform"
+          className="recap-action recap-action-primary"
         >
-          🔄 {ru ? 'Реванш' : 'Rematch'}
+          {ru ? 'Реванш' : 'Rematch'}
+        </button>
+        <button
+          onClick={() => { playSound('tap'); hapticImpact('light'); setScreen('lobby'); }}
+          className="recap-action recap-action-secondary"
+        >
+          {ru ? 'Лобби' : 'Lobby'}
+        </button>
+        <button
+          onClick={() => { playSound('tap'); void shareSummary(); }}
+          className="recap-action recap-action-secondary"
+        >
+          {ru ? 'Поделиться' : 'Share'}
         </button>
       </div>
     </div>

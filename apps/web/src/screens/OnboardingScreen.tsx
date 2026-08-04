@@ -1,4 +1,5 @@
 import React from 'react';
+import { ScreenHeader } from '../components/ScreenHeader';
 import introCrisisImg from '../assets/generated/onboarding/intro-crisis-v2.webp';
 import introDecisionImg from '../assets/generated/onboarding/intro-decision-v2.webp';
 import introTableImg from '../assets/generated/onboarding/intro-table-v2.webp';
@@ -132,7 +133,16 @@ export const OnboardingScreen: React.FC<OnboardingScreenProps> = ({ mode = 'star
   ];
 
   return (
-    <div className="intro-shell">
+    <div className={`intro-shell${isRules ? ' route-screen' : ''}`}>
+      {isRules && (
+        <ScreenHeader
+          eyebrow={locale === 'ru' ? 'СПРАВКА' : 'GUIDE'}
+          title={locale === 'ru' ? 'Как играть' : 'How to play'}
+          subtitle={locale === 'ru' ? 'Коротко о решениях и последствиях' : 'Decisions and consequences at a glance'}
+          onBack={onComplete}
+          backLabel={locale === 'ru' ? 'Закрыть правила' : 'Close rules'}
+        />
+      )}
       <div className="intro-scroll no-scrollbar">
         <header className="intro-hero intro-game-hero">
           <img src={introTableImg} alt="" className="intro-hero-img" draggable={false} />

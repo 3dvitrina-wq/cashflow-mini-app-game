@@ -2,13 +2,25 @@
 
 **Audited:** 2026-08-04
 
-**HEAD:** `c441a42` — `Bring labor confirmation into modal stack`
+**Baseline HEAD:** `556205d` — working-tree unified-window pass audited before commit
 
 **Baseline:** abstract 6-pillar standards plus `UI_TRUTH_AND_MOMENTUM_AUDIT.md`, `PHASE3_UI_AND_FEEL_SPEC.md`, and `PHASE_4_2_MOBILE_UX_LOBBY_STYLE_PLAN.md`
 
-**Visual evidence:** the main agent interactively verified the implemented mobile flow in the in-app Browser at **402×874**. This auditor's Playwright CLI attempt against the live `5173` server produced no screenshot artifact, so desktop/tablet visual judgments remain `needs_human_review: true`.
+**Visual evidence:** the main agent interactively verified the implemented mobile flow in the in-app Browser at **402×874** (iPhone 16 Pro CSS viewport): main card, confirmation preview, settings, shop, editor, rules, bank, market, labor, pets, cashflow, player profile/reaction, rooms browser, lobby pet selector and character selector.
 
-**Verification:** `npm run typecheck` — PASS
+**Verification:** web typecheck, server typecheck, 150 engine tests and production web build — PASS. Browser console contained no application errors; the only warnings came from unsupported methods in the injected Telegram WebApp 6.0 test SDK.
+
+## Unified-window pass — 2026-08-04
+
+- Full-screen rules, settings, shop, editor, deal, Futures and recap now share one `ScreenHeader`: Telegram-safe top reserve, 44px Back, eyebrow/title/subtitle hierarchy and one optional end action.
+- All 14 `BottomSheet` users and shared confirmations now consume the same surface, border, scrim, radius, shadow and motion tokens. Reduced-motion covers both shared window families.
+- Settings has an explicit visible return control; the character editor returns to the screen that opened it instead of always dropping the player at the table.
+- The table FAB and personal-card-sale picker are registered modal layers with focus trap, Escape/Telegram Back ownership and focus restoration.
+- Main confirmation help, negotiation swap/side-payment, lobby mode/round, bank presets/actions, market filters, labor hire, profile page dots and profession detail now meet the 44px touch-target contract.
+- The decorative lobby pet no longer pretends to be a clickable control while sitting under the collection carousel. One unobstructed `Питомцы` tile opens the selector; browser replay confirmed the correct `Питомец в лобби` sheet and removed the accidental profile opening.
+- Browser replay confirmed all 15 character portraits load, profile reactions return to the table and render on the target, and the confirmation preview matches the selected card (`$5K → $2.5K`, passive `$0 → $1.5K`, expenses `$1.6K → $2.1K`, cashflow `$341 → $1.4K`).
+
+The two existing P1 server-authority findings below remain deliberately out of this UI-only pass: authoritative outgoing deal/Futures lifecycle and intentional leave/surrender commands.
 
 ---
 

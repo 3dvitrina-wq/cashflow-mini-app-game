@@ -82,7 +82,7 @@ export const DraftBoard: React.FC = () => {
                     <button
                       key={ci}
                       onClick={() => pickDraftOption(i, ci)}
-                      style={{ height: 40, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C', textAlign: 'left', padding: '0 12px' }}
+                      style={{ height: 44, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C', textAlign: 'left', padding: '0 12px' }}
                     >
                       {c.label}
                     </button>
@@ -90,7 +90,7 @@ export const DraftBoard: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => pickDraftOption(i, 0)}
-                    style={{ height: 40, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
+                    style={{ height: 44, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 13, background: '#28C76F', color: '#0B0B0C' }}
                   >
                     Забрать карту
                   </button>
@@ -172,8 +172,8 @@ export const DraftBoard: React.FC = () => {
 };
 
 function btn(bg: string, color: string): React.CSSProperties {
-  return { height: 26, borderRadius: 8, border: 'none', fontWeight: 800, fontSize: 10, background: bg, color };
+  return { minHeight: 44, borderRadius: 10, border: 'none', fontWeight: 800, fontSize: 10, background: bg, color };
 }
 function prefBtn(active: boolean, color: string): React.CSSProperties {
-  return { flex: 1, height: 24, borderRadius: 7, border: active ? `1px solid ${color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: 800, fontSize: 9, background: active ? color + '22' : 'transparent', color: active ? color : '#7D7B6F' };
+  return { flex: 1, minHeight: 44, borderRadius: 9, border: active ? `1px solid ${color}` : '1px solid rgba(255,255,255,0.1)', fontWeight: 800, fontSize: 10, background: active ? color + '22' : 'transparent', color: active ? color : '#7D7B6F' };
 }

@@ -209,7 +209,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                 disabled={value > cap}
                 style={{
                   flex: 1,
-                  height: 42,
+                  height: 44,
                   borderRadius: 12,
                   fontSize: 13,
                   fontWeight: 800,
@@ -317,7 +317,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                     <button
                       onClick={() => handleWithdrawDeposit(deposit.id)}
                       style={{
-                        height: 38,
+                        height: 44,
                         padding: '0 14px',
                         borderRadius: 10,
                         border: 'none',
@@ -369,7 +369,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                   <button
                     onClick={() => handleRepay(loan.id, loan.principal)}
                     style={{
-                      height: 38,
+                      height: 44,
                       padding: '0 14px',
                       borderRadius: 10,
                       border: 'none',

@@ -13,7 +13,6 @@ import {
   IconChatBubble,
   IconCheckCircle,
   IconChevronDown,
-  IconChevronRight,
   IconCounterChat,
   IconDeclineX,
   IconDoc,
@@ -26,6 +25,7 @@ import {
 } from '../assets/Icons';
 import { useStore } from '../store';
 import { showToast } from '../components/Toast';
+import { ScreenHeader } from '../components/ScreenHeader';
 import {
   DEAL_PRESETS,
   ENFORCEMENT_OPTIONS,
@@ -173,15 +173,13 @@ export const DealModalScreen: React.FC = () => {
   if (!incomingDeal) {
     return (
       <div className="deal-shell">
-        <header className="deal-mini-topbar">
-          <div className="left">
-            <button className="deal-route-back" onClick={() => setScreen('main')} aria-label="Вернуться к столу">
-              <IconChevronRight size={18} />
-            </button>
-          </div>
-          <div className="center">СДЕЛКИ</div>
-          <div className="right" aria-hidden="true" />
-        </header>
+        <ScreenHeader
+          eyebrow="ПЕРЕГОВОРЫ"
+          title="Сделки"
+          subtitle="Только подтверждённые предложения"
+          onBack={() => setScreen('main')}
+          backLabel="Вернуться к столу"
+        />
         <div className="deal-sheet no-scrollbar" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, padding: 32 }}>
           <IconInfo size={36} style={{ color: '#7D7B6F' }} />
           <p style={{ color: '#8D8B7E', fontSize: 14, textAlign: 'center', margin: 0 }}>
@@ -202,19 +200,19 @@ export const DealModalScreen: React.FC = () => {
 
   return (
     <div className="deal-shell">
-      {/* === Mini topbar — no fake timer === */}
-      <header className="deal-mini-topbar">
-        <div className="left">
-          <button className="deal-route-back" onClick={() => setScreen('main')} aria-label="Вернуться к столу">
-            <IconChevronRight size={18} />
-          </button>
-        </div>
-        <div className="center">ПРЕДЛОЖЕНИЕ</div>
-        <div className="right deal-expiry">
-          <IconTimer size={14} />
-          <span>до {incomingDeal.expiresRound} раунда</span>
-        </div>
-      </header>
+      <ScreenHeader
+        eyebrow="ПЕРЕГОВОРЫ"
+        title="Предложение"
+        subtitle={`От ${proposerName}`}
+        onBack={() => setScreen('main')}
+        backLabel="Вернуться к столу"
+        endSlot={(
+          <span className="deal-route-deadline" aria-label={`Действует до ${incomingDeal.expiresRound} раунда`}>
+            <IconTimer size={14} />
+            <b>{incomingDeal.expiresRound}</b>
+          </span>
+        )}
+      />
 
       {/* === Ticker === */}
       <div className="deal-ticker no-scrollbar">

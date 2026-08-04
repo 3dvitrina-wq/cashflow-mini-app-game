@@ -62,7 +62,7 @@ export const BottomSheet: React.FC<BottomSheetProps> = ({ isOpen, onClose, title
         tabIndex={-1}
         style={{
           transform: `translateY(${dragY}px)`,
-          transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          transition: isDragging ? 'none' : 'transform var(--motion-enter) cubic-bezier(.2,.9,.2,1)',
         }}
       >
         {/* Handle */}

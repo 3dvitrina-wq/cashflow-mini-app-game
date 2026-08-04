@@ -228,6 +228,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 style={{
+                  minHeight: 44,
                   padding: '8px 14px',
                   borderRadius: 20,
                   background: active ? 'rgba(245, 197, 36, 0.16)' : 'rgba(255, 255, 255, 0.04)',
