@@ -168,7 +168,7 @@ night survival job. Do not “fix” this by removing losses.
   opportunity to that selected player, or explains why no action is available.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 174/174 plus legacy economy 17/17; server 11/11;
+- Verification: engine 175/175 plus legacy economy 17/17; server 11/11;
   web/server typecheck; production
   build; interactive 10-step browser walkthrough at 402×874; Network Lab and
   reconnect smoke; 25-card mobile geometry run; iPhone
@@ -183,6 +183,14 @@ night survival job. Do not “fix” this by removing losses.
   `dyor-focus-Cu7w97oi.js` and `dyor-focus-index-Du1eP65v.css`. A production
   402×874 replay opened the private three-card hand and showed the Russian
   active/reserve/burn explanation from the canonical host.
+- The broad 2,000-match audit reduced the former eight “zero impact” findings to
+  two actionable content defects. The inaccessible `$6K` franchise now has a
+  `$1.5K` operated-counter path with real asset cashflow; the fake P2P card that
+  could debit money without creating a borrower was replaced by an honest
+  credit-pool asset with income, upkeep and risk.
+- Release `151a5b9` is live on the canonical Pages host with
+  `dyor-focus-vtuGXUhX.js`. Canonical bundle probes find the Russian private 3→2
+  picker, the operated coffee-counter choice and the real P2P credit-pool copy.
 
 ## Next Step
 
