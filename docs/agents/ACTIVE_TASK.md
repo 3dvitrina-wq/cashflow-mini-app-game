@@ -9,9 +9,10 @@
 
 Ship and observe the new two-level game:
 
-- **ОБЫЧНЫЙ / BASIC** is the default: every player receives one private card,
-  answers simultaneously, sees one compact shared market effect, and owns the
-  right to keep, burn or sell that opportunity at a self-chosen price.
+- **ОБЫЧНЫЙ / BASIC** is the default: every player receives three private cards,
+  keeps one to play now and one rolling reserve for the next month, burns the
+  third, answers simultaneously, sees one compact shared market effect, and owns
+  the right to keep, burn or sell the active opportunity at a self-chosen price.
 - **PRO** keeps the shared table, percentages, partnerships and advanced deal
   controls for players who intentionally opt in.
 
@@ -24,6 +25,25 @@ depleted and may use credit, a player loan, a gift/help request, asset sale or a
 night survival job. Do not “fix” this by removing losses.
 
 ## Current verified state
+
+- BASIC now deals a private hand of three and asks each player to keep two. The
+  first selected card is resolved now, the second returns in the next month's
+  hand and the third is discarded. A silent player gets a deterministic fallback
+  so hand selection cannot freeze the table. Recipient snapshots expose only the
+  viewer's hand and reserve; other players cannot inspect it.
+- Card-based staff and AI purchases now have downstream consumers instead of
+  ending as profile decorations. Eight conditional follow-up cards cover the
+  virtual assistant, bookkeeper, SMM manager, junior developer, cleaner, trading
+  bot and AI subscription; the joint junior + AI route opens its own product
+  outcome. Staff/expense/asset combinations also produce stable monthly synergy
+  cashflow without permanently mutating base income or expenses every settlement.
+- The balance audit's “zero impact” check now observes active income, passive
+  income, expenses, stress, trust, reputation, debt, assets, protections and
+  staff. It no longer calls a card empty merely because the effect was outside
+  its former cash/passive/stress sample.
+- When the shared business market is open, the lower action tile becomes a
+  direct green `РЫНОК` button with the live offer count. The top bar remains one
+  centered timer/round pill, leaving both Telegram system-control corners empty.
 
 - Private card ownership is explicit in mobile UI. The shared market is a
   two-second center-stage event after the month ledger, not a permanent strip
@@ -148,7 +168,8 @@ night survival job. Do not “fix” this by removing losses.
   opportunity to that selected player, or explains why no action is available.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 168/168; server 11/11; web/server typecheck; production
+- Verification: engine 174/174 plus legacy economy 17/17; server 11/11;
+  web/server typecheck; production
   build; interactive 10-step browser walkthrough at 402×874; Network Lab and
   reconnect smoke; 25-card mobile geometry run; iPhone
   16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
@@ -161,15 +182,21 @@ night survival job. Do not “fix” this by removing losses.
 
 ## Next Step
 
-1. Run production reconnect smoke and a short six-seat check of shared market
+1. Deploy the updated WebSocket server before claiming the private 3→2 hand in
+   online rooms; a Pages-only release remains backward-compatible but the old
+   server cannot author the new private options.
+2. Run production reconnect smoke and a short six-seat check of shared market
    consumption plus leave-to-bot handoff after deployment.
-2. Play a human-facing 15-round BASIC match and record where decisions feel flat,
+3. Play a human-facing 15-round BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
-3. Complete the server-authoritative deal lifecycle: sent, viewed, countered,
+4. Audit protection tokens with the same producer→consumer contract now applied
+   to staff and AI; remove or connect any protection that still has no crisis
+   mitigation.
+5. Complete the server-authoritative deal lifecycle: sent, viewed, countered,
    accepted, rejected and settled.
-4. Restore market risk only after macro/upkeep exposure exists in the engine;
+6. Restore market risk only after macro/upkeep exposure exists in the engine;
    do not reintroduce decorative promises.
-5. Repair futures as a ledger task before balancing outcomes: unify opening and
+7. Repair futures as a ledger task before balancing outcomes: unify opening and
    liquidation rules, make losses monotonic, charge flow/funding against all-in
    margin, return server acknowledgements/net P&L, hide predictable RNG state and
    replace the decorative chart with authoritative price history.
