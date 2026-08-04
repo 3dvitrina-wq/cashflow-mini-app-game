@@ -23,6 +23,7 @@ import { BusinessSlotsScreen } from './BusinessSlotsScreen';
 import { ProtectionScreen } from './ProtectionScreen';
 import { CashflowBreakdownSheet } from '../components/CashflowBreakdownSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { MatchPrelude } from '../components/MatchPrelude';
 import { PersonalCardPicker } from '../components/PersonalCardPicker';
 import { dismissToast, showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
@@ -66,6 +67,7 @@ type SettlementLedgerLine = {
 // Survives route/sheet remounts during one app session so returning from Bank,
 // Settings or Futures does not replay the ownership lesson for the same match.
 const shownOwnershipIntros = new Set<string>();
+const shownMatchPreludes = new Set<string>();
 
 // The host is a guest, not a narrator: it only has something to say when a market
 // event, a stress check, or a risky deal is imminent. Most rounds → null (silent).
@@ -423,6 +425,16 @@ export const MainTurnTableScreen: React.FC = () => {
     rejectIncomingDeal,
   } = useStore();
   const { locale, t, tCard } = useI18n();
+  const preludePlayerId = localPlayerId
+    ?? engineMatch?.players.find((player) => !player.isBot)?.id
+    ?? match.players.find((player) => !player.isBot)?.id
+    ?? match.players[0]?.id
+    ?? 'player';
+  const matchPreludeKey = `${engineMatch?.seed ?? match.epoch}:${preludePlayerId}`;
+  const matchPreludeKeyRef = useRef(matchPreludeKey);
+  const [isMatchPreludeOpen, setIsMatchPreludeOpen] = useState(
+    () => match.round === 1 && !shownMatchPreludes.has(matchPreludeKey),
+  );
   const [timer, setTimer] = useState(90);
   const [networkStatus, setNetworkStatus] = useState(() => wsClient.getStatus());
   const [isTutorialActive, setIsTutorialActive] = useState(() => isFirstRunTourPending());
@@ -460,6 +472,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [showDealConfirm, setShowDealConfirm] = useState(false);
   const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | 'freedom' | null>(null);
   const [incomingOfferIndex, setIncomingOfferIndex] = useState(0);
+  const [dismissedTableOfferIds, setDismissedTableOfferIds] = useState<Set<string>>(() => new Set());
   const reactionsDialogRef = useRef<HTMLDivElement>(null);
   const firstReactionRef = useRef<HTMLButtonElement>(null);
   const fabMenuRef = useRef<HTMLDivElement>(null);
@@ -516,17 +529,22 @@ export const MainTurnTableScreen: React.FC = () => {
   // each new turn arrives as a server state_update, so this stays in sync (within
   // latency) with the server's per-turn timeout; offline it tracks local advances.
   const activeTurnPlayerId = match.players.find((p) => p.isActive)?.id;
+  const isEntrySelectionPending = Boolean(engineMatch?.personalCardSelectionPending?.[preludePlayerId]);
+  // Offline can pause the draft directly. Multiplayer keeps the established
+  // server tutorial pause contract until the backend that permits card selection
+  // during a pause is deployed alongside this client.
+  const isClientPaused = isTutorialActive || isMatchPreludeOpen || (!isMultiplayer && isEntrySelectionPending);
   useEffect(() => {
     setTimer(match.timer);
-    if (isTutorialActive || isRoomTutorialPaused) return;
+    if (isClientPaused || isRoomTutorialPaused) return;
     const iv = setInterval(() => setTimer((prev) => Math.max(0, prev - 1)), 1000);
     return () => clearInterval(iv);
-  }, [activeTurnPlayerId, match.round, match.timer, isTutorialActive, isRoomTutorialPaused]);
+  }, [activeTurnPlayerId, isClientPaused, isRoomTutorialPaused, match.round, match.timer]);
 
   useEffect(() => {
     if (!isMultiplayer || networkStatus !== 'connected') return;
-    wsClient.send({ type: 'tutorial_state', active: isTutorialActive });
-  }, [isMultiplayer, localPlayerId, isTutorialActive, networkStatus]);
+    wsClient.send({ type: 'tutorial_state', active: isClientPaused });
+  }, [isClientPaused, isMultiplayer, localPlayerId, networkStatus]);
 
   useEffect(() => () => {
     Object.values(reactionTimers.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
@@ -755,12 +773,16 @@ export const MainTurnTableScreen: React.FC = () => {
     ? (engineMatch?.personalCardOffers ?? []).filter((offer) =>
         offer.status === 'pending'
         && offer.fromPlayerId !== me.id
-        && (offer.audience === 'table' || offer.toPlayerId === me.id))
+        && (offer.audience === 'table' || offer.toPlayerId === me.id)
+        && (offer.audience !== 'table' || !dismissedTableOfferIds.has(offer.id)))
     : [];
   const incomingOfferKey = incomingPersonalOffers.map((offer) => offer.id).join('|');
   useEffect(() => {
     setIncomingOfferIndex((current) => Math.max(0, Math.min(current, incomingPersonalOffers.length - 1)));
   }, [incomingOfferKey, incomingPersonalOffers.length]);
+  useEffect(() => {
+    setDismissedTableOfferIds(new Set());
+  }, [engineMatch?.round]);
   const activeIncomingPersonalOffer = incomingPersonalOffers[incomingOfferIndex] ?? incomingPersonalOffers[0];
   const settlementLedger = useMemo(() => {
     if (!engineMatch) return null;
@@ -1320,6 +1342,23 @@ export const MainTurnTableScreen: React.FC = () => {
     { icon: <IconGiftBurst size={17} />, label: locale === 'ru' ? 'Бонус' : 'Bonus', tone: 'gold', onClick: () => { setIsDailyOpen(true); setFabExpanded(false); } },
     { icon: <IconCogSpark size={17} />, label: locale === 'ru' ? 'Настройки' : 'Settings', tone: 'slate', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
+
+  if (isMatchPreludeOpen) {
+    return (
+      <MatchPrelude
+        players={match.players}
+        maxRounds={match.maxRounds}
+        experienceMode={match.experienceMode ?? 'basic'}
+        locale={locale}
+        onStart={() => {
+          shownMatchPreludes.add(matchPreludeKeyRef.current);
+          setIsMatchPreludeOpen(false);
+          hapticImpact('soft');
+          playSound('whoosh');
+        }}
+      />
+    );
+  }
 
   if (personalSelectionPending && personalCardOptionIds.length === 3) {
     return (
@@ -2180,23 +2219,62 @@ export const MainTurnTableScreen: React.FC = () => {
                     ? (locale === 'ru' ? `Забрать за $${activeIncomingPersonalOffer.askingPrice.toLocaleString()}` : `Take for $${activeIncomingPersonalOffer.askingPrice.toLocaleString()}`)
                     : (locale === 'ru' ? 'Не хватает денег' : 'Not enough cash')}
                 </button>
-                {activeIncomingPersonalOffer.audience === 'direct' && (
-                  <button
-                    type="button"
-                    className="personal-offer-tray__decline"
-                    onClick={() => declinePersonalCard(activeIncomingPersonalOffer.id)}
-                  >
-                    {locale === 'ru' ? 'Отказаться' : 'Decline'}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="personal-offer-tray__decline"
+                  onClick={() => {
+                    hapticImpact('light');
+                    if (activeIncomingPersonalOffer.audience === 'direct') {
+                      declinePersonalCard(activeIncomingPersonalOffer.id);
+                    } else {
+                      setDismissedTableOfferIds((current) => {
+                        const next = new Set(current);
+                        next.add(activeIncomingPersonalOffer.id);
+                        return next;
+                      });
+                      setIncomingOfferIndex(0);
+                      showToast(
+                        locale === 'ru'
+                          ? 'Карта скрыта только у вас. Для остальных она осталась на столе.'
+                          : 'The card is hidden only for you. It remains on the table for everyone else.',
+                        'info',
+                        {
+                          dedupeKey: `hidden-table-offer-${activeIncomingPersonalOffer.id}`,
+                          duration: 5000,
+                          title: locale === 'ru' ? 'ПРЕДЛОЖЕНИЕ СКРЫТО' : 'OFFER HIDDEN',
+                          actionLabel: locale === 'ru' ? 'ВЕРНУТЬ' : 'UNDO',
+                          onAction: () => setDismissedTableOfferIds((current) => {
+                            const next = new Set(current);
+                            next.delete(activeIncomingPersonalOffer.id);
+                            return next;
+                          }),
+                        },
+                      );
+                    }
+                  }}
+                >
+                  {activeIncomingPersonalOffer.audience === 'direct'
+                    ? (locale === 'ru' ? 'Отказаться' : 'Decline')
+                    : (locale === 'ru' ? 'Не брать' : 'Skip')}
+                </button>
               </div>
-              {hasOfferQueue && (
+              {activeIncomingPersonalOffer.audience === 'table' ? (
+                <div className="personal-offer-tray__hint">
+                  {hasOfferQueue
+                    ? (locale === 'ru'
+                        ? `Ещё ${offerCount - 1} на столе. «Не брать» скроет только у вас.`
+                        : `${offerCount - 1} more on the table. Skip hides it only for you.`)
+                    : (locale === 'ru'
+                        ? '«Не брать» скроет карту только у вас. Остальные всё ещё смогут её купить.'
+                        : 'Skip hides the card only for you. Other players can still buy it.')}
+                </div>
+              ) : hasOfferQueue ? (
                 <div className="personal-offer-tray__hint">
                   {locale === 'ru'
                     ? `На столе ещё ${offerCount - 1}. Можно забрать только одну карту за раунд.`
                     : `${offerCount - 1} more on the table. You can take only one card per round.`}
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         );

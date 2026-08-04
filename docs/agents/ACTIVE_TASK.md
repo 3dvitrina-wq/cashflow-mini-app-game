@@ -257,13 +257,24 @@ night survival job. Do not “fix” this by removing losses.
   `cc7202ab` is live, and the canonical host serves `dyor-focus-CzCLcYU5.js`
   plus `dyor-focus-index-BiBm5W6N.css`; direct probes find the purchased-card
   sequence and liability-pager copy/classes.
+- A match no longer drops the player directly into three unexplained cards.
+  One non-stacking prelude per match shows the real table, duration, mode,
+  freedom objective and first-hand rule before the player explicitly deals.
+  The timer is paused for this beat; offline selection remains paused as well.
+- Every bot/public player listing now has `Не брать`. It hides the listing only
+  for that viewer, preserves it for the table and exposes a five-second
+  `Вернуть` undo. Direct offers still use the authoritative decline command.
+- Focused retention audit: 19/24, no P0. Interactive iPhone 16 Pro replay at
+  402×874 confirmed the prelude, picker handoff, month-two bot listing, local
+  dismiss/undo and a 282px non-scrolling offer tray. Engine 180/180, server
+  14/14, web/server TypeScript, production build and `git diff --check` PASS.
 
 ## Next Step
 
 1. Deploy the updated WebSocket server before claiming optional reserve, private
-   paid market search or one-purchase-per-window rules in online rooms. The old
-   server cannot validate the new nullable reserve or `search_business_market`
-   command.
+   paid market search, one-purchase-per-window rules or paused first-hand
+   selection in online rooms. The old server cannot validate the new nullable
+   reserve, `search_business_market` or pause-compatible selection contract.
 2. Run production reconnect smoke and a short six-seat check of shared market
    consumption plus leave-to-bot handoff after deployment.
 3. Play a human-facing 15-round BASIC match and record where decisions feel flat,

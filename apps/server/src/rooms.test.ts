@@ -65,11 +65,20 @@ describe('first-run tutorial pause', () => {
     const room = createRoom(true);
     joinRoom(room.code, { playerId: 'p1', name: 'A', outfit: 'trader', ws: null });
     joinRoom(room.code, { playerId: 'p2', name: 'B', outfit: 'office', ws: null });
-    startRoom(room.code, { cardMode: 'shared' });
+    const started = startRoom(room.code, { experienceMode: 'basic' })!;
 
     setTutorialPaused(room.code, 'p1', true);
     setTutorialPaused(room.code, 'p2', true);
     expect(applyCommand(room.code, { type: 'pass', playerId: 'p1' }).error).toContain('tutorial');
+
+    const selection = started.engineState?.personalCardOptionIds?.p1 ?? [];
+    expect(selection).toHaveLength(3);
+    expect(applyCommand(room.code, {
+      type: 'select_personal_cards',
+      playerId: 'p1',
+      activeCardId: selection[0]!,
+      reserveCardId: null,
+    }).rejected).toBe(false);
 
     setTutorialPaused(room.code, 'p1', false);
     expect(applyCommand(room.code, { type: 'pass', playerId: 'p1' }).error).toContain('tutorial');

@@ -262,6 +262,245 @@ button {
   background: #0B0D11;
 }
 
+/* One calm beat between lobby and first decision. It is a scene, not another
+   modal: the Telegram chrome stays clear and the match timer remains paused. */
+.match-prelude-shell {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: var(--app-h);
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  padding: max(calc(var(--safe-top) + 58px), 74px) max(var(--safe-right), 18px) max(calc(var(--safe-bottom) + 16px), 20px) max(var(--safe-left), 18px);
+  background:
+    radial-gradient(circle at 50% 20%, rgba(91,215,224,.17), transparent 31%),
+    radial-gradient(circle at 50% 78%, rgba(123,91,215,.12), transparent 40%),
+    linear-gradient(180deg, #131722, #080A0E 74%);
+  color: #F5F4ED;
+}
+
+.match-prelude-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(110deg, transparent 32%, rgba(255,255,255,.035) 50%, transparent 68%);
+  animation: match-prelude-light 1.4s var(--ease-out-strong) both;
+}
+
+.match-prelude-content,
+.match-prelude-footer {
+  position: relative;
+  z-index: 1;
+}
+
+.match-prelude-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.match-prelude-header {
+  max-width: 390px;
+  margin: 0 auto;
+  text-align: center;
+  animation: match-prelude-rise .48s var(--ease-out-strong) both;
+}
+
+.match-prelude-eyebrow {
+  color: #5BD7E0;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .11em;
+}
+
+.match-prelude-header h1 {
+  max-width: 360px;
+  margin: 8px auto 9px;
+  font-size: clamp(27px, 8vw, 38px);
+  font-weight: 950;
+  letter-spacing: -.04em;
+  line-height: .98;
+}
+
+.match-prelude-header p {
+  max-width: 355px;
+  margin: 0 auto;
+  color: #AAA89E;
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.match-prelude-table {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+  margin: 22px -4px 14px;
+}
+
+.match-prelude-player {
+  width: min(15vw, 58px);
+  margin: 0;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: match-prelude-player-in .34s var(--ease-out-strong) forwards;
+  animation-delay: calc(180ms + var(--player-order) * 62ms);
+}
+
+.match-prelude-avatar {
+  display: block;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.13);
+  border-radius: 16px;
+  background: rgba(255,255,255,.045);
+}
+
+.match-prelude-player-you .match-prelude-avatar {
+  border-color: rgba(91,215,224,.9);
+  box-shadow: 0 0 0 2px rgba(91,215,224,.13), 0 0 22px rgba(91,215,224,.16);
+}
+
+.match-prelude-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+}
+
+.match-prelude-player figcaption {
+  overflow: hidden;
+  margin-top: 5px;
+  color: #777A80;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.match-prelude-player-you figcaption { color: #5BD7E0; }
+
+.match-prelude-meta {
+  display: flex;
+  justify-content: center;
+  gap: 7px;
+  margin-bottom: 10px;
+}
+
+.match-prelude-meta span {
+  min-height: 25px;
+  padding: 7px 10px 0;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  color: #8D939F;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .055em;
+}
+
+.match-prelude-deal {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  padding: 14px 16px;
+  border: 1px solid rgba(245,197,36,.25);
+  border-radius: 17px;
+  background:
+    linear-gradient(100deg, rgba(245,197,36,.09), transparent 44%),
+    rgba(12,15,21,.78);
+  box-shadow: inset 0 1px rgba(255,255,255,.035);
+  animation: match-prelude-rise .48s .42s var(--ease-out-strong) both;
+}
+
+.match-prelude-deal > span {
+  color: #F5C524;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .11em;
+}
+
+.match-prelude-deal strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.match-prelude-deal p {
+  margin: 4px 0 0;
+  color: #A9A69C;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.match-prelude-footer {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 390px;
+  margin: 16px auto 0;
+  text-align: center;
+  animation: match-prelude-rise .42s .58s var(--ease-out-strong) both;
+}
+
+.match-prelude-footer button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 16px;
+  background: #5BD7E0;
+  color: #061114;
+  font-size: 15px;
+  font-weight: 950;
+  box-shadow: 0 12px 30px rgba(91,215,224,.22);
+}
+
+.match-prelude-footer button:active { transform: scale(.98); }
+.match-prelude-footer button:focus-visible { outline: 3px solid #F5C524; outline-offset: 3px; }
+
+.match-prelude-footer span {
+  color: #777A80;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+@keyframes match-prelude-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes match-prelude-player-in {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes match-prelude-light {
+  from { opacity: 0; transform: translateX(-24%); }
+  to { opacity: 1; transform: translateX(18%); }
+}
+
+@media (max-height: 760px) {
+  .match-prelude-shell { padding-top: max(calc(var(--safe-top) + 48px), 58px); }
+  .match-prelude-header h1 { font-size: 27px; }
+  .match-prelude-table { margin-top: 14px; margin-bottom: 10px; }
+  .match-prelude-deal { padding-block: 11px; }
+  .match-prelude-footer { margin-top: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .match-prelude-glow,
+  .match-prelude-header,
+  .match-prelude-player,
+  .match-prelude-deal,
+  .match-prelude-footer { animation: none; opacity: 1; transform: none; }
+}
+
 /* BASIC private hand: two decisions without doubling the number of monthly
    resolutions. The first card plays now; the second becomes a rolling reserve. */
 .personal-draft-shell {
@@ -12583,7 +12822,7 @@ input[type="range"]::-moz-range-thumb {
   display: block;
   margin-bottom: 3px;
   color: #8d939f;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 900;
   letter-spacing: .06em;
 }
@@ -12601,7 +12840,7 @@ input[type="range"]::-moz-range-thumb {
 .personal-offer-tray__pager {
   flex: 0 0 auto;
   gap: 6px;
-  min-height: 34px;
+  min-height: 46px;
   padding: 3px;
   border: 1px solid rgba(255, 255, 255, .09);
   border-radius: 11px;
@@ -12609,8 +12848,8 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .personal-offer-tray__pager button {
-  width: 28px;
-  height: 28px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   border: 0;
   border-radius: 8px;
@@ -12623,7 +12862,7 @@ input[type="range"]::-moz-range-thumb {
 .personal-offer-tray__pager b {
   min-width: 28px;
   color: #f5f4ed;
-  font-size: 11px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -12668,7 +12907,7 @@ input[type="range"]::-moz-range-thumb {
 }
 
 .personal-offer-tray__actions button {
-  min-height: 42px;
+  min-height: 44px;
   border-radius: 11px;
   font-size: 12px;
   font-weight: 900;
@@ -12694,7 +12933,7 @@ input[type="range"]::-moz-range-thumb {
 
 .personal-offer-tray__hint {
   color: #8d939f;
-  font-size: 9px;
+  font-size: 10.5px;
   font-weight: 750;
   line-height: 1.25;
   text-align: center;
@@ -12708,6 +12947,13 @@ input[type="range"]::-moz-range-thumb {
 @keyframes negot-slide-up {
   from { opacity: 0; transform: translateX(-50%) translateY(24px); }
   to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .personal-offer-tray,
+  .personal-offer-tray__card {
+    animation: none;
+  }
 }
 
 .negot-banner {

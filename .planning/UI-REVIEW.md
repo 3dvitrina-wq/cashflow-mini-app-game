@@ -10,6 +10,42 @@
 
 **Verification:** web typecheck, server typecheck, 150 engine tests and production web build — PASS. Browser console contained no application errors; the only warnings came from unsupported methods in the injected Telegram WebApp 6.0 test SDK.
 
+## Focused first-30-seconds retention audit — 2026-08-04
+
+**Viewport evidence:** interactive replay at 402×874. The baseline jumped from
+the lobby directly into a dense three-card decision with no statement of goal,
+opponents, duration or timer state. A bot's public listing then owned the lower
+screen with a Buy action but no visible way for the recipient to refuse it.
+
+**Implemented score: 19/24** — Copy 4, Visuals 4, Color 3, Typography 2,
+Spacing 3, Experience 3. No focused P0 remains.
+
+- A match now begins with one calm, full-screen prelude per match: real player
+  portraits/count, actual duration and mode, the financial-freedom objective,
+  the three-card rule and one `Раздать 3 карты` action. It does not fabricate
+  online presence or social proof, and it does not stack with the card picker or
+  guided tutorial.
+- The timer is paused during the prelude. Offline play also pauses while the
+  private hand is being selected. The server contract now permits the
+  authoritative `select_personal_cards` command while a learning player has the
+  room paused, without permitting economy/turn commands.
+- Public player listings always expose `Не брать`. This is deliberately a local
+  recipient dismissal: it does not remove the scarce card for the rest of the
+  table. A five-second `Вернуть` action reverses an accidental dismissal. Direct
+  personal offers keep the authoritative `Отказаться` command.
+- The offer tray fits at 402×874 without internal scroll (`282px` rendered and
+  `scrollHeight === clientHeight`); its primary/secondary actions and pager are
+  at least 44px. Prelude support copy and identity labels were raised out of the
+  former 7–9px range. Both offer entrance animations are disabled under reduced
+  motion.
+- An automatic `3…2…1` countdown was rejected: it would add unavoidable waiting
+  to every match. One immediate, explicit start action preserves the useful
+  orientation beat without turning it into another tutorial or trailer.
+
+Focused remaining P1 is release coordination: the updated pause/selection server
+contract must deploy with online-room claims. The broader typography-token and
+authoritative deal/Futures lifecycle findings below remain separate work.
+
 ## Unified-window pass — 2026-08-04
 
 - Full-screen rules, settings, shop, editor, deal, Futures and recap now share one `ScreenHeader`: Telegram-safe top reserve, 44px Back, eyebrow/title/subtitle hierarchy and one optional end action.

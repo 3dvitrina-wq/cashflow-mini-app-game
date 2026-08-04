@@ -391,7 +391,7 @@ export function applyCommand(
   if (!room || room.status !== 'playing' || !room.engineState) {
     return { ok: false, error: 'room not in playing state' };
   }
-  if (room.tutorialPausedPlayerIds.size > 0) {
+  if (room.tutorialPausedPlayerIds.size > 0 && command.type !== 'select_personal_cards') {
     return { ok: false, error: 'match paused while a player finishes the tutorial' };
   }
   try {
