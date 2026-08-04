@@ -154,10 +154,10 @@ night survival job. Do not “fix” this by removing losses.
   16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
   off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete
   six-socket, 15-round BASIC match with 54 commands and `SYNC 6/6`.
-- Release `bb847a2` is live on the canonical Pages host with the
-  `dyor-focus-DaziU-uo.js` namespace. The slower semantic-motion pass was
-  verified frame by frame at 402×874; the canonical host returns the new JS and
-  `dyor-focus-index-DPLmFNLO.css` assets.
+- Release `99cf201` is live on the canonical Pages host with
+  `dyor-focus-DWv2DMzf.js` and `dyor-focus-index-yD5X_vWq.css`. The compressed
+  month summary, first-contact-only ownership scene and rebuilt player profile
+  were verified interactively at 402×874 before deployment.
 
 ## Next Step
 
