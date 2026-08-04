@@ -107,4 +107,18 @@ describe('linked decision content', () => {
     expect(producesAiTools).toBe(true);
     expect(aiConsumers).toBe(true);
   });
+
+  it('keeps the formerly empty franchise and lending cards economically actionable', () => {
+    const franchise = getCard('opp-franchise')!;
+    const lending = getCard('economy-deal-loan')!;
+
+    expect(franchise.choices?.some((choice) =>
+      choice.effects.some((effect) => effect.type === 'asset.add')
+      && choice.effects.some((effect) => effect.type === 'cash.delta' && effect.amount === -1500))).toBe(true);
+    expect(lending.type).toBe('opportunity');
+    expect(lending.choices?.flatMap((choice) => choice.effects)
+      .some((effect) => effect.type === 'deal.resolve')).toBe(false);
+    expect(lending.choices?.flatMap((choice) => choice.effects)
+      .filter((effect) => effect.type === 'asset.add')).toHaveLength(2);
+  });
 });

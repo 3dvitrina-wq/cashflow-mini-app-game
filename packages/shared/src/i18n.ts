@@ -203,7 +203,8 @@ registerTranslations('ru', {
   'card.opp-franchise.text': 'Кофейня в деловом районе. Кофеин не зависит от рецессии.',
   'card.opp-franchise.hostCue': 'Единственный пузырь, который никогда не лопается — наполнен эспрессо.',
   'card.opp-franchise.choice0': 'Войти ($6K)',
-  'card.opp-franchise.choice1': 'Пас',
+  'card.opp-franchise.choice1': 'Вести стойку ($1.5K)',
+  'card.opp-franchise.choice2': 'Пас',
 
   'card.opp-consulting.title': 'КОНСАЛТИНГ',
   'card.opp-consulting.text': '3-месячный контракт. Платят хорошо, спят плохо.',
@@ -427,9 +428,9 @@ registerTranslations('ru', {
   'card.economy-deal-partner.text': 'Предложи 50/50 партнёрство другому игроку.',
   'card.economy-deal-partner.hostCue': 'Две головы, два кошелька, одна мечта.',
 
-  'card.economy-deal-loan.title': 'P2P ЗАЙМ',
-  'card.economy-deal-loan.text': 'Дай в долг другому игроку под 10%. Высокое доверие, высокий риск.',
-  'card.economy-deal-loan.hostCue': 'Хуже займа другу — только не получить его обратно.',
+  'card.economy-deal-loan.title': 'P2P-КРЕДИТНЫЙ ПУЛ',
+  'card.economy-deal-loan.text': 'Пул выдаёт мелкие займы незнакомцам. Доход приходит ежемесячно, дефолты — пушами.',
+  'card.economy-deal-loan.hostCue': 'Неловкость диверсифицирована между несколькими заёмщиками.',
 
   'card.economy-market-volatility.title': 'СКАЧОК ВОЛАТИЛЬНОСТИ',
   'card.economy-market-volatility.text': 'Рынки сходят с ума. Большие качели в обе стороны.',

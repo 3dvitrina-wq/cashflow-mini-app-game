@@ -223,6 +223,11 @@ export const CARDS: CardDefinition[] = [
         { type: 'business.slot.modify', amount: 1 },
         { type: 'asset.add', amount: 6000, payload: { kind: 'franchise', name: 'Coffee Franchise', tags: ['physical', 'food'], synergyKeys: ['food'], incomePerRound: 1200, upkeepPerRound: 250, value: 6000 } },
       ] },
+      { id: 'counter', label: 'Run the counter ($1.5K)', effects: [
+        { type: 'cash.delta', amount: -1500 },
+        { type: 'asset.add', amount: 1500, payload: { kind: 'coffee_counter', name: 'Coffee Counter', tags: ['physical', 'food', 'service'], synergyKeys: ['food'], incomePerRound: 430, upkeepPerRound: 180, value: 1500 } },
+        { type: 'stress.delta', amount: 1 },
+      ], hint: 'Smaller ownership, real monthly flow and one more operational fire' },
       { id: 'pass', label: 'Pass', effects: [] },
     ],
   },
@@ -1220,24 +1225,23 @@ export const CARDS: CardDefinition[] = [
 
   {
     id: 'economy-deal-loan',
-    type: 'social',
-    title: 'PEER-TO-PEER LOAN',
-    text: 'Lend money to another player at 10% interest. High trust, high risk.',
-    hostCue: 'The only thing worse than lending money to a friend is not getting it back.',
-    tags: ['deal', 'loan'],
+    type: 'opportunity',
+    title: 'PEER LENDING POOL',
+    text: 'A regulated pool issues tiny loans to strangers. Returns come monthly; defaults arrive as push notifications.',
+    hostCue: 'You diversified the awkwardness across several borrowers.',
+    tags: ['investment', 'loan', 'digital'],
     rarity: 'rare',
     weight: 1,
     animation: { cardEnter: 'flip', glow: 'gold' },
     choices: [
-      { id: 'lend_1k', label: 'Lend $1K', effects: [
+      { id: 'lend_1k', label: 'Conservative pool ($1K)', effects: [
         { type: 'cash.delta', amount: -1000 },
-        { type: 'deal.resolve', value: 'loan_proposed' },
-        { type: 'trust.delta', amount: 1 },
+        { type: 'asset.add', amount: 1000, payload: { kind: 'p2p_notes', name: 'P2P Loan Notes', tags: ['digital', 'loan'], synergyKeys: ['finance'], incomePerRound: 160, upkeepPerRound: 30, value: 1000 } },
       ] },
-      { id: 'lend_2k', label: 'Lend $2K', effects: [
+      { id: 'lend_2k', label: 'Risk pool ($2K)', effects: [
         { type: 'cash.delta', amount: -2000 },
-        { type: 'deal.resolve', value: 'loan_proposed' },
-        { type: 'trust.delta', amount: 2 },
+        { type: 'asset.add', amount: 2000, payload: { kind: 'p2p_risk_notes', name: 'Risky P2P Notes', tags: ['digital', 'loan', 'risk'], synergyKeys: ['finance'], incomePerRound: 360, upkeepPerRound: 80, value: 2000 } },
+        { type: 'stress.delta', amount: 1 },
       ] },
       { id: 'skip', label: 'Skip', effects: [] },
     ],
