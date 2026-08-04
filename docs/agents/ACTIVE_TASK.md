@@ -253,6 +253,10 @@ night survival job. Do not “fix” this by removing losses.
   and `git diff --check` PASS. A clean 402×874 replay bought a bot listing,
   resolved both enabled cards in order and advanced only after card two; Bank
   rendered a live profession debt without overflow.
+- Source release `1788d38` is pushed to `origin/main`. Wrangler Pages preview
+  `cc7202ab` is live, and the canonical host serves `dyor-focus-CzCLcYU5.js`
+  plus `dyor-focus-index-BiBm5W6N.css`; direct probes find the purchased-card
+  sequence and liability-pager copy/classes.
 
 ## Next Step
 
