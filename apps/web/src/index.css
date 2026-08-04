@@ -587,7 +587,7 @@ button {
   box-shadow:
     0 8px 18px rgba(0,0,0,.34),
     0 0 0 2px rgba(8, 10, 16, .60);
-  animation: playerReactionPop 1.45s cubic-bezier(.2,.9,.2,1) both;
+  animation: playerReactionPop 2.4s cubic-bezier(.2,.9,.2,1) both;
 }
 
 .player-reaction-badge::after {
@@ -1193,7 +1193,7 @@ button {
     radial-gradient(circle at 50% 42%, rgba(91, 215, 224, .15), transparent 34%),
     linear-gradient(180deg, rgba(7, 10, 15, .88), rgba(7, 10, 15, .97));
   text-align: center;
-  animation: cardOwnershipScene 960ms cubic-bezier(.2, .8, .2, 1) both;
+  animation: cardOwnershipScene 1800ms cubic-bezier(.2, .8, .2, 1) both;
   pointer-events: none;
 }
 
@@ -1217,7 +1217,7 @@ button {
     linear-gradient(45deg, transparent 42%, rgba(91, 215, 224, .12) 43% 57%, transparent 58%),
     #111824;
   box-shadow: 0 16px 34px rgba(0, 0, 0, .54), 0 0 24px rgba(91, 215, 224, .18);
-  animation: cardOwnershipFly 960ms cubic-bezier(.16, 1, .3, 1) both;
+  animation: cardOwnershipFly 1800ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
 .card-ownership-intro-shared .card-ownership-back {
@@ -1251,6 +1251,9 @@ button {
   font-size: 18px;
   font-weight: 1000;
   letter-spacing: .08em;
+  opacity: 0;
+  transform: translateY(7px);
+  animation: cardMeaningIn 300ms cubic-bezier(.16, 1, .3, 1) 420ms forwards;
 }
 
 .card-ownership-intro-shared .card-ownership-copy strong { color: #f5c524; }
@@ -1262,6 +1265,9 @@ button {
   font-size: 11px;
   font-weight: 800;
   line-height: 1.35;
+  opacity: 0;
+  transform: translateY(7px);
+  animation: cardMeaningIn 300ms cubic-bezier(.16, 1, .3, 1) 900ms forwards;
 }
 
 .card-reveal-ownership .card-poster-content {
@@ -1270,7 +1276,7 @@ button {
 
 .card-reveal-dealing {
   transform-origin: 50% 18%;
-  animation: cardDealIn 360ms cubic-bezier(.16, 1, .3, 1) both;
+  animation: cardDealIn 480ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
 .card-reveal-dealing .card-event-signal,
@@ -1278,14 +1284,14 @@ button {
 .card-reveal-dealing .card-poster-title,
 .card-reveal-dealing .card-poster-text,
 .card-reveal-dealing .card-poster-consequences {
-  animation: cardMeaningIn 260ms cubic-bezier(.16, 1, .3, 1) both;
+  animation: cardMeaningIn 320ms cubic-bezier(.16, 1, .3, 1) both;
 }
 
-.card-reveal-dealing .card-event-signal { animation-delay: 90ms; }
-.card-reveal-dealing .card-poster-kicker { animation-delay: 140ms; }
-.card-reveal-dealing .card-poster-title { animation-delay: 190ms; }
-.card-reveal-dealing .card-poster-text { animation-delay: 250ms; }
-.card-reveal-dealing .card-poster-consequences { animation-delay: 320ms; }
+.card-reveal-dealing .card-event-signal { animation-delay: 100ms; }
+.card-reveal-dealing .card-poster-kicker { animation-delay: 380ms; }
+.card-reveal-dealing .card-poster-title { animation-delay: 680ms; }
+.card-reveal-dealing .card-poster-text { animation-delay: 1050ms; }
+.card-reveal-dealing .card-poster-consequences { animation-delay: 1450ms; }
 
 @keyframes cardDealIn {
   from { opacity: 0; transform: translate3d(0, -18px, 0) rotate(-1deg) scale(.965); }
@@ -1299,13 +1305,13 @@ button {
 
 @keyframes cardOwnershipScene {
   0% { opacity: 0; }
-  12%, 78% { opacity: 1; }
+  8%, 86% { opacity: 1; }
   100% { opacity: 0; }
 }
 
 @keyframes cardOwnershipFly {
   0% { opacity: 0; transform: translate3d(44px, -36px, 0) rotate(9deg) scale(.72); }
-  42%, 78% { opacity: 1; transform: translate3d(0, 0, 0) rotate(-2deg) scale(1); }
+  24%, 84% { opacity: 1; transform: translate3d(0, 0, 0) rotate(-2deg) scale(1); }
   100% { opacity: 0; transform: translate3d(0, 7px, 0) rotate(0) scale(.96); }
 }
 
@@ -8197,7 +8203,6 @@ button {
   align-items: center;
   gap: 7px;
   padding: 8px 4px 5px;
-  animation: marketPulseReveal 220ms var(--ease-out-strong) both;
 }
 
 .market-pulse-reveal > span {
@@ -8205,6 +8210,9 @@ button {
   font-size: 9px;
   font-weight: 950;
   letter-spacing: .1em;
+  opacity: 0;
+  transform: translateY(6px);
+  animation: timeSequenceIn 260ms var(--ease-out-strong) 120ms forwards;
 }
 
 .market-pulse-reveal > strong {
@@ -8213,6 +8221,9 @@ button {
   font-size: 23px;
   line-height: 1.02;
   text-transform: uppercase;
+  opacity: 0;
+  transform: translateY(7px);
+  animation: timeSequenceIn 280ms var(--ease-out-strong) 520ms forwards;
 }
 
 .market-pulse-reveal > p {
@@ -8222,17 +8233,18 @@ button {
   font-size: 13px;
   font-weight: 760;
   line-height: 1.3;
+  opacity: 0;
+  transform: translateY(7px);
+  animation: timeSequenceIn 280ms var(--ease-out-strong) 1030ms forwards;
 }
 
 .market-pulse-reveal > small {
   color: #8D918F;
   font-size: 10px;
   font-weight: 800;
-}
-
-@keyframes marketPulseReveal {
-  from { opacity: 0; transform: translateY(9px) scale(.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  opacity: 0;
+  transform: translateY(6px);
+  animation: timeSequenceIn 260ms var(--ease-out-strong) 1570ms forwards;
 }
 
 .settlement-ledger {
@@ -8262,8 +8274,7 @@ button {
   background: rgba(255,255,255,.035);
   opacity: 0;
   transform: translateY(7px);
-  animation: settlementLineIn 220ms var(--ease-out-strong) forwards;
-  animation-delay: calc(140ms + var(--ledger-index) * 210ms);
+  animation: settlementLineIn 280ms var(--ease-out-strong) forwards;
 }
 
 .settlement-ledger-line > span:first-child {
@@ -8314,8 +8325,8 @@ button {
   font-size: 10px;
   font-weight: 800;
   opacity: 0;
-  animation: settlementLineIn 220ms var(--ease-out-strong) forwards;
-  animation-delay: calc(260ms + var(--ledger-count) * 210ms);
+  transform: translateY(6px);
+  animation: settlementLineIn 280ms var(--ease-out-strong) forwards;
 }
 
 .settlement-ledger-totals b {
@@ -8334,8 +8345,7 @@ button {
   border: 1px solid rgba(255,255,255,.08);
   border-radius: 12px;
   opacity: 0;
-  animation: settlementNetIn 260ms var(--ease-out-strong) forwards;
-  animation-delay: calc(520ms + var(--ledger-count) * 210ms);
+  animation: settlementNetIn 300ms var(--ease-out-strong) forwards;
 }
 
 .settlement-ledger-net > span {
@@ -8372,6 +8382,10 @@ button {
   to { opacity: 1; transform: scale(1); }
 }
 
+@keyframes timeSequenceIn {
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .time-advance-card span {
   color: #B8B6A9;
   font-size: 12px;
@@ -8384,34 +8398,39 @@ button {
   font-weight: 950 !important;
   text-transform: uppercase;
   letter-spacing: .1em;
+  opacity: 0;
+  transform: translateY(6px);
 }
 
-.time-advance-card i {
-  width: 100%;
-  height: 5px;
-  margin-top: 3px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255,255,255,.08);
+.time-advance-closing .time-advance-kicker,
+.time-advance-night .time-advance-kicker,
+.time-advance-market .time-advance-kicker,
+.time-advance-opening .time-advance-kicker {
+  animation: timeSequenceIn 260ms var(--ease-out-strong) 40ms forwards;
 }
 
-.time-advance-card i::before {
-  content: "";
-  display: block;
-  height: 100%;
-  width: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #F5C524, #28C76F);
-  transform-origin: left center;
-  animation: timeProgress 1.18s linear both;
+.time-advance-date,
+.time-advance-caption {
+  opacity: 0;
+  transform: translateY(7px);
 }
 
-.time-advance-card-ledger i::before {
-  animation-duration: var(--settlement-hold, 4s);
+.time-advance-opening .time-advance-date {
+  animation: timeSequenceIn 300ms var(--ease-out-strong) 260ms forwards;
 }
 
-.time-advance-card-market i::before {
-  animation-duration: 2.2s;
+.time-advance-opening .time-advance-caption {
+  animation: timeSequenceIn 300ms var(--ease-out-strong) 900ms forwards;
+}
+
+.time-advance-closing .time-advance-date,
+.time-advance-night .time-advance-date {
+  animation: timeSequenceIn 220ms var(--ease-out-strong) 40ms forwards;
+}
+
+.time-advance-closing .time-advance-caption,
+.time-advance-night .time-advance-caption {
+  animation: timeSequenceIn 220ms var(--ease-out-strong) 150ms forwards;
 }
 
 @keyframes timeCardIn {
@@ -8419,18 +8438,17 @@ button {
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes timeProgress {
-  from { transform: scaleX(.05); }
-  to { transform: scaleX(1); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .time-advance-card { animation: fadeIn 160ms ease both; }
-  .time-advance-card i::before { animation: none; }
   .settlement-ledger-line,
   .settlement-ledger-totals,
   .settlement-ledger-net,
-  .market-pulse-reveal {
+  .market-pulse-reveal > span,
+  .market-pulse-reveal > strong,
+  .market-pulse-reveal > p,
+  .market-pulse-reveal > small,
+  .time-advance-date,
+  .time-advance-caption {
     opacity: 1;
     transform: none;
     animation: none;

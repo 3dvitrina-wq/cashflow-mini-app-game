@@ -87,7 +87,14 @@ night survival job. Do not “fix” this by removing losses.
   The night ledger reveals each income/cost source, asset upkeep, one-off round
   impact, total inflow, total outflow and the reconciled wallet delta in sequence.
   The table stays spatially fixed during this transition: only the centered
-  ledger animates, with a 4–5.2 second reading window scaled to its line count.
+  ledger animates. Information-bearing motion now follows a reading timeline
+  instead of firing all copy before a decorative progress bar: ledger lines,
+  totals and net are distributed across a 4.4–6 second window; the shared market
+  reveals context, title, effect and scope across 2.2 seconds; the new-month
+  label gets 1.8 seconds. The private-card deal takes 3.7 seconds from ownership
+  to consequences, and table reactions remain visible for 2.4 seconds. Buttons,
+  drawers and other functional feedback stay fast because their content does
+  not disappear before the player can read it.
 - Daily reward is claim-once and explicitly closable. Settings exposes only
   working controls: volume, original procedural music, action sounds, haptics,
   host and language.
@@ -145,8 +152,8 @@ night survival job. Do not “fix” this by removing losses.
   off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete
   six-socket, 15-round BASIC match with 54 commands and `SYNC 6/6`.
 - Release `984ecdb` is live on the canonical Pages host with the
-  `dyor-focus-BfNXIA0r.js` namespace; a warm-browser reload rendered the same
-  center-only market and stress UI verified locally.
+  `dyor-focus-BfNXIA0r.js` namespace; the slower semantic-motion pass is locally
+  verified at 402×874 and is awaiting its release checkpoint.
 
 ## Next Step
 

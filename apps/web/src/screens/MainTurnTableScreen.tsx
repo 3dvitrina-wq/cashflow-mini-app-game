@@ -574,7 +574,7 @@ export const MainTurnTableScreen: React.FC = () => {
         return next;
       });
       delete reactionTimers.current[playerId];
-    }, 1450);
+    }, 2400);
   }, []);
 
   // In multiplayer, receive server state updates via wsClient singleton
@@ -672,8 +672,8 @@ export const MainTurnTableScreen: React.FC = () => {
       return;
     }
     setCardRevealPhase('ownership');
-    const ownershipTimer = window.setTimeout(() => setCardRevealPhase('dealing'), 960);
-    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 1560);
+    const ownershipTimer = window.setTimeout(() => setCardRevealPhase('dealing'), 1800);
+    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 3700);
     return () => {
       window.clearTimeout(ownershipTimer);
       window.clearTimeout(revealTimer);
@@ -702,7 +702,7 @@ export const MainTurnTableScreen: React.FC = () => {
         ? ['OK', 'LOL']
         : ['HMM', 'NEXT'];
     const label = contextualLabels[(match.round + bot.id.length) % contextualLabels.length];
-    const reactionTimer = window.setTimeout(() => showPlayerReaction(bot.id, label), 540 + (match.round % 3) * 180);
+    const reactionTimer = window.setTimeout(() => showPlayerReaction(bot.id, label), 900 + (match.round % 3) * 220);
     return () => window.clearTimeout(reactionTimer);
   }, [canActNow, card?.id, card?.type, cardRevealPhase, isRoomTutorialPaused, isTutorialActive, match.players, match.round, me?.id, showPlayerReaction]);
   const acceptedPersonalOfferThisRound = !isProMode && me?.id
@@ -826,8 +826,13 @@ export const MainTurnTableScreen: React.FC = () => {
     };
   }, [engineMatch, localPlayerId, locale, match.lastSettlement]);
   const settlementHoldMs = Math.min(
-    5200,
-    Math.max(4000, 2500 + (settlementLedger?.lines.length ?? 0) * 240),
+    6000,
+    Math.max(4400, 1600 + (settlementLedger?.lines.length ?? 0) * 480),
+  );
+  const settlementRevealStartMs = 300;
+  const settlementRevealStepMs = Math.max(
+    300,
+    Math.floor((settlementHoldMs - 1000) / Math.max(1, (settlementLedger?.lines.length ?? 0) + 1)),
   );
   const visibleTimelineLabel = localizedTimelineLabel(match.calendarYear, match.calendarMonth, locale);
   const compactTimelineLabel = localizedTimelineShortLabel(match.calendarYear, match.calendarMonth, locale);
@@ -1034,7 +1039,7 @@ export const MainTurnTableScreen: React.FC = () => {
     const finishTimer = window.setTimeout(() => {
       setRoundTransition(null);
       setIsAdvancingTime(false);
-    }, 620);
+    }, 1800);
     return () => window.clearTimeout(finishTimer);
   }, [roundTransition]);
 
@@ -1251,8 +1256,8 @@ export const MainTurnTableScreen: React.FC = () => {
       {isAdvancingTime && roundTransition && (
         <div className={`time-advance-overlay time-advance-${roundTransition.phase}`} aria-live="assertive">
           <div
+            key={`${roundTransition.phase}-${roundTransition.phase === 'night' && match.round > roundTransition.fromRound ? 'settled' : 'waiting'}`}
             className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}${roundTransition.phase === 'market' ? ' time-advance-card-market' : ''}`}
-            style={{ ['--settlement-hold' as string]: `${settlementHoldMs}ms` } as React.CSSProperties}
           >
             <span className="time-advance-kicker">
               {roundTransition.phase === 'closing'
@@ -1274,7 +1279,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     <div
                       key={line.id}
                       className="settlement-ledger-line"
-                      style={{ ['--ledger-index' as string]: index } as React.CSSProperties}
+                      style={{ animationDelay: `${settlementRevealStartMs + index * settlementRevealStepMs}ms` }}
                     >
                       <span aria-hidden="true">{line.icon}</span>
                       <b>{line.label}</b>
@@ -1288,14 +1293,14 @@ export const MainTurnTableScreen: React.FC = () => {
                 </div>
                 <div
                   className="settlement-ledger-totals"
-                  style={{ ['--ledger-count' as string]: settlementLedger.lines.length } as React.CSSProperties}
+                  style={{ animationDelay: `${settlementRevealStartMs + settlementLedger.lines.length * settlementRevealStepMs}ms` }}
                 >
                   <span>{locale === 'ru' ? 'Пришло' : 'In'} <b className="settlement-ledger-income">+${settlementLedger.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
                   <span>{locale === 'ru' ? 'Ушло' : 'Out'} <b className="settlement-ledger-expense">−${settlementLedger.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
                 </div>
                 <div
                   className={`settlement-ledger-net ${settlementLedger.net >= 0 ? 'settlement-ledger-net-positive' : 'settlement-ledger-net-negative'}`}
-                  style={{ ['--ledger-count' as string]: settlementLedger.lines.length } as React.CSSProperties}
+                  style={{ animationDelay: `${settlementRevealStartMs + (settlementLedger.lines.length + 1) * settlementRevealStepMs}ms` }}
                 >
                   <span>{locale === 'ru' ? 'ИТОГ ЗА РАУНД' : 'ROUND TOTAL'}</span>
                   <strong>{settlementLedger.net >= 0 ? '+' : '−'}${Math.abs(settlementLedger.net).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</strong>
@@ -1310,7 +1315,7 @@ export const MainTurnTableScreen: React.FC = () => {
               </div>
             ) : (
               <>
-                <strong>
+                <strong className="time-advance-date">
                   {roundTransition.phase === 'closing'
                     ? (locale === 'ru' ? `Раунд ${roundTransition.fromRound} закрывается` : `Round ${roundTransition.fromRound} is closing`)
                     : roundTransition.phase === 'night'
@@ -1319,7 +1324,7 @@ export const MainTurnTableScreen: React.FC = () => {
                         ? visibleTimelineLabel
                         : (locale === 'ru' ? 'Ваш выбор принят' : 'Your choice is locked')}
                 </strong>
-                <span>
+                <span className="time-advance-caption">
                   {roundTransition.phase === 'night'
                     ? (locale === 'ru' ? 'Стол считает последствия' : 'The table is resolving consequences')
                     : roundTransition.phase === 'opening' && match.round > roundTransition.fromRound
@@ -1328,7 +1333,6 @@ export const MainTurnTableScreen: React.FC = () => {
                 </span>
               </>
             )}
-            <i />
           </div>
         </div>
       )}
