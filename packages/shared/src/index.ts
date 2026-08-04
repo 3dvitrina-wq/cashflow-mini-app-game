@@ -188,7 +188,7 @@ export interface EligibilityCondition {
     | 'cash_min' | 'cash_max'
     | 'trust_min' | 'trust_max'
     | 'debt_min' | 'debt_max'
-    | 'has_protection' | 'has_asset_tag'
+    | 'has_protection' | 'has_asset_tag' | 'has_staff'
     | 'has_expense_tag' | 'room_mode'
     | 'epoch' | 'min_players' | 'max_players'
     | 'has_business_slot' | 'outfit'
@@ -474,6 +474,12 @@ export type Command =
   | { type: 'pass'; playerId: PlayerId }
   | { type: 'draw_card'; playerId: PlayerId }
   | {
+      type: 'select_personal_cards';
+      playerId: PlayerId;
+      activeCardId: CardId;
+      reserveCardId: CardId;
+    }
+  | {
       type: 'offer_personal_card';
       playerId: PlayerId;
       audience: 'direct' | 'table';
@@ -606,6 +612,12 @@ export interface MatchState {
   // simultaneously. PRO keeps the shared-table/draft negotiation systems.
   experienceMode?: ExperienceMode;
   personalCardIds?: Record<PlayerId, CardId | null>;
+  /** BASIC: three private candidates from which the player keeps two. */
+  personalCardOptionIds?: Record<PlayerId, CardId[]>;
+  /** BASIC: the kept card that returns to next month's three-card hand. */
+  personalCardReserveIds?: Record<PlayerId, CardId | null>;
+  /** BASIC: true until the human names one card for now and one for later. */
+  personalCardSelectionPending?: Record<PlayerId, boolean>;
   personalCardOffers?: PersonalCardOffer[];
   globalCardId?: CardId | null;
 

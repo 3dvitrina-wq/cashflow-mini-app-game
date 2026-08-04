@@ -262,6 +262,172 @@ button {
   background: #0B0D11;
 }
 
+/* BASIC private hand: two decisions without doubling the number of monthly
+   resolutions. The first card plays now; the second becomes a rolling reserve. */
+.personal-draft-shell {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: var(--app-h);
+  height: 100dvh;
+  flex-direction: column;
+  overflow: hidden;
+  padding: calc(var(--safe-top) + 14px) max(var(--safe-right), 14px) calc(var(--safe-bottom) + 14px) max(var(--safe-left), 14px);
+  background:
+    radial-gradient(circle at 50% -5%, rgba(91,215,224,.16), transparent 34%),
+    linear-gradient(180deg, #131722, #080A0E 72%);
+  color: #F5F4ED;
+}
+
+.personal-draft-glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 54%, rgba(123,91,215,.12), transparent 48%);
+}
+
+.personal-draft-header,
+.personal-draft-list,
+.personal-draft-footer { position: relative; z-index: 1; }
+
+.personal-draft-header { flex: 0 0 auto; text-align: center; }
+.personal-draft-header > span {
+  color: #5BD7E0;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: .1em;
+}
+.personal-draft-header h1 {
+  margin: 5px 0 4px;
+  font-size: clamp(24px, 7vw, 32px);
+  line-height: 1;
+  font-weight: 950;
+  letter-spacing: -.035em;
+}
+.personal-draft-header p {
+  max-width: 360px;
+  margin: 0 auto;
+  color: #AAA89E;
+  font-size: 12px;
+  line-height: 1.32;
+}
+
+.personal-draft-list {
+  display: grid;
+  flex: 1 1 auto;
+  min-height: 0;
+  align-content: center;
+  gap: 8px;
+  padding: 10px 0;
+}
+
+.personal-draft-card {
+  position: relative;
+  display: grid;
+  min-height: 122px;
+  overflow: hidden;
+  grid-template-columns: 35% minmax(0, 1fr);
+  border-radius: 18px;
+  border: 1px solid rgba(255,255,255,.10);
+  background: rgba(13,16,22,.94);
+  color: inherit;
+  text-align: left;
+  box-shadow: 0 12px 30px rgba(0,0,0,.24), inset 0 1px rgba(255,255,255,.04);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+.personal-draft-card:active { transform: scale(.985); }
+.personal-draft-card-selected {
+  border-color: rgba(91,215,224,.85);
+  box-shadow: 0 0 0 2px rgba(91,215,224,.16), 0 14px 34px rgba(0,0,0,.32);
+}
+.personal-draft-art { min-width: 0; min-height: 100%; }
+.personal-draft-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  padding: 14px 12px 14px 13px;
+}
+.personal-draft-type {
+  color: #F5C524;
+  font-size: 8.5px;
+  font-weight: 950;
+  letter-spacing: .09em;
+}
+.personal-draft-copy strong {
+  padding-right: 58px;
+  font-size: 15px;
+  line-height: 1.05;
+  font-weight: 950;
+  letter-spacing: -.015em;
+}
+.personal-draft-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #A9A69C;
+  font-size: 10.5px;
+  line-height: 1.28;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+.personal-draft-order {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: grid;
+  min-width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.11);
+  background: rgba(255,255,255,.07);
+  padding: 0 9px;
+  color: #AAA89E;
+  font-size: 9px;
+  font-weight: 950;
+}
+.personal-draft-order-1 { border-color: rgba(40,199,111,.7); background: rgba(40,199,111,.16); color: #66E5A0; }
+.personal-draft-order-2 { border-color: rgba(91,215,224,.7); background: rgba(91,215,224,.14); color: #83E8EF; }
+
+.personal-draft-footer {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: auto minmax(180px, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+.personal-draft-footer > div { display: flex; flex-direction: column; gap: 3px; }
+.personal-draft-footer span { color: #6F716F; font-size: 9px; font-weight: 900; text-transform: uppercase; }
+.personal-draft-footer span.done { color: #5BD7E0; }
+.personal-draft-footer button {
+  min-height: 52px;
+  border: 0;
+  border-radius: 16px;
+  background: #5BD7E0;
+  color: #061114;
+  font-size: 15px;
+  font-weight: 950;
+  box-shadow: 0 10px 28px rgba(91,215,224,.18);
+}
+.personal-draft-footer button:disabled { background: #252A31; color: #696D73; box-shadow: none; }
+
+@media (max-height: 760px) {
+  .personal-draft-shell { padding-top: calc(var(--safe-top) + 8px); padding-bottom: calc(var(--safe-bottom) + 8px); }
+  .personal-draft-header h1 { font-size: 23px; }
+  .personal-draft-header p { font-size: 10.5px; }
+  .personal-draft-list { gap: 6px; padding: 7px 0; }
+  .personal-draft-card { min-height: 104px; }
+  .personal-draft-copy { padding-block: 10px; }
+  .personal-draft-copy small { -webkit-line-clamp: 2; }
+  .personal-draft-footer button { min-height: 48px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .survival-choice-market-available { animation: none; }
+  .personal-draft-card { transition: none; }
+}
+
 .game-playfield {
   position: relative;
   z-index: 10;
@@ -479,6 +645,11 @@ button {
   gap: 7px;
 }
 
+.game-topbar-main-centered {
+  display: flex;
+  justify-content: center;
+}
+
 .game-topbar-main .timeline-pill {
   justify-self: start;
   max-width: 100%;
@@ -487,6 +658,11 @@ button {
 
 .game-topbar-main .timeline-pill span { overflow: hidden; text-overflow: ellipsis; }
 .game-topbar-main .topbar-player-count { justify-self: end; }
+
+@keyframes market-entry-pulse {
+  0%, 100% { box-shadow: inset 0 1px rgba(255,255,255,.06), 0 0 0 rgba(40,199,111,0); }
+  50% { box-shadow: inset 0 1px rgba(255,255,255,.06), 0 0 16px rgba(40,199,111,.18); }
+}
 
 .topbar-pill {
   display: inline-flex;
@@ -1611,6 +1787,33 @@ button {
   flex: 0 0 30px;
   background: rgba(255, 247, 222, .14);
   color: #FFF7DE;
+}
+
+.decision-choice-panel .survival-choice-market-available {
+  flex-direction: column;
+  gap: 2px;
+  border-color: rgba(40, 199, 111, .76);
+  background:
+    radial-gradient(circle at 18% 0%, rgba(40,199,111,.25), transparent 44%),
+    linear-gradient(180deg, rgba(23, 70, 45, .98), rgba(12, 38, 25, .99));
+  color: #8CF0B7;
+  animation: market-entry-pulse 1600ms ease-in-out infinite;
+}
+
+.decision-choice-panel .survival-choice-market-available .survival-choice-icon {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+  background: rgba(40, 199, 111, .16);
+  color: #8CF0B7;
+}
+
+.survival-choice-market-label {
+  color: #8CF0B7;
+  font-size: 8px;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: .03em;
 }
 
 .decision-choice-panel .survival-choice-market-open {

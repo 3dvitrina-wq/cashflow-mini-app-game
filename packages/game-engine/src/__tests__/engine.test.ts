@@ -328,17 +328,17 @@ describe('effect registry', () => {
 // ─── Cards ──────────────────────────────────────────────────────────────────
 
 describe('cards', () => {
-  it('has 66 cards (50 Phase 1 + 10 Phase 2 + 5 Futures + crisis immunity)', () => {
-    expect(CARDS.length).toBe(66);
+  it('has 74 cards including eight conditional staff/tool follow-ups', () => {
+    expect(CARDS.length).toBe(74);
   });
 
   it('has correct type distribution', () => {
-    expect(getCardsByType('opportunity')).toHaveLength(14);  // +3 futures
+    expect(getCardsByType('opportunity')).toHaveLength(17);  // +3 linked follow-ups
     expect(getCardsByType('market_pulse')).toHaveLength(9);
-    expect(getCardsByType('crisis')).toHaveLength(9);
+    expect(getCardsByType('crisis')).toHaveLength(13);       // +4 linked follow-ups
     expect(getCardsByType('protection')).toHaveLength(9);
     expect(getCardsByType('staff')).toHaveLength(6);
-    expect(getCardsByType('modern_earning')).toHaveLength(8);  // +2 futures
+    expect(getCardsByType('modern_earning')).toHaveLength(9);  // +1 linked follow-up
     expect(getCardsByType('expense_to_asset')).toHaveLength(9);
     expect(getCardsByType('social')).toHaveLength(2);
   });

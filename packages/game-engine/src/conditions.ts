@@ -32,6 +32,11 @@ const CHECKERS: Record<string, ConditionChecker> = {
     const tag = c.value as string;
     return tag ? p.assets.some((a) => a.tags.includes(tag)) : p.assets.length > 0;
   },
+  has_staff: (_s, p, c) => {
+    const staffId = c.value as string;
+    const hired = p.hiredStaffIds ?? [];
+    return staffId ? hired.includes(staffId) : hired.length > 0;
+  },
   has_expense_tag: (_s, p, c) => {
     const tag = c.value as string;
     return tag ? p.expenseTags.includes(tag) : p.expenseTags.length > 0;

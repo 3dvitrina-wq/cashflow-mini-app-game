@@ -22,6 +22,7 @@ import { BusinessSlotsScreen } from './BusinessSlotsScreen';
 import { ProtectionScreen } from './ProtectionScreen';
 import { CashflowBreakdownSheet } from '../components/CashflowBreakdownSheet';
 import { ConfirmDialog } from '../components/ConfirmDialog';
+import { PersonalCardPicker } from '../components/PersonalCardPicker';
 import { dismissToast, showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { useModalLayer } from '../hooks/useModalLayer';
@@ -31,10 +32,10 @@ import { useI18n } from '../i18n';
 import {
   financialFreedomStatus,
   localizedTimelineLabel,
-  localizedTimelineShortLabel,
   monthlyCashflow,
   petIncomePerRound,
   stressPassiveIncomePenalty,
+  synergyCashflow,
 } from '../../../../packages/game-engine/src';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
@@ -110,7 +111,6 @@ import {
   IconStress,
   IconTimer,
   IconTrust,
-  IconUsers,
 } from '../assets/Icons';
 
 const RING_COLORS: Record<CharacterMood, string> = {
@@ -399,6 +399,7 @@ export const MainTurnTableScreen: React.FC = () => {
     openSettings,
     openRules,
     nextRound,
+    selectPersonalCards,
     submitIntent,
     offerPersonalCard,
     acceptPersonalCard,
@@ -664,6 +665,13 @@ export const MainTurnTableScreen: React.FC = () => {
     || (engineMatch?.phase === 'intent_window' && !hasSubmittedSharedIntent)
     || activePlayer.id === me?.id;
   const isProMode = match.experienceMode === 'pro';
+  const personalSelectionPending = !isProMode
+    && Boolean(me?.id && engineMatch?.personalCardSelectionPending?.[me.id]);
+  const personalCardOptionIds = me?.id ? engineMatch?.personalCardOptionIds?.[me.id] ?? [] : [];
+  const businessMarketOpen = Boolean(
+    engineMatch
+    && engineMatch.businessMarket.openedRound === engineMatch.round,
+  );
   useEffect(() => {
     if (!card || !canActNow) {
       setCardRevealPhase('ready');
@@ -754,7 +762,11 @@ export const MainTurnTableScreen: React.FC = () => {
     const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
     const assetUpkeep = player.assets.reduce((sum, asset) => sum + asset.upkeepPerRound, 0);
     const petIncome = petIncomePerRound(player);
-    const workIncome = Math.max(0, flow.income - player.passiveIncome - assetIncome - petIncome);
+    const synergy = synergyCashflow(player);
+    const passiveRate = 1 - stressPassiveIncomePenalty(player.stress);
+    const synergyIncomeAfterStress = Math.round(synergy.income * passiveRate);
+    const recurringIncomeAfterStress = Math.round((player.passiveIncome + assetIncome + synergy.income) * passiveRate);
+    const workIncome = Math.max(0, flow.income - recurringIncomeAfterStress - petIncome);
     const otherRecurringExpense = Math.max(0, flow.expense - assetUpkeep);
     const recurringLines: SettlementLedgerLine[] = [];
 
@@ -763,6 +775,17 @@ export const MainTurnTableScreen: React.FC = () => {
     }
     if (player.passiveIncome > 0) {
       recurringLines.push({ id: 'passive', icon: '🌱', label: locale === 'ru' ? 'Пассивный доход' : 'Passive income', income: player.passiveIncome });
+    }
+    if (synergy.income > 0 || synergy.expenseReduction > 0) {
+      recurringLines.push({
+        id: 'synergy',
+        icon: '🔗',
+        label: locale === 'ru' ? 'Связки решений' : 'Decision synergies',
+        income: synergyIncomeAfterStress > 0 ? synergyIncomeAfterStress : undefined,
+        detail: synergy.expenseReduction > 0
+          ? (locale === 'ru' ? `расходы −$${synergy.expenseReduction}` : `expenses −$${synergy.expenseReduction}`)
+          : `${synergy.active.length}×`,
+      });
     }
     const pet = resolveTablePet(player.pet);
     if (pet) {
@@ -850,7 +873,6 @@ export const MainTurnTableScreen: React.FC = () => {
     Math.max(3400, 2600 + (settlementLedger?.lines.length ?? 0) * 140 + (globalCard ? 320 : 0)),
   );
   const visibleTimelineLabel = localizedTimelineLabel(match.calendarYear, match.calendarMonth, locale);
-  const compactTimelineLabel = localizedTimelineShortLabel(match.calendarYear, match.calendarMonth, locale);
   const completedTimelineLabel = roundTransition
     ? localizedTimelineLabel(roundTransition.fromYear, roundTransition.fromMonth, locale)
     : visibleTimelineLabel;
@@ -1255,6 +1277,10 @@ export const MainTurnTableScreen: React.FC = () => {
     { icon: <IconCogSpark size={17} />, label: locale === 'ru' ? 'Настройки' : 'Settings', tone: 'slate', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
 
+  if (personalSelectionPending && personalCardOptionIds.length === 3) {
+    return <PersonalCardPicker optionIds={personalCardOptionIds} onConfirm={selectPersonalCards} />;
+  }
+
   const activeCardSignal = cardSignal(card.type, locale === 'ru');
   const visibleConsequences = (card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3);
   const cardCopyLength = `${card.title} ${card.text} ${visibleConsequences.join(' ')}`.length;
@@ -1315,11 +1341,7 @@ export const MainTurnTableScreen: React.FC = () => {
 
       {/* ========== TOP BAR ========== */}
       <header className="game-topbar">
-        <div className="game-topbar-main">
-          <div className="topbar-pill timeline-pill">
-            <span aria-label={visibleTimelineLabel} style={{ fontSize: 11, fontWeight: 800 }}>{compactTimelineLabel}</span>
-          </div>
-
+        <div className="game-topbar-main game-topbar-main-centered">
           <div className="topbar-pill" data-tour="time" style={{ color: timerColor }}>
             <IconTimer size={13} />
             <span className="font-mono" style={{ fontSize: 13, fontWeight: 900 }}>
@@ -1329,11 +1351,6 @@ export const MainTurnTableScreen: React.FC = () => {
             <span style={{ fontSize: 11, fontWeight: 700, color: '#B8B6A9' }}>
               {t('ui.round')} {match.round}/{match.maxRounds}
             </span>
-          </div>
-
-          <div className="topbar-pill topbar-player-count">
-            <IconUsers size={13} />
-            <span style={{ fontSize: 11.5, fontWeight: 900 }}>{match.players.length}/6</span>
           </div>
         </div>
 
@@ -1881,15 +1898,24 @@ export const MainTurnTableScreen: React.FC = () => {
                   })}
                   <button
                     data-tour="actions"
-                    className={`survival-choice survival-choice-market ${fabExpanded ? 'survival-choice-market-open' : ''}`}
+                    className={`survival-choice survival-choice-market ${businessMarketOpen ? 'survival-choice-market-available' : ''} ${fabExpanded ? 'survival-choice-market-open' : ''}`}
                     type="button"
-                    aria-label={locale === 'ru' ? 'Рынок действий: банк, питомцы, рынок' : 'Action market'}
-                    onClick={toggleTableTools}
+                    aria-label={businessMarketOpen
+                      ? (locale === 'ru' ? 'Открыть рынок активов' : 'Open asset market')
+                      : (locale === 'ru' ? 'Рынок действий: банк, питомцы, рынок' : 'Action market')}
+                    onClick={businessMarketOpen ? () => setIsMarketOpen(true) : toggleTableTools}
                   >
                     <span className="survival-choice-icon">
-                      <IconPlusCircle size={20} />
+                      {businessMarketOpen ? <IconShop size={19} /> : <IconPlusCircle size={20} />}
                     </span>
-                    <span className="turn-plus-badge">3</span>
+                    {businessMarketOpen && (
+                      <span className="survival-choice-market-label">
+                        {locale === 'ru' ? 'РЫНОК' : 'MARKET'}
+                      </span>
+                    )}
+                    <span className="turn-plus-badge">
+                      {businessMarketOpen ? engineMatch?.businessMarket.offerIds.length ?? 0 : 3}
+                    </span>
                   </button>
                 </div>
               </div>

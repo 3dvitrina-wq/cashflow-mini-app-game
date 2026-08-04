@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   allIntentsSubmitted,
+  advanceRound,
   cardIdForPlayer,
   createMatch,
   monthlyCashflow,
@@ -18,22 +19,77 @@ const PLAYERS = [
   { id: 'p3', name: 'C', outfit: 'creator' as const },
 ];
 
+function markPersonalSelectionComplete(state: ReturnType<typeof createMatch>): void {
+  state.personalCardSelectionPending = Object.fromEntries(state.players.map((player) => [player.id, false]));
+}
+
 describe('BASIC private simultaneous cards', () => {
-  it('deals one deterministic private card per player', () => {
+  it('deals one deterministic three-card hand and rolling reserve per player', () => {
     const first = createMatch(77, PLAYERS, { experienceMode: 'basic' });
     const second = createMatch(77, PLAYERS, { experienceMode: 'basic' });
 
     expect(first.personalCardIds).toEqual(second.personalCardIds);
+    expect(first.personalCardOptionIds).toEqual(second.personalCardOptionIds);
     expect(Object.keys(first.personalCardIds ?? {})).toHaveLength(3);
     for (const player of first.players) {
       expect(cardIdForPlayer(first, player.id)).toBeTruthy();
+      expect(first.personalCardOptionIds?.[player.id]).toHaveLength(3);
+      expect(first.personalCardReserveIds?.[player.id]).toBe(first.personalCardOptionIds?.[player.id]?.[1]);
+      expect(first.personalCardSelectionPending?.[player.id]).toBe(true);
     }
     expect(first.currentCardId).toBe(first.personalCardIds?.p1);
+  });
+
+  it('keeps two of three: one active, one reserve, and burns the third', () => {
+    let state = createMatch(78, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    state = openIntentWindow(state);
+    const options = state.personalCardOptionIds?.p1 ?? [];
+
+    state = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p1',
+      activeCardId: options[2]!,
+      reserveCardId: options[0]!,
+    }).state;
+
+    expect(state.personalCardIds?.p1).toBe(options[2]);
+    expect(state.personalCardReserveIds?.p1).toBe(options[0]);
+    expect(state.personalCardSelectionPending?.p1).toBe(false);
+    expect(state.discardPile).toContain(options[1]);
+  });
+
+  it('carries the reserved card into the next monthly hand', () => {
+    let state = createMatch(79, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    state = openIntentWindow(state);
+    const p1Options = state.personalCardOptionIds?.p1 ?? [];
+    const p2Options = state.personalCardOptionIds?.p2 ?? [];
+    const reserved = p1Options[2]!;
+
+    state = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p1',
+      activeCardId: p1Options[0]!,
+      reserveCardId: reserved,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p2',
+      activeCardId: p2Options[0]!,
+      reserveCardId: p2Options[1]!,
+    }).state;
+    state = resolveCommand(state, { type: 'pass', playerId: 'p1' }).state;
+    state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
+    state = resolveAllIntents(state).state;
+    state = advanceRound(state).state;
+
+    expect(state.personalCardOptionIds?.p1).toContain(reserved);
+    expect(state.personalCardOptionIds?.p1?.some((cardId) => !p1Options.includes(cardId))).toBe(true);
   });
 
   it('resolves each choice against that player private card', () => {
     let state = createMatch(12, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-ai-shop', p2: 'prot-accountant' };
+    markPersonalSelectionComplete(state);
     state.currentCardId = 'opp-ai-shop';
     state = openIntentWindow(state);
 
@@ -49,6 +105,7 @@ describe('BASIC private simultaneous cards', () => {
   it('applies one visible global market pulse exactly once', () => {
     let state = createMatch(15, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-vending' };
+    markPersonalSelectionComplete(state);
     state.globalCardId = 'market-inflation';
     const before = state.players.map((player) => player.expenses);
     state = openIntentWindow(state);
@@ -63,6 +120,7 @@ describe('BASIC private simultaneous cards', () => {
   it('lets the owner name an arbitrary direct sale price and transfers it on acceptance', () => {
     let state = createMatch(19, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route' };
+    markPersonalSelectionComplete(state);
     state.currentCardId = 'opp-vending';
     state = openIntentWindow(state);
     const sellerCashBefore = state.players[0].cash;
@@ -95,6 +153,7 @@ describe('BASIC private simultaneous cards', () => {
   it('lists a card to the whole table without waiting and sells it to the first consenting buyer', () => {
     let state = createMatch(23, PLAYERS, { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    markPersonalSelectionComplete(state);
     state.players.forEach((player) => { player.cash = 10_000; });
     state = openIntentWindow(state);
 
@@ -129,6 +188,7 @@ describe('BASIC private simultaneous cards', () => {
       p3: 'opp-ai-shop',
       p4: 'opp-storage',
     };
+    markPersonalSelectionComplete(state);
     state.players.forEach((player) => { player.cash = 20_000; });
     state = openIntentWindow(state);
 

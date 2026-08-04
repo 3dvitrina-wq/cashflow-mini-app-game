@@ -73,6 +73,7 @@ interface AppState {
   startMultiplayerMatch: (serverState: EngineMatchState, localPlayerId: string) => void;
   receiveServerState: (serverState: EngineMatchState) => void;
   nextRound: () => void;
+  selectPersonalCards: (activeCardId: string, reserveCardId: string) => boolean;
   submitIntent: (choiceIdx: number) => void;
   offerPersonalCard: (offer: {
     audience: 'direct' | 'table';
@@ -460,6 +461,18 @@ function queueOfflineIntentWithFallback(
     next = resolveCommand(next, { type: 'pass', playerId: player.id }).state;
   }
   return next;
+}
+
+function lockDefaultPersonalSelection(state: EngineMatchState, playerId: string): EngineMatchState {
+  if (!state.personalCardSelectionPending?.[playerId]) return state;
+  const [activeCardId, reserveCardId] = state.personalCardOptionIds?.[playerId] ?? [];
+  if (!activeCardId || !reserveCardId) return state;
+  return resolveCommand(state, {
+    type: 'select_personal_cards',
+    playerId,
+    activeCardId,
+    reserveCardId,
+  }).state;
 }
 
 // Resolve all queued intents (settlement is in advanceRound), then advance the
@@ -1081,6 +1094,24 @@ export const useStore = create<AppState>((set, get) => ({
       };
     }),
 
+  selectPersonalCards: (activeCardId, reserveCardId) => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    const human = getLocalPlayer(st);
+    if (!human) return false;
+    const command: Command = {
+      type: 'select_personal_cards',
+      playerId: human.id,
+      activeCardId,
+      reserveCardId,
+    };
+    if (st.isMultiplayer) return wsClient.send({ type: 'command', command });
+    const result = resolveCommand(st.engineMatch, command);
+    if (result.events.some((event) => event.type === 'command_rejected')) return false;
+    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
+    return true;
+  },
+
   // Simultaneous round: the human submits one action; all bots lock in their
   // intents at the same time; when everyone is in, the window resolves as a
   // batch + settlement reveal, and the next round's window opens.
@@ -1103,6 +1134,7 @@ export const useStore = create<AppState>((set, get) => ({
       // flagged isBot:false in the roster — drive them too, or the window deadlocks).
       for (const other of state.players.filter((p) => p.alive && p.id !== human.id)) {
         if (state.pendingIntents[other.id]) continue;
+        state = lockDefaultPersonalSelection(state, other.id);
         state = queueOfflineIntentWithFallback(state, other, botChoiceIntent(state, other));
       }
       if (allIntentsSubmitted(state)) {

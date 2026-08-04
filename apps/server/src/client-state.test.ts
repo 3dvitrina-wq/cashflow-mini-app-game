@@ -33,6 +33,10 @@ describe('client state card copy', () => {
 
     expect(Object.keys(p1State.personalCardIds ?? {})).toEqual(['p1']);
     expect(Object.keys(p2State.personalCardIds ?? {})).toEqual(['p2']);
+    expect(Object.keys(p1State.personalCardOptionIds ?? {})).toEqual(['p1']);
+    expect(Object.keys(p2State.personalCardOptionIds ?? {})).toEqual(['p2']);
+    expect(p1State.personalCardOptionIds?.p1).toHaveLength(3);
+    expect(p2State.personalCardOptionIds?.p2).toHaveLength(3);
     expect(p1State.currentCardId).toBe(state.personalCardIds?.p1);
     expect(p2State.currentCardId).toBe(state.personalCardIds?.p2);
   });
@@ -58,6 +62,7 @@ describe('client state card copy', () => {
       { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
     ], { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state.personalCardSelectionPending = { p1: false, p2: false, p3: false };
     state = openIntentWindow(state);
     state = resolveCommand(state, {
       type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 1800,
@@ -71,6 +76,7 @@ describe('client state card copy', () => {
       { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
     ], { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state.personalCardSelectionPending = { p1: false, p2: false, p3: false };
     state = openIntentWindow(state);
     state = resolveCommand(state, {
       type: 'offer_personal_card', playerId: 'p1', audience: 'direct', targetPlayerId: 'p2', askingPrice: 900,
@@ -87,6 +93,7 @@ describe('client state card copy', () => {
       { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
     ], { experienceMode: 'basic' });
     state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state.personalCardSelectionPending = { p1: false, p2: false, p3: false };
     state = openIntentWindow(state);
     state = resolveCommand(state, {
       type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 700,

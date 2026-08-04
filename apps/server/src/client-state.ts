@@ -33,6 +33,15 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
     personalCardIds: viewerPlayerId && state.experienceMode === 'basic'
       ? { [viewerPlayerId]: visibleCardId }
       : state.personalCardIds,
+    personalCardOptionIds: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardOptionIds?.[viewerPlayerId] ?? [] }
+      : state.personalCardOptionIds,
+    personalCardReserveIds: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardReserveIds?.[viewerPlayerId] ?? null }
+      : state.personalCardReserveIds,
+    personalCardSelectionPending: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardSelectionPending?.[viewerPlayerId] ?? false }
+      : state.personalCardSelectionPending,
     personalCardOffers: viewerPlayerId && state.experienceMode === 'basic'
       ? (state.personalCardOffers ?? []).filter((offer) =>
           offer.fromPlayerId === viewerPlayerId

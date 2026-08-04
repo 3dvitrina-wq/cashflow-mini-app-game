@@ -1,7 +1,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// 51 MVP cards. DATA only — no card-id ifs in the engine.
-// 10 opportunity, 8 market pulse, 8 crisis, 7 protection,
-// 6 staff, 6 modern earning, 6 expense-to-asset.
+// Extensible card catalog. DATA only — no card-id ifs in the engine.
+// Includes conditional follow-ups so staff, tools and subscriptions create later
+// situations instead of ending as one-off accounting buttons.
 // Each card: id, type, title, text, hostCue, choices/effects, animation hints.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1301,6 +1301,238 @@ export const CARDS: CardDefinition[] = [
         { type: 'trust.delta', amount: -1 },
       ] },
       { id: 'skip', label: 'Skip', effects: [] },
+    ],
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════════
+  // LINKED CONSEQUENCES — drawn only after the setup decision exists
+  // ═══════════════════════════════════════════════════════════════════════════
+
+  {
+    id: 'followup-junior-friday-deploy',
+    type: 'crisis',
+    title: 'FRIDAY DEPLOY BY THE JUNIOR',
+    text: 'Your junior shipped before the weekend. Checkout now accepts compliments instead of cards.',
+    hostCue: 'The good news: the bug is reproducible. The bad news: customers reproduced it first.',
+    tags: ['staff', 'tech', 'followup'],
+    rarity: 'uncommon',
+    weight: 3,
+    eligibility: [{ type: 'has_staff', value: 'junior_dev' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'drop', shake: true, glow: 'red' },
+    choices: [
+      { id: 'pair', label: 'Fix it together ($250)', effects: [
+        { type: 'cash.delta', amount: -250 },
+        { type: 'stress.delta', amount: -1 },
+        { type: 'reputation.delta', amount: 1 },
+      ], hint: 'Costs cash, saves the team and your reputation' },
+      { id: 'hotfix', label: 'Ship a hotfix', effects: [
+        { type: 'income.add', amount: 250 },
+        { type: 'stress.delta', amount: 2 },
+      ], hint: 'Support contract grows; so does your stress' },
+      { id: 'blame_ai', label: 'Blame the AI', effects: [
+        { type: 'trust.delta', amount: -2 },
+        { type: 'reputation.delta', amount: -1 },
+        { type: 'stress.delta', amount: 1 },
+      ], hint: 'Free in dollars, expensive in people' },
+    ],
+  },
+
+  {
+    id: 'followup-assistant-double-booking',
+    type: 'crisis',
+    title: 'CALENDAR HAS TWO OWNERS',
+    text: 'Your assistant booked a client call, a dentist and an investor for the same chair.',
+    hostCue: 'Delegation worked. Coordination has filed for bankruptcy.',
+    tags: ['staff', 'productivity', 'followup'],
+    rarity: 'common',
+    weight: 3,
+    eligibility: [{ type: 'has_staff', value: 'virtual_assistant' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'flip', glow: 'purple' },
+    choices: [
+      { id: 'delegate', label: 'Let the assistant choose', effects: [
+        { type: 'cash.delta', amount: 350 },
+        { type: 'trust.delta', amount: 1 },
+      ], hint: 'The client is impressed by decisive chaos' },
+      { id: 'do_all', label: 'Do all three', effects: [
+        { type: 'income.add', amount: 300 },
+        { type: 'stress.delta', amount: 2 },
+      ], hint: 'More work becomes recurring work' },
+      { id: 'reschedule', label: 'Reschedule honestly', effects: [
+        { type: 'stress.delta', amount: -1 },
+        { type: 'reputation.delta', amount: 1 },
+      ], hint: 'No money today, cleaner relationships tomorrow' },
+    ],
+  },
+
+  {
+    id: 'followup-bookkeeper-refund',
+    type: 'opportunity',
+    title: 'THE BOOKKEEPER FOUND MONEY',
+    text: 'A spreadsheet tab named FINAL_final_7 contains a refund and one question nobody wants to answer.',
+    hostCue: 'Accounting archaeology has uncovered a small civilization of receipts.',
+    tags: ['staff', 'finance', 'followup'],
+    rarity: 'uncommon',
+    weight: 3,
+    eligibility: [{ type: 'has_staff', value: 'bookkeeper' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'slide_up', glow: 'green', particles: 'coins' },
+    choices: [
+      { id: 'clean', label: 'File the clean refund', effects: [
+        { type: 'cash.delta', amount: 700 },
+        { type: 'reputation.delta', amount: 1 },
+      ] },
+      { id: 'creative', label: 'Use the creative column', effects: [
+        { type: 'cash.delta', amount: 1200 },
+        { type: 'debt.delta', amount: 1 },
+        { type: 'stress.delta', amount: 1 },
+      ], hint: 'More cash now, a louder future knock' },
+      { id: 'archive', label: 'Archive and breathe', effects: [
+        { type: 'stress.delta', amount: -1 },
+      ] },
+    ],
+  },
+
+  {
+    id: 'followup-social-viral-post',
+    type: 'opportunity',
+    title: 'THE INTERN POSTED THE DRAFT',
+    text: 'Your SMM manager published the private draft. Unfortunately, it is the first thing people liked.',
+    hostCue: 'Brand strategy achieved through the ancient method of pressing the wrong button.',
+    tags: ['staff', 'content', 'followup'],
+    rarity: 'common',
+    weight: 3,
+    eligibility: [{ type: 'has_staff', value: 'social_manager' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'flip', glow: 'purple', particles: 'confetti' },
+    choices: [
+      { id: 'monetize', label: 'Turn it into a series', effects: [
+        { type: 'passive.add', amount: 220 },
+        { type: 'stress.delta', amount: 1 },
+        { type: 'reputation.delta', amount: 1 },
+      ] },
+      { id: 'sponsor', label: 'Sell the pinned post', effects: [
+        { type: 'cash.delta', amount: 650 },
+        { type: 'reputation.delta', amount: -1 },
+      ] },
+      { id: 'delete', label: 'Delete and apologize', effects: [
+        { type: 'stress.delta', amount: -1 },
+        { type: 'trust.delta', amount: 1 },
+      ] },
+    ],
+  },
+
+  {
+    id: 'followup-cleaner-client-visit',
+    type: 'opportunity',
+    title: 'THE CLIENT SAW THE FLOOR',
+    text: 'A client arrived without warning. For once, the office does not look like a forensic exhibit.',
+    hostCue: 'Cleanliness: the least scalable growth hack and somehow still effective.',
+    tags: ['staff', 'service', 'followup'],
+    rarity: 'common',
+    weight: 2,
+    eligibility: [{ type: 'has_staff', value: 'cleaner' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'slide_up', glow: 'green' },
+    choices: [
+      { id: 'pitch', label: 'Pitch while it is clean', effects: [
+        { type: 'cash.delta', amount: 450 },
+        { type: 'trust.delta', amount: 1 },
+      ] },
+      { id: 'studio', label: 'Rent it as a photo studio', effects: [
+        { type: 'cash.delta', amount: -250 },
+        { type: 'passive.add', amount: 140 },
+        { type: 'stress.delta', amount: 1 },
+      ] },
+      { id: 'quiet', label: 'Enjoy one quiet hour', effects: [
+        { type: 'stress.delta', amount: -2 },
+      ] },
+    ],
+  },
+
+  {
+    id: 'followup-trading-bot-night',
+    type: 'crisis',
+    title: 'THE BOT TRADED WHILE YOU SLEPT',
+    text: 'The dashboard is green, the log is red and the developer has turned off their phone.',
+    hostCue: 'Automation means the machine can panic much faster than a person.',
+    tags: ['staff', 'crypto', 'risk', 'followup'],
+    rarity: 'uncommon',
+    weight: 3,
+    eligibility: [{ type: 'has_staff', value: 'trading_bot' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'explode', shake: true, glow: 'red' },
+    choices: [
+      { id: 'freeze', label: 'Freeze the lucky profit', effects: [
+        { type: 'cash.delta', amount: 500 },
+        { type: 'stress.delta', amount: -1 },
+      ] },
+      { id: 'run', label: 'Let it keep running', effects: [
+        { type: 'passive.add', amount: 260 },
+        { type: 'stress.delta', amount: 2 },
+        { type: 'debt.delta', amount: 1 },
+      ], hint: 'Recurring upside with a growing risk trail' },
+      { id: 'pull', label: 'Pull the API key', effects: [
+        { type: 'cash.delta', amount: -180 },
+        { type: 'stress.delta', amount: -2 },
+      ] },
+    ],
+  },
+
+  {
+    id: 'followup-ai-token-bill',
+    type: 'crisis',
+    title: 'THE AI READ THE WHOLE DATABASE',
+    text: 'The agent solved one ticket and consumed enough tokens to develop a personality.',
+    hostCue: 'The demo was free. The context window has sent an invoice.',
+    tags: ['ai', 'subscription', 'followup'],
+    rarity: 'common',
+    weight: 4,
+    eligibility: [{ type: 'has_expense_tag', value: 'ai_tools' }, { type: 'round_min', value: 2 }],
+    animation: { cardEnter: 'drop', glow: 'red' },
+    choices: [
+      { id: 'credits', label: 'Buy more credits ($600)', effects: [
+        { type: 'cash.delta', amount: -600 },
+        { type: 'income.add', amount: 350 },
+      ], hint: 'The automation becomes a billable service' },
+      { id: 'client', label: 'Forward the bill to the client', effects: [
+        { type: 'cash.delta', amount: 350 },
+        { type: 'reputation.delta', amount: -1 },
+        { type: 'stress.delta', amount: 1 },
+      ] },
+      { id: 'manual', label: 'Return to manual mode', effects: [
+        { type: 'income.add', amount: -120 },
+        { type: 'stress.delta', amount: -1 },
+      ] },
+    ],
+  },
+
+  {
+    id: 'followup-ai-junior-demo',
+    type: 'modern_earning',
+    title: 'THE JUNIOR AND AI BUILT A PRODUCT',
+    text: 'Nobody fully understands the code. Three customers already want it. This is now called product-market fit.',
+    hostCue: 'Technical debt has secured its first paying customers.',
+    tags: ['ai', 'staff', 'tech', 'followup'],
+    rarity: 'rare',
+    weight: 3,
+    eligibility: [
+      { type: 'has_staff', value: 'junior_dev' },
+      { type: 'has_expense_tag', value: 'ai_tools' },
+      { type: 'round_min', value: 3 },
+    ],
+    animation: { cardEnter: 'flip', glow: 'gold', particles: 'sparkle' },
+    choices: [
+      { id: 'productize', label: 'Productize it ($700)', effects: [
+        { type: 'cash.delta', amount: -700 },
+        { type: 'passive.add', amount: 420 },
+        { type: 'stress.delta', amount: 1 },
+        { type: 'reputation.delta', amount: 1 },
+      ] },
+      { id: 'custom', label: 'Sell custom installs', effects: [
+        { type: 'income.add', amount: 650 },
+        { type: 'stress.delta', amount: 2 },
+      ] },
+      { id: 'audit', label: 'Audit before selling ($300)', effects: [
+        { type: 'cash.delta', amount: -300 },
+        { type: 'trust.delta', amount: 2 },
+        { type: 'stress.delta', amount: -1 },
+      ] },
     ],
   },
 

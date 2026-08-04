@@ -37,8 +37,16 @@ interface CardUsageStats {
   timesDrawn: number;
   timesChosen: Record<string, number>;
   avgCashImpact: number;
+  avgActiveIncomeImpact: number;
   avgPassiveImpact: number;
+  avgExpenseImpact: number;
   avgStressImpact: number;
+  avgTrustImpact: number;
+  avgReputationImpact: number;
+  avgDebtImpact: number;
+  avgAssetCountImpact: number;
+  avgProtectionCountImpact: number;
+  avgStaffCountImpact: number;
   totalMatches: number;
 }
 
@@ -114,8 +122,16 @@ function playMatchDetailed(seed: number): PlayResult {
       timesDrawn: 0,
       timesChosen: {},
       avgCashImpact: 0,
+      avgActiveIncomeImpact: 0,
       avgPassiveImpact: 0,
+      avgExpenseImpact: 0,
       avgStressImpact: 0,
+      avgTrustImpact: 0,
+      avgReputationImpact: 0,
+      avgDebtImpact: 0,
+      avgAssetCountImpact: 0,
+      avgProtectionCountImpact: 0,
+      avgStaffCountImpact: 0,
       totalMatches: 0,
     });
   }
@@ -139,8 +155,16 @@ function playMatchDetailed(seed: number): PlayResult {
 
     // Track pre-command state
     const cashBefore = active.cash;
+    const activeIncomeBefore = active.activeIncome;
     const passiveBefore = active.passiveIncome;
+    const expensesBefore = active.expenses;
     const stressBefore = active.stress;
+    const trustBefore = active.trust;
+    const reputationBefore = active.reputation;
+    const debtBefore = active.debt;
+    const assetCountBefore = active.assets.length;
+    const protectionCountBefore = active.protections.length;
+    const staffCountBefore = active.hiredStaffIds?.length ?? 0;
 
     const cmd = botIntent(state, active);
     const result = resolveCommand(state, cmd);
@@ -155,14 +179,35 @@ function playMatchDetailed(seed: number): PlayResult {
       if (usage && activeAfterCommand) {
         usage.totalMatches += 1;
         const cashDelta = activeAfterCommand.cash - cashBefore;
+        const activeIncomeDelta = activeAfterCommand.activeIncome - activeIncomeBefore;
         const passiveDelta = activeAfterCommand.passiveIncome - passiveBefore;
+        const expenseDelta = activeAfterCommand.expenses - expensesBefore;
         const stressDelta = activeAfterCommand.stress - stressBefore;
+        const trustDelta = activeAfterCommand.trust - trustBefore;
+        const reputationDelta = activeAfterCommand.reputation - reputationBefore;
+        const debtDelta = activeAfterCommand.debt - debtBefore;
+        const assetCountDelta = activeAfterCommand.assets.length - assetCountBefore;
+        const protectionCountDelta = activeAfterCommand.protections.length - protectionCountBefore;
+        const staffCountDelta = (activeAfterCommand.hiredStaffIds?.length ?? 0) - staffCountBefore;
 
         // Running average
         const n = usage.totalMatches;
         usage.avgCashImpact = usage.avgCashImpact + (cashDelta - usage.avgCashImpact) / n;
+        usage.avgActiveIncomeImpact = usage.avgActiveIncomeImpact
+          + (activeIncomeDelta - usage.avgActiveIncomeImpact) / n;
         usage.avgPassiveImpact = usage.avgPassiveImpact + (passiveDelta - usage.avgPassiveImpact) / n;
+        usage.avgExpenseImpact = usage.avgExpenseImpact + (expenseDelta - usage.avgExpenseImpact) / n;
         usage.avgStressImpact = usage.avgStressImpact + (stressDelta - usage.avgStressImpact) / n;
+        usage.avgTrustImpact = usage.avgTrustImpact + (trustDelta - usage.avgTrustImpact) / n;
+        usage.avgReputationImpact = usage.avgReputationImpact
+          + (reputationDelta - usage.avgReputationImpact) / n;
+        usage.avgDebtImpact = usage.avgDebtImpact + (debtDelta - usage.avgDebtImpact) / n;
+        usage.avgAssetCountImpact = usage.avgAssetCountImpact
+          + (assetCountDelta - usage.avgAssetCountImpact) / n;
+        usage.avgProtectionCountImpact = usage.avgProtectionCountImpact
+          + (protectionCountDelta - usage.avgProtectionCountImpact) / n;
+        usage.avgStaffCountImpact = usage.avgStaffCountImpact
+          + (staffCountDelta - usage.avgStaffCountImpact) / n;
 
         // Track choice
         if (cmd.type === 'choose_option') {
@@ -199,8 +244,16 @@ function main(): void {
       timesDrawn: 0,
       timesChosen: {},
       avgCashImpact: 0,
+      avgActiveIncomeImpact: 0,
       avgPassiveImpact: 0,
+      avgExpenseImpact: 0,
       avgStressImpact: 0,
+      avgTrustImpact: 0,
+      avgReputationImpact: 0,
+      avgDebtImpact: 0,
+      avgAssetCountImpact: 0,
+      avgProtectionCountImpact: 0,
+      avgStaffCountImpact: 0,
       totalMatches: 0,
     });
   }
@@ -231,8 +284,21 @@ function main(): void {
         if (usage.totalMatches > 0) {
           const w = usage.totalMatches / (global.totalMatches || 1);
           global.avgCashImpact = global.avgCashImpact * (1 - w) + usage.avgCashImpact * w;
+          global.avgActiveIncomeImpact = global.avgActiveIncomeImpact * (1 - w)
+            + usage.avgActiveIncomeImpact * w;
           global.avgPassiveImpact = global.avgPassiveImpact * (1 - w) + usage.avgPassiveImpact * w;
+          global.avgExpenseImpact = global.avgExpenseImpact * (1 - w) + usage.avgExpenseImpact * w;
           global.avgStressImpact = global.avgStressImpact * (1 - w) + usage.avgStressImpact * w;
+          global.avgTrustImpact = global.avgTrustImpact * (1 - w) + usage.avgTrustImpact * w;
+          global.avgReputationImpact = global.avgReputationImpact * (1 - w)
+            + usage.avgReputationImpact * w;
+          global.avgDebtImpact = global.avgDebtImpact * (1 - w) + usage.avgDebtImpact * w;
+          global.avgAssetCountImpact = global.avgAssetCountImpact * (1 - w)
+            + usage.avgAssetCountImpact * w;
+          global.avgProtectionCountImpact = global.avgProtectionCountImpact * (1 - w)
+            + usage.avgProtectionCountImpact * w;
+          global.avgStaffCountImpact = global.avgStaffCountImpact * (1 - w)
+            + usage.avgStaffCountImpact * w;
         }
       }
     }
@@ -383,7 +449,7 @@ function main(): void {
       .sort(([, a], [, b]) => b - a)
       .map(([label, count]) => `${label}: ${count}`)
       .join(', ');
-    console.log(`  ${card.title.padEnd(30)} drawn:${card.timesDrawn.toString().padStart(5)} cash:$${Math.round(card.avgCashImpact).toString().padStart(6)} pass:$${Math.round(card.avgPassiveImpact).toString().padStart(5)} stress:${card.avgStressImpact.toFixed(1).padStart(4)}`);
+    console.log(`  ${card.title.padEnd(30)} drawn:${card.timesDrawn.toString().padStart(5)} cash:$${Math.round(card.avgCashImpact).toString().padStart(6)} active:$${Math.round(card.avgActiveIncomeImpact).toString().padStart(5)} pass:$${Math.round(card.avgPassiveImpact).toString().padStart(5)} exp:$${Math.round(card.avgExpenseImpact).toString().padStart(5)} stress:${card.avgStressImpact.toFixed(1).padStart(4)}`);
     if (choices) console.log(`    choices → ${choices}`);
   }
 
@@ -522,14 +588,24 @@ function main(): void {
   for (const violation of invariantViolations.slice(0, 10)) {
     console.log(`    seed ${violation.seed} r${violation.round} after ${violation.stage}: ${violation.message}`);
   }
-  const allZeroImpactCards = [...globalCardUsage.values()].filter(
-    (usage) => usage.totalMatches > 0
-      && usage.avgCashImpact === 0
-      && usage.avgPassiveImpact === 0
-      && usage.avgStressImpact === 0,
-  );
+  const allZeroImpactCards = [...globalCardUsage.values()].filter((usage) => {
+    const measuredImpacts = [
+      usage.avgCashImpact,
+      usage.avgActiveIncomeImpact,
+      usage.avgPassiveImpact,
+      usage.avgExpenseImpact,
+      usage.avgStressImpact,
+      usage.avgTrustImpact,
+      usage.avgReputationImpact,
+      usage.avgDebtImpact,
+      usage.avgAssetCountImpact,
+      usage.avgProtectionCountImpact,
+      usage.avgStaffCountImpact,
+    ];
+    return usage.totalMatches > 0 && measuredImpacts.every((impact) => Math.abs(impact) < 1e-9);
+  });
   for (const usage of allZeroImpactCards) {
-    balanceFlags.push(`card ${usage.id} has all-zero cash/passive/stress impact`);
+    balanceFlags.push(`card ${usage.id} has all-zero authoritative state impact`);
   }
   for (const flag of balanceFlags) console.log(`  ⚠️ ${flag}`);
   if (balanceFlags.length === 0) {

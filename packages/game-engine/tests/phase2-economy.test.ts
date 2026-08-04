@@ -221,7 +221,7 @@ describe('Phase 2: Economy', () => {
 
       expect(synergies.length).toBeGreaterThan(0);
       expect(synergies[0].expenseTag).toBe('ai_tools');
-      expect(synergies[0].assetTag).toBe('tech');
+      expect(synergies[0].assetTags).toContain('tech');
     });
 
     it('applies synergy bonuses during settlement', () => {
@@ -247,10 +247,13 @@ describe('Phase 2: Economy', () => {
       });
 
       const initialExpenses = player.expenses;
-      applySynergyBonuses(state);
+      const events = applySynergyBonuses(state);
 
-      // Should get cost reduction bonus
-      expect(player.expenses).toBeLessThan(initialExpenses);
+      // Recurring reductions are read by monthlyCashflow; settlement emits a
+      // visible explanation without permanently shrinking the base expense.
+      expect(player.expenses).toBe(initialExpenses);
+      expect(events.some((event) =>
+        event.effectType === 'synergy.trigger' && event.amount === 200)).toBe(true);
     });
   });
 

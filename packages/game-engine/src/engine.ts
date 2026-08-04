@@ -45,7 +45,7 @@ import { applyDepositInterest, createDeposit, withdrawDeposit } from './bank';
 import { expireOldDeals, proposeDeal, acceptDeal, rejectDeal, transferAssetOwnership } from './deals';
 import { evaluateDeal, maybeProposeDeal } from './bot';
 import { applyDraftPick } from './draft';
-import { applySynergyBonuses } from './synergy';
+import { applySynergyBonuses, synergyCashflow } from './synergy';
 import { registerInterest, closeInterestWindow } from './negotiation';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -375,6 +375,9 @@ export function createMatch(
     pendingIntents: {},
     experienceMode: opts.experienceMode ?? 'pro',
     personalCardIds: {},
+    personalCardOptionIds: {},
+    personalCardReserveIds: {},
+    personalCardSelectionPending: {},
     personalCardOffers: [],
     globalCardId: null,
 
@@ -426,38 +429,77 @@ export function cardIdForPlayer(state: MatchState, playerId: string): string | n
   return state.currentCardId;
 }
 
-/** Deal one eligible private card per alive player without cloning a public lot. */
+/**
+ * Deal a private three-card hand to every alive BASIC player.
+ *
+ * One card is played now, one is carried into the next month, and one is burned.
+ * Bots lock the deterministic default immediately. Humans keep the same defaults
+ * only as a timeout fallback and must explicitly confirm or change them in UI.
+ */
 function dealPersonalCards(state: MatchState, startCursor: number): void {
   const personal: Record<string, string | null> = {};
+  const options: Record<string, string[]> = {};
+  const reserves: Record<string, string | null> = {};
+  const pending: Record<string, boolean> = {};
+  const previousReserves = state.personalCardReserveIds ?? {};
   let cursor = startCursor;
 
   for (const player of state.players) {
     if (!player.alive) {
       personal[player.id] = null;
+      options[player.id] = [];
+      reserves[player.id] = null;
+      pending[player.id] = false;
       continue;
     }
 
-    let selected: string | null = null;
-    for (let offset = 0; offset < state.deck.length; offset += 1) {
-      const index = (cursor + offset) % state.deck.length;
+    const hand: string[] = [];
+    const carried = previousReserves[player.id];
+    if (carried) {
+      const carriedCard = getCard(carried);
+      const stillEligible = carriedCard
+        && carriedCard.type !== 'market_pulse'
+        && carriedCard.type !== 'social'
+        && checkEligibility(state, player, carriedCard.eligibility);
+      if (stillEligible) hand.push(carried);
+      else state.discardPile.push(carried);
+    }
+
+    let inspected = 0;
+    while (hand.length < 3 && inspected < state.deck.length * 2) {
+      const index = cursor % state.deck.length;
       const candidateId = state.deck[index];
+      cursor = (cursor + 1) % Math.max(1, state.deck.length);
+      inspected += 1;
+      if (hand.includes(candidateId)) continue;
       const candidate = getCard(candidateId);
       const allowedInBasic = candidate && candidate.type !== 'market_pulse' && candidate.type !== 'social';
       if (allowedInBasic && checkEligibility(state, player, candidate.eligibility)) {
-        selected = candidateId;
-        cursor = (index + 1) % state.deck.length;
-        break;
+        hand.push(candidateId);
       }
     }
 
-    if (!selected) {
-      selected = state.deck[cursor % state.deck.length] ?? null;
-      cursor = (cursor + 1) % Math.max(1, state.deck.length);
+    // A malformed extension deck must not deadlock the match. Fill the hand with
+    // distinct known cards even if eligibility left fewer than three candidates.
+    for (const fallbackId of state.deck) {
+      if (hand.length >= 3) break;
+      if (!hand.includes(fallbackId) && getCard(fallbackId)) hand.push(fallbackId);
     }
-    personal[player.id] = selected;
+
+    const [activeCardId = null, reserveCardId = null] = hand;
+    personal[player.id] = activeCardId;
+    options[player.id] = hand.slice(0, 3);
+    reserves[player.id] = reserveCardId;
+    pending[player.id] = !player.isBot && hand.length === 3;
   }
 
   state.personalCardIds = personal;
+  state.personalCardOptionIds = options;
+  state.personalCardReserveIds = reserves;
+  state.personalCardSelectionPending = pending;
+  // Advance the weighted deck cursor after all private hands. Without this the
+  // next month would reopen the same slice of the deck around the carried card.
+  state.deckCursor = cursor;
   state.personalCardOffers = [];
   const marketCards = getCardsByType('market_pulse');
   state.globalCardId = marketCards.length > 0
@@ -597,6 +639,20 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     return `${cmd.type} is not implemented`;
   }
 
+  if (cmd.type === 'select_personal_cards') {
+    if (state.experienceMode !== 'basic') return 'personal card selection is BASIC only';
+    if (state.phase !== 'intent_window') return 'personal cards can only be selected during choice time';
+    const player = state.players.find((candidate) => candidate.id === cmd.playerId);
+    if (!player?.alive) return 'player not available';
+    if (!state.personalCardSelectionPending?.[player.id]) return 'personal cards already selected';
+    const options = state.personalCardOptionIds?.[player.id] ?? [];
+    if (cmd.activeCardId === cmd.reserveCardId) return 'active and reserve cards must be different';
+    if (!options.includes(cmd.activeCardId) || !options.includes(cmd.reserveCardId)) {
+      return 'selected personal card is not in this hand';
+    }
+    return null;
+  }
+
   if (cmd.type === 'offer_personal_card') {
     if (state.experienceMode !== 'basic') return 'personal card offers are BASIC only';
     if (state.phase !== 'intent_window') return 'personal card can only be offered during choice time';
@@ -605,6 +661,7 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       ? state.players.find((candidate) => candidate.id === cmd.targetPlayerId)
       : undefined;
     if (!player?.alive) return 'player not available';
+    if (state.personalCardSelectionPending?.[player.id]) return 'select personal cards first';
     if (!Number.isInteger(cmd.askingPrice) || cmd.askingPrice < 0 || cmd.askingPrice > 1_000_000) {
       return 'asking price must be an integer from 0 to 1000000';
     }
@@ -801,6 +858,9 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (!player) return 'unknown player';
     if (!player.alive) return 'player is eliminated';
     if (state.pendingIntents[cmd.playerId]) return 'intent already submitted';
+    if (cmd.type === 'choose_option' && state.personalCardSelectionPending?.[cmd.playerId]) {
+      return 'select personal cards first';
+    }
   }
 
   if (cmd.type === 'choose_option') {
@@ -847,11 +907,45 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
   const active = activePlayer(state)!;
   const card = getCard(cardIdForPlayer(state, cmd.playerId));
 
+  if (cmd.type === 'select_personal_cards') {
+    const options = state.personalCardOptionIds?.[cmd.playerId] ?? [];
+    state.personalCardIds ??= {};
+    state.personalCardReserveIds ??= {};
+    state.personalCardSelectionPending ??= {};
+    state.personalCardIds[cmd.playerId] = cmd.activeCardId;
+    state.personalCardReserveIds[cmd.playerId] = cmd.reserveCardId;
+    state.personalCardSelectionPending[cmd.playerId] = false;
+    for (const cardId of options) {
+      if (cardId !== cmd.activeCardId && cardId !== cmd.reserveCardId) {
+        state.discardPile.push(cardId);
+      }
+    }
+    if (cmd.playerId === active.id) state.currentCardId = cmd.activeCardId;
+    events.push({
+      type: 'command_accepted',
+      playerId: cmd.playerId,
+      message: 'personal cards selected',
+      payload: { activeCardId: cmd.activeCardId, reserveCardId: cmd.reserveCardId },
+    });
+    state.eventLog.push(...events);
+    return { state, events };
+  }
+
   // ─── Simultaneous rounds: queue the round action instead of executing now ──
   // During an open intent window, each player's main action (choose_option/pass)
   // is stored; resolveAllIntents applies them in a batch when the window closes.
   if (state.phase === 'intent_window' && (cmd.type === 'choose_option' || cmd.type === 'pass')) {
     if (state.players.some((p) => p.id === cmd.playerId && p.alive)) {
+      // A timeout/pass accepts the deterministic first-two fallback so a silent
+      // player cannot hold the whole table in the hand-selection step.
+      if (cmd.type === 'pass' && state.personalCardSelectionPending?.[cmd.playerId]) {
+        state.personalCardSelectionPending[cmd.playerId] = false;
+        const activeCardId = state.personalCardIds?.[cmd.playerId];
+        const reserveCardId = state.personalCardReserveIds?.[cmd.playerId];
+        for (const optionId of state.personalCardOptionIds?.[cmd.playerId] ?? []) {
+          if (optionId !== activeCardId && optionId !== reserveCardId) state.discardPile.push(optionId);
+        }
+      }
       state.pendingIntents[cmd.playerId] = cmd;
       events.push({ type: 'command_accepted', playerId: cmd.playerId, message: `intent:${cmd.type}` });
     }
@@ -999,6 +1093,9 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         : [...player.recapTags, 'surrendered'];
       state.pendingIntents[player.id] = null;
       if (state.personalCardIds) state.personalCardIds[player.id] = null;
+      if (state.personalCardOptionIds) state.personalCardOptionIds[player.id] = [];
+      if (state.personalCardReserveIds) state.personalCardReserveIds[player.id] = null;
+      if (state.personalCardSelectionPending) state.personalCardSelectionPending[player.id] = false;
       if (state.activeInterestWindow) {
         state.activeInterestWindow.eligiblePlayers = state.activeInterestWindow.eligiblePlayers
           .filter((id) => id !== player.id);
@@ -1677,7 +1774,9 @@ export function stressBlackoutThisRound(state: MatchState, player: PlayerState):
 }
 
 function grossPassiveBusinessIncome(player: PlayerState): number {
-  return player.passiveIncome + player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
+  return player.passiveIncome
+    + player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0)
+    + synergyCashflow(player).income;
 }
 
 export function stressIncomeImpact(state: MatchState, player: PlayerState): StressIncomeImpact {
@@ -1741,6 +1840,7 @@ export function passiveCashflow(
 ): Cashflow {
   const assetIncome = player.assets.reduce((s, a) => s + a.incomePerRound, 0);
   const assetUpkeep = player.assets.reduce((s, a) => s + a.upkeepPerRound, 0);
+  const synergy = synergyCashflow(player);
   const loanPayments = player.liabilities.reduce(
     (s, l) => (l.remainingPayments > 0 ? s + Math.round(l.principal * l.interestRate) : s),
     0,
@@ -1749,9 +1849,9 @@ export function passiveCashflow(
   const activeTax = computeTaxForIncome(player, macro, effectiveActiveIncome(player));
   const passiveTax = Math.max(0, totalTax - activeTax);
   const income = Math.round(
-    (player.passiveIncome + assetIncome) * (1 - stressPassiveIncomePenalty(player.stress)),
+    (player.passiveIncome + assetIncome + synergy.income) * (1 - stressPassiveIncomePenalty(player.stress)),
   ) + petIncomePerRound(player);
-  const expense = player.expenses + assetUpkeep + loanPayments + passiveTax;
+  const expense = Math.max(0, player.expenses + assetUpkeep + loanPayments + passiveTax - synergy.expenseReduction);
   return { income, expense, net: income - expense };
 }
 

@@ -11,9 +11,11 @@ import type {
 } from '../../shared/src/index';
 
 /** Synergy definitions: expense tag + asset tag = bonus. */
-interface SynergyDef {
-  expenseTag: string;
-  assetTag: string;
+export interface SynergyDef {
+  id: string;
+  expenseTag?: string;
+  staffId?: string;
+  assetTags?: string[];
   bonusType: 'passive_income' | 'cost_reduction' | 'stress_reduction';
   bonusAmount: number;
   description: string;
@@ -21,60 +23,117 @@ interface SynergyDef {
 
 const SYNERGY_TABLE: SynergyDef[] = [
   {
+    id: 'content-digital',
     expenseTag: 'content_creation',
-    assetTag: 'digital',
+    assetTags: ['digital'],
     bonusType: 'passive_income',
     bonusAmount: 150,
     description: 'Content + Digital Asset: cross-promotion bonus',
   },
   {
+    id: 'coworking-service',
     expenseTag: 'coworking',
-    assetTag: 'service',
+    assetTags: ['service'],
     bonusType: 'passive_income',
     bonusAmount: 100,
     description: 'Coworking + Service: networking leads to clients',
   },
   {
+    id: 'ai-tech',
     expenseTag: 'ai_tools',
-    assetTag: 'tech',
+    assetTags: ['tech', 'technology'],
     bonusType: 'cost_reduction',
     bonusAmount: 200,
     description: 'AI Tools + Tech: automation reduces upkeep',
   },
   {
+    id: 'network-physical',
     expenseTag: 'networking',
-    assetTag: 'physical',
+    assetTags: ['physical'],
     bonusType: 'passive_income',
     bonusAmount: 120,
     description: 'Networking + Physical Asset: referral income',
   },
   {
+    id: 'fitness-physical',
     expenseTag: 'fitness',
-    assetTag: 'physical',
+    assetTags: ['physical'],
     bonusType: 'stress_reduction',
     bonusAmount: 1,
     description: 'Fitness + Physical: healthy body handles stress better',
   },
   {
+    id: 'education-digital',
     expenseTag: 'education',
-    assetTag: 'digital',
+    assetTags: ['digital'],
     bonusType: 'passive_income',
     bonusAmount: 200,
     description: 'Education + Digital: knowledge compounds in digital assets',
   },
   {
+    id: 'legal-boring-business',
     expenseTag: 'legal_entity',
-    assetTag: 'boring_biz',
+    assetTags: ['boring_biz', 'local_business'],
     bonusType: 'cost_reduction',
     bonusAmount: 150,
     description: 'Legal Entity + Boring Biz: tax optimization',
   },
   {
+    id: 'productivity-digital',
     expenseTag: 'productivity',
-    assetTag: 'digital',
+    assetTags: ['digital'],
     bonusType: 'passive_income',
     bonusAmount: 100,
     description: 'Productivity Tools + Digital: efficiency gains',
+  },
+  {
+    id: 'assistant-service',
+    staffId: 'virtual_assistant',
+    assetTags: ['service'],
+    bonusType: 'passive_income',
+    bonusAmount: 140,
+    description: 'Assistant + Service: follow-ups become repeat clients',
+  },
+  {
+    id: 'bookkeeper-local-business',
+    staffId: 'bookkeeper',
+    assetTags: ['boring_biz', 'local_business'],
+    bonusType: 'cost_reduction',
+    bonusAmount: 120,
+    description: 'Bookkeeper + Local Business: fewer avoidable costs',
+  },
+  {
+    id: 'social-digital',
+    staffId: 'social_manager',
+    assetTags: ['digital', 'content'],
+    bonusType: 'passive_income',
+    bonusAmount: 180,
+    description: 'SMM + Digital Asset: the audience finally has something to buy',
+  },
+  {
+    id: 'junior-ai-tech',
+    staffId: 'junior_dev',
+    expenseTag: 'ai_tools',
+    assetTags: ['tech', 'technology'],
+    bonusType: 'passive_income',
+    bonusAmount: 320,
+    description: 'Junior + AI + Tech: shipping beats the backlog',
+  },
+  {
+    id: 'cleaner-physical',
+    staffId: 'cleaner',
+    assetTags: ['physical'],
+    bonusType: 'stress_reduction',
+    bonusAmount: 0.5,
+    description: 'Cleaner + Physical Business: fewer tiny fires to manage',
+  },
+  {
+    id: 'trading-bot-crypto',
+    staffId: 'trading_bot',
+    assetTags: ['crypto'],
+    bonusType: 'passive_income',
+    bonusAmount: 180,
+    description: 'Trading Bot + Crypto Asset: automated spread capture',
   },
 ];
 
@@ -83,17 +142,41 @@ export function checkSynergies(player: PlayerState): SynergyDef[] {
   const active: SynergyDef[] = [];
 
   for (const syn of SYNERGY_TABLE) {
-    const hasExpenseTag = player.expenseTags.includes(syn.expenseTag);
-    const hasAssetTag = player.assets.some(
-      (a) => a.tags.includes(syn.assetTag) || a.synergyKeys.includes(syn.expenseTag)
+    const hasExpenseTag = !syn.expenseTag || player.expenseTags.includes(syn.expenseTag);
+    const hasStaff = !syn.staffId || (player.hiredStaffIds ?? []).includes(syn.staffId);
+    const hasAssetTag = !syn.assetTags || syn.assetTags.length === 0 || player.assets.some(
+      (asset) => syn.assetTags!.some((tag) =>
+        asset.tags.includes(tag)
+        || asset.synergyKeys.includes(tag)
+        || (syn.expenseTag ? asset.synergyKeys.includes(syn.expenseTag) : false)),
     );
 
-    if (hasExpenseTag && hasAssetTag) {
+    if (hasExpenseTag && hasStaff && hasAssetTag) {
       active.push(syn);
     }
   }
 
   return active;
+}
+
+export interface SynergyCashflow {
+  income: number;
+  expenseReduction: number;
+  active: SynergyDef[];
+}
+
+/** Stable recurring impact; reading it never mutates the player's base stats. */
+export function synergyCashflow(player: PlayerState): SynergyCashflow {
+  const active = checkSynergies(player);
+  return {
+    income: active
+      .filter((synergy) => synergy.bonusType === 'passive_income')
+      .reduce((sum, synergy) => sum + synergy.bonusAmount, 0),
+    expenseReduction: active
+      .filter((synergy) => synergy.bonusType === 'cost_reduction')
+      .reduce((sum, synergy) => sum + synergy.bonusAmount, 0),
+    active,
+  };
 }
 
 /** Apply synergy bonuses during settlement. */
@@ -108,24 +191,24 @@ export function applySynergyBonuses(state: MatchState): GameEvent[] {
     for (const syn of synergies) {
       switch (syn.bonusType) {
         case 'passive_income':
-          player.passiveIncome += syn.bonusAmount;
           events.push({
             type: 'effect',
             playerId: player.id,
             effectType: 'synergy.trigger',
             amount: syn.bonusAmount,
             message: `Synergy: ${syn.description} (+$${syn.bonusAmount}/round)`,
+            payload: { synergyId: syn.id, bonusType: syn.bonusType },
           });
           break;
 
         case 'cost_reduction':
-          player.expenses = Math.max(0, player.expenses - syn.bonusAmount);
           events.push({
             type: 'effect',
             playerId: player.id,
             effectType: 'synergy.trigger',
             amount: syn.bonusAmount,
             message: `Synergy: ${syn.description} (-$${syn.bonusAmount} expenses)`,
+            payload: { synergyId: syn.id, bonusType: syn.bonusType },
           });
           break;
 
@@ -137,6 +220,7 @@ export function applySynergyBonuses(state: MatchState): GameEvent[] {
             effectType: 'synergy.trigger',
             amount: syn.bonusAmount,
             message: `Synergy: ${syn.description} (-${syn.bonusAmount} stress)`,
+            payload: { synergyId: syn.id, bonusType: syn.bonusType },
           });
           break;
       }
@@ -149,9 +233,7 @@ export function applySynergyBonuses(state: MatchState): GameEvent[] {
 /** Register a custom synergy (for epoch packs / extensions). */
 export function registerSynergy(syn: SynergyDef): void {
   // Check for duplicates
-  const exists = SYNERGY_TABLE.some(
-    (s) => s.expenseTag === syn.expenseTag && s.assetTag === syn.assetTag
-  );
+  const exists = SYNERGY_TABLE.some((existing) => existing.id === syn.id);
   if (!exists) {
     SYNERGY_TABLE.push(syn);
   }

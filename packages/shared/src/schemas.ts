@@ -96,7 +96,7 @@ export const EligibilityConditionSchema = z.object({
   type: z.enum([
     'stress_min', 'stress_max', 'cash_min', 'cash_max',
     'trust_min', 'trust_max', 'debt_min', 'debt_max',
-    'has_protection', 'has_asset_tag', 'has_expense_tag',
+    'has_protection', 'has_asset_tag', 'has_staff', 'has_expense_tag',
     'room_mode', 'epoch', 'min_players', 'max_players',
     'has_business_slot', 'outfit', 'avatar_state',
     'round_min', 'round_max',
@@ -356,6 +356,12 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('pass'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('draw_card'), playerId: PlayerIdSchema }),
   z.object({
+    type: z.literal('select_personal_cards'),
+    playerId: PlayerIdSchema,
+    activeCardId: CardIdSchema,
+    reserveCardId: CardIdSchema,
+  }),
+  z.object({
     type: z.literal('offer_personal_card'),
     playerId: PlayerIdSchema,
     audience: z.enum(['direct', 'table']),
@@ -519,6 +525,9 @@ export const MatchStateSchema = z.object({
   submittedIntentPlayerIds: z.array(z.string()).optional(),
   experienceMode: z.enum(['basic', 'pro']).optional(),
   personalCardIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
+  personalCardOptionIds: z.record(z.string(), z.array(CardIdSchema).max(3)).optional(),
+  personalCardReserveIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
+  personalCardSelectionPending: z.record(z.string(), z.boolean()).optional(),
   personalCardOffers: z.array(z.object({
     id: z.string(),
     cardId: CardIdSchema,
