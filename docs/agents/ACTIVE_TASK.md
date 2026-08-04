@@ -235,6 +235,10 @@ night survival job. Do not “fix” this by removing losses.
   402×874 confirmed optional reserve, a quiet first month, a real bot listing in
   month two, one stable action button, and all three bank panes with zero internal
   scroll (`259–403px` content inside the available sheet).
+- Source release `6180321` is pushed to `origin/main`. Wrangler Pages preview
+  `2ebd280c` is deployed, and the canonical host now serves
+  `dyor-focus-B9vBjisL.js`; direct probes find the optional-reserve, discard,
+  unified-market and paid-search actions.
 
 ## Next Step
 
