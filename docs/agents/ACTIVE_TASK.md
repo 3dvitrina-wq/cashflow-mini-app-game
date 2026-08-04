@@ -268,6 +268,11 @@ night survival job. Do not “fix” this by removing losses.
   402×874 confirmed the prelude, picker handoff, month-two bot listing, local
   dismiss/undo and a 282px non-scrolling offer tray. Engine 180/180, server
   14/14, web/server TypeScript, production build and `git diff --check` PASS.
+- Source release `8378208` is pushed to `origin/main`. Wrangler Pages preview
+  `5ff1a100` is live, and the canonical host serves
+  `dyor-focus-B0tjfKFG.js` plus `dyor-focus-index-B6iRWIrO.css`. A clean
+  production tab at 402×874 opened on the new prelude; direct bundle probes find
+  `Раздать 3 карты`, `ПРЕДЛОЖЕНИЕ СКРЫТО` and the local-dismiss explanation.
 
 ## Next Step
 
