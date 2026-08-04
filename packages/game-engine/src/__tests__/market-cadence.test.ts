@@ -4,7 +4,13 @@ import {
   BUSINESS_MARKET_OFFER_COUNT,
   getBusinessAssetDefinition,
 } from '../../../shared/src/businesses';
-import { advanceRound, businessMarketOfferIds, createMatch, resolveCommand } from '../engine';
+import {
+  advanceRound,
+  BUSINESS_MARKET_SEARCH_FEE,
+  businessMarketOfferIds,
+  createMatch,
+  resolveCommand,
+} from '../engine';
 
 const PLAYERS = [
   { id: 'p1', name: 'Alex', outfit: 'hustler', isBot: false },
@@ -92,6 +98,47 @@ describe('authoritative business market cadence', () => {
       assetId: (roundTwo as typeof state).businessMarket?.offerIds[0] ?? offeredId,
     } as never);
     expect(rejected(offRound.events)).toBe(true);
+  });
+
+  it('limits each player to one purchase and gives non-buyers one paid private search after sellout', () => {
+    let state = createMatch(404, [...PLAYERS]);
+    for (const player of state.players) {
+      player.cash = 100_000;
+      player.businessSlotsMax = 20;
+    }
+    const [first, second, third] = state.businessMarket.offerIds;
+
+    state = resolveCommand(state, { type: 'buy_asset', playerId: 'p1', assetId: first! }).state;
+    expect(rejected(resolveCommand(state, { type: 'buy_asset', playerId: 'p1', assetId: second! }).events)).toBe(true);
+    state = resolveCommand(state, { type: 'buy_asset', playerId: 'p2', assetId: second! }).state;
+
+    const stillPublic = resolveCommand(state, { type: 'search_business_market', playerId: 'p1' });
+    expect(rejected(stillPublic.events)).toBe(true);
+
+    state.players.push({ ...state.players[1]!, id: 'p3', name: 'Casey', assets: [], businesses: [] });
+    state.pendingIntents.p3 = null;
+    state = resolveCommand(state, { type: 'buy_asset', playerId: 'p3', assetId: third! }).state;
+    const cashBefore = state.players.find((player) => player.id === 'p2')!.cash;
+
+    const searched = resolveCommand(state, { type: 'search_business_market', playerId: 'p2' });
+    expect(rejected(searched.events)).toBe(true);
+
+    const p4 = { ...state.players[1]!, id: 'p4', name: 'Drew', assets: [], businesses: [], cash: 100_000 };
+    state.players.push(p4);
+    state.pendingIntents.p4 = null;
+    const openSearch = resolveCommand(state, { type: 'search_business_market', playerId: 'p4' });
+    expect(rejected(openSearch.events)).toBe(false);
+    expect(openSearch.state.players.find((player) => player.id === 'p4')!.cash).toBe(100_000 - BUSINESS_MARKET_SEARCH_FEE);
+    expect(openSearch.state.businessMarket.personalOfferIds?.p4).toBeTruthy();
+    expect(rejected(resolveCommand(openSearch.state, { type: 'search_business_market', playerId: 'p4' }).events)).toBe(true);
+    const personalOfferId = openSearch.state.businessMarket.personalOfferIds?.p4;
+    const boughtPersonal = resolveCommand(openSearch.state, {
+      type: 'buy_asset', playerId: 'p4', assetId: personalOfferId!,
+    });
+    expect(rejected(boughtPersonal.events)).toBe(false);
+    expect(boughtPersonal.state.businessMarket.personalOfferIds?.p4).toBeNull();
+    expect(boughtPersonal.state.businessMarket.boughtPlayerIds).toContain('p4');
+    expect(cashBefore).toBeGreaterThan(0);
   });
 });
 

@@ -1231,7 +1231,23 @@ export const MainTurnTableScreen: React.FC = () => {
     setIsConfirmPreviewOpen(false);
   }, [card.id, selectedChoiceIdx]);
 
-  const tableToolItems = [
+  const marketToolItem = {
+    icon: <IconShop size={18} />,
+    label: businessMarketOpen
+      ? (locale === 'ru' ? 'Рынок · открыт' : 'Market · open')
+      : (locale === 'ru' ? 'Рынок' : 'Market'),
+    tone: 'green',
+    active: businessMarketOpen,
+    onClick: () => { setIsMarketOpen(true); setFabExpanded(false); },
+  };
+  const tableToolItems: Array<{
+    icon: React.ReactNode;
+    label: string;
+    tone: string;
+    active?: boolean;
+    onClick: () => void;
+  }> = [
+    ...(businessMarketOpen ? [marketToolItem] : []),
     {
       icon: <IconMenu size={18} />,
       label: locale === 'ru' ? 'Правила' : 'Rules',
@@ -1275,7 +1291,7 @@ export const MainTurnTableScreen: React.FC = () => {
       },
     }] : []),
     { icon: <IconBankVault size={18} />, label: locale === 'ru' ? 'Банк' : 'Bank', tone: 'gold', onClick: () => { setIsBankOpen(true); setFabExpanded(false); } },
-    { icon: <IconShop size={18} />, label: locale === 'ru' ? 'Рынок' : 'Market', tone: 'green', onClick: () => { setIsMarketOpen(true); setFabExpanded(false); } },
+    ...(!businessMarketOpen ? [marketToolItem] : []),
     { icon: <IconLaborHelmet size={18} />, label: locale === 'ru' ? 'Труд' : 'Labor', tone: 'orange', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
     { icon: <IconPawBadge size={17} />, label: locale === 'ru' ? 'Питомцы' : 'Pets', tone: 'cyan', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
     { icon: <IconNewsSheet size={17} />, label: locale === 'ru' ? 'События' : 'Events', tone: 'paper', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
@@ -1297,20 +1313,25 @@ export const MainTurnTableScreen: React.FC = () => {
   const visibleConsequences = (card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3);
   const cardCopyLength = `${card.title} ${card.text} ${visibleConsequences.join(' ')}`.length;
   const cardDensity = cardCopyLength > 360 ? 'long' : cardCopyLength > 250 ? 'medium' : 'regular';
-  const tableToolsTrigger = businessMarketOpen ? (
+  const tableToolsTrigger = (
     <button
-      className="turn-tools-button"
+      data-tour="actions"
+      className={`turn-tools-button ${businessMarketOpen ? 'turn-tools-button-market-active' : ''}`}
       type="button"
       aria-label={locale === 'ru'
-        ? 'Открыть общее меню: банк, персонал, питомцы и другие действия'
-        : 'Open general menu: bank, staff, pets and other actions'}
+        ? businessMarketOpen
+          ? `Рынок активен, предложений ${engineMatch?.businessMarket.offerIds.length ?? 0}. Открыть общее меню`
+          : 'Открыть общее меню: банк, персонал, питомцы и другие действия'
+        : businessMarketOpen
+          ? `Market active, ${engineMatch?.businessMarket.offerIds.length ?? 0} offers. Open general menu`
+          : 'Open general menu: bank, staff, pets and other actions'}
       aria-expanded={fabExpanded}
       onClick={toggleTableTools}
     >
-      <IconPlusCircle size={20} />
-      <span aria-hidden="true">3</span>
+      {businessMarketOpen ? <IconShop size={20} /> : <IconPlusCircle size={20} />}
+      {businessMarketOpen && <span aria-hidden="true">{engineMatch?.businessMarket.offerIds.length ?? 0}</span>}
     </button>
-  ) : null;
+  );
 
   return (
     <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
@@ -1927,27 +1948,6 @@ export const MainTurnTableScreen: React.FC = () => {
                       </button>
                     );
                   })}
-                  <button
-                    data-tour="actions"
-                    className={`survival-choice survival-choice-market ${businessMarketOpen ? 'survival-choice-market-available' : ''} ${fabExpanded ? 'survival-choice-market-open' : ''}`}
-                    type="button"
-                    aria-label={businessMarketOpen
-                      ? (locale === 'ru' ? 'Открыть рынок активов' : 'Open asset market')
-                      : (locale === 'ru' ? 'Рынок действий: банк, питомцы, рынок' : 'Action market')}
-                    onClick={businessMarketOpen ? () => setIsMarketOpen(true) : toggleTableTools}
-                  >
-                    <span className="survival-choice-icon">
-                      {businessMarketOpen ? <IconShop size={19} /> : <IconPlusCircle size={20} />}
-                    </span>
-                    {businessMarketOpen && (
-                      <span className="survival-choice-market-label">
-                        {locale === 'ru' ? 'РЫНОК' : 'MARKET'}
-                      </span>
-                    )}
-                    <span className="turn-plus-badge">
-                      {businessMarketOpen ? engineMatch?.businessMarket.offerIds.length ?? 0 : 3}
-                    </span>
-                  </button>
                 </div>
               </div>
               {selectedChoice ? (
@@ -2021,7 +2021,12 @@ export const MainTurnTableScreen: React.FC = () => {
           tabIndex={-1}
         >
           {tableToolItems.map((item, index) => (
-            <button ref={index === 0 ? firstFabItemRef : undefined} key={item.label} onClick={item.onClick} className="table-tools-menu-item">
+            <button
+              ref={index === 0 ? firstFabItemRef : undefined}
+              key={item.label}
+              onClick={item.onClick}
+              className={`table-tools-menu-item ${item.active ? 'table-tools-menu-item-active' : ''}`}
+            >
               <span className={`table-tools-menu-icon table-tools-menu-icon-${item.tone}`}>{item.icon}</span>
               <span>{item.label}</span>
             </button>
@@ -2097,8 +2102,8 @@ export const MainTurnTableScreen: React.FC = () => {
                   </span>
                   <strong>
                     {activeIncomingPersonalOffer.audience === 'table'
-                      ? (locale === 'ru' ? `${from?.name ?? 'Игрок'} выставил возможность` : `${from?.name ?? 'Player'} listed an opportunity`)
-                      : (locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает возможность` : `${from?.name ?? 'Player'} sent an opportunity`)}
+                      ? (locale === 'ru' ? `${from?.name ?? 'Игрок'} · возможность на столе` : `${from?.name ?? 'Player'} listed an opportunity`)
+                      : (locale === 'ru' ? `${from?.name ?? 'Игрок'} · предложение вам` : `${from?.name ?? 'Player'} sent an opportunity`)}
                   </strong>
                 </div>
                 {hasOfferQueue && (

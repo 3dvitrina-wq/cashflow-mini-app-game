@@ -359,7 +359,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
     type: z.literal('select_personal_cards'),
     playerId: PlayerIdSchema,
     activeCardId: CardIdSchema,
-    reserveCardId: CardIdSchema,
+    reserveCardId: CardIdSchema.nullable().optional(),
   }),
   z.object({
     type: z.literal('offer_personal_card'),
@@ -411,6 +411,10 @@ export const CommandSchema = z.discriminatedUnion('type', [
     type: z.literal('buy_asset'),
     playerId: PlayerIdSchema,
     assetId: BusinessAssetIdSchema,
+  }),
+  z.object({
+    type: z.literal('search_business_market'),
+    playerId: PlayerIdSchema,
   }),
   z.object({
     type: z.literal('buy_pet'),
@@ -527,6 +531,7 @@ export const MatchStateSchema = z.object({
   personalCardIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
   personalCardOptionIds: z.record(z.string(), z.array(CardIdSchema).max(3)).optional(),
   personalCardReserveIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
+  personalCardDiscardIds: z.record(z.string(), z.array(CardIdSchema).max(3)).optional(),
   personalCardCarriedIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
   personalCardSelectionPending: z.record(z.string(), z.boolean()).optional(),
   personalCardOffers: z.array(z.object({
@@ -552,6 +557,9 @@ export const MatchStateSchema = z.object({
     openedRound: z.number().int().min(1),
     nextOpenRound: z.number().int().min(2),
     offerIds: z.array(BusinessAssetIdSchema).max(3),
+    boughtPlayerIds: z.array(PlayerIdSchema).optional(),
+    searchedPlayerIds: z.array(PlayerIdSchema).optional(),
+    personalOfferIds: z.record(z.string(), BusinessAssetIdSchema.nullable()).optional(),
   }),
   eventLog: z.array(GameEventSchema),
   version: z.number().int().min(1),

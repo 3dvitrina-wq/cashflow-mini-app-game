@@ -39,6 +39,9 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
     personalCardReserveIds: viewerPlayerId && state.experienceMode === 'basic'
       ? { [viewerPlayerId]: state.personalCardReserveIds?.[viewerPlayerId] ?? null }
       : state.personalCardReserveIds,
+    personalCardDiscardIds: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardDiscardIds?.[viewerPlayerId] ?? [] }
+      : state.personalCardDiscardIds,
     personalCardCarriedIds: viewerPlayerId && state.experienceMode === 'basic'
       ? { [viewerPlayerId]: state.personalCardCarriedIds?.[viewerPlayerId] ?? null }
       : state.personalCardCarriedIds,
@@ -51,6 +54,14 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
           || offer.toPlayerId === viewerPlayerId
           || (offer.audience === 'table' && offer.status === 'pending'))
       : state.personalCardOffers,
+    businessMarket: viewerPlayerId
+      ? {
+          ...state.businessMarket,
+          personalOfferIds: {
+            [viewerPlayerId]: state.businessMarket.personalOfferIds?.[viewerPlayerId] ?? null,
+          },
+        }
+      : state.businessMarket,
     currentCard: visibleCardId
       ? getLocalizedCard(visibleCardId, 'ru')
       : null,

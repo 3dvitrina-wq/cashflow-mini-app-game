@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
+import { BUSINESS_MARKET_SEARCH_FEE } from '../../../../packages/game-engine/src';
 import {
   getBusinessAssetDefinition,
   type BusinessAssetDefinition,
@@ -54,6 +55,7 @@ const CATEGORY_BACKDROPS: Record<BusinessCategory, string> = {
 
 export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, onClose }) => {
   const buyAsset = useStore((s) => s.buyAsset);
+  const searchBusinessMarket = useStore((s) => s.searchBusinessMarket);
   const engineMatch = useStore((s) => s.engineMatch);
   const localPlayerId = useStore((s) => s.localPlayerId);
   const me = (localPlayerId ? engineMatch?.players.find((player) => player.id === localPlayerId) : null)
@@ -69,12 +71,32 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
       .filter((asset): asset is BusinessAssetDefinition => Boolean(asset)),
     [businessMarket?.offerIds],
   );
+  const boughtThisWindow = Boolean(me && businessMarket?.boughtPlayerIds?.includes(me.id));
+  const searchedThisWindow = Boolean(me && businessMarket?.searchedPlayerIds?.includes(me.id));
+  const personalAsset = me
+    ? getBusinessAssetDefinition(businessMarket?.personalOfferIds?.[me.id] ?? '')
+    : undefined;
+  const visibleAssets = useMemo(() => [
+    ...offeredAssets.map((asset) => ({ asset, personal: false })),
+    ...(personalAsset && !offeredAssets.some((asset) => asset.id === personalAsset.id)
+      ? [{ asset: personalAsset, personal: true }]
+      : []),
+  ], [offeredAssets, personalAsset]);
+  const handleSearch = () => {
+    if (!searchBusinessMarket()) {
+      showToast('Поиск недоступен: проверьте деньги и условия рынка', 'error');
+      return;
+    }
+    showToast(`Агент нашёл личное предложение · комиссия $${BUSINESS_MARKET_SEARCH_FEE}`, 'success');
+  };
   const handleBuy = (asset: BusinessAssetDefinition) => {
     const ok = buyAsset(asset.id);
     if (!ok) {
       showToast(
         !marketOpen
           ? `Рынок закрыт до раунда ${businessMarket?.nextOpenRound ?? '—'}`
+          : boughtThisWindow
+            ? 'В этом окне вы уже купили один актив'
           : me && me.businessSlotsUsed + asset.slotsUsed > me.businessSlotsMax
             ? 'Нет свободного бизнес-слота'
             : 'Недостаточно наличных или предложение уже забрали',
@@ -105,7 +127,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
             Собирай скучные денежные машинки, а не красивые проблемы
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
-            Раз в два раунда стол получает три общих предложения. Сравни чистый поток, цену и занятые слоты — купленный бизнес достанется только одному игроку.
+            Раз в два раунда стол получает три общих предложения. Каждый игрок может купить один актив; каждое предложение достаётся только одному. Если витрину разобрали — остаётся один платный личный поиск.
           </div>
         </div>
 
@@ -132,9 +154,28 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
           </div>
         )}
 
-        {marketOpen && offeredAssets.length === 0 && (
+        {marketOpen && offeredAssets.length === 0 && !personalAsset && (
           <div role="status" style={{ padding: 18, borderRadius: 16, background: 'rgba(255,255,255,.04)', textAlign: 'center', color: '#B8B6A9' }}>
-            Все предложения этого раунда уже разобраны. Новый рынок откроется в раунде {businessMarket?.nextOpenRound}.
+            <strong style={{ display: 'block', color: '#F5F4ED', fontSize: 15, marginBottom: 5 }}>
+              {boughtThisWindow ? 'Вы уже забрали свой актив' : 'Общий рынок разобрали'}
+            </strong>
+            {boughtThisWindow
+              ? `Следующая витрина откроется в раунде ${businessMarket?.nextOpenRound}.`
+              : searchedThisWindow
+                ? 'Агентский поиск на этот раунд уже использован.'
+                : 'Медленный интернет не должен решать матч: можно один раз вызвать агента и получить личное предложение.'}
+            {!boughtThisWindow && !searchedThisWindow && (
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={(me?.cash ?? 0) < BUSINESS_MARKET_SEARCH_FEE}
+                style={{ width: '100%', minHeight: 44, marginTop: 12, borderRadius: 12, background: '#F5C524', color: '#0B0B0C', fontSize: 12, fontWeight: 900, opacity: (me?.cash ?? 0) < BUSINESS_MARKET_SEARCH_FEE ? .4 : 1 }}
+              >
+                {(me?.cash ?? 0) < BUSINESS_MARKET_SEARCH_FEE
+                  ? `Нужно $${BUSINESS_MARKET_SEARCH_FEE}`
+                  : `Разведать глубже · $${BUSINESS_MARKET_SEARCH_FEE}`}
+              </button>
+            )}
           </div>
         )}
 
@@ -145,10 +186,10 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
             gap: 12,
           }}
         >
-          {offeredAssets.map((asset) => {
+          {visibleAssets.map(({ asset, personal }) => {
             const hasCash = (me?.cash ?? 0) >= asset.price;
             const hasSlot = !me || me.businessSlotsUsed + asset.slotsUsed <= me.businessSlotsMax;
-            const canBuy = marketOpen && hasCash && hasSlot;
+            const canBuy = marketOpen && !boughtThisWindow && hasCash && hasSlot;
             return (
               <div
                 key={asset.id}
@@ -201,7 +242,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                 <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, color: '#7D7B6F', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>
-                      {CATEGORY_LABELS[asset.category]}
+                      {personal ? 'Личная находка · только вам' : CATEGORY_LABELS[asset.category]}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED', lineHeight: 1.08 }}>
                       {asset.displayName}
@@ -263,7 +304,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                       opacity: canBuy ? 1 : 0.48,
                     }}
                   >
-                    {!hasSlot ? 'Нет слота' : !hasCash ? 'Не хватает денег' : 'Купить актив'}
+                    {boughtThisWindow ? 'Лимит: 1 актив' : !hasSlot ? 'Нет слота' : !hasCash ? 'Не хватает денег' : 'Купить актив'}
                   </button>
                 </div>
               </div>

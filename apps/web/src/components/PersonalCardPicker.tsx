@@ -8,7 +8,7 @@ import { useI18n } from '../i18n';
 interface PersonalCardPickerProps {
   optionIds: string[];
   returningCardId?: string | null;
-  onConfirm: (activeCardId: string, reserveCardId: string) => boolean;
+  onConfirm: (activeCardId: string, reserveCardId?: string | null) => boolean;
 }
 
 const TYPE_LABELS_RU: Record<string, string> = {
@@ -54,16 +54,16 @@ export const PersonalCardPicker: React.FC<PersonalCardPickerProps> = ({ optionId
         return current[1] === cardId ? [forcedEventId] : [forcedEventId, cardId];
       }
       if (current.includes(cardId)) return current.filter((id) => id !== cardId);
-      if (current.length >= 2) return [current[1]!, cardId];
+      if (current.length >= 2) return [current[0]!, cardId];
       return [...current, cardId];
     });
   };
 
   const submit = () => {
     const [activeCardId, reserveCardId] = selected;
-    if (!activeCardId || !reserveCardId) return;
+    if (!activeCardId) return;
     hapticImpact('medium');
-    onConfirm(activeCardId, reserveCardId);
+    onConfirm(activeCardId, reserveCardId ?? null);
   };
 
   return (
@@ -74,16 +74,16 @@ export const PersonalCardPicker: React.FC<PersonalCardPickerProps> = ({ optionId
         <h1>
           {forcedEventId
             ? (locale === 'ru' ? 'Событие уже пришло' : 'The event already happened')
-            : (locale === 'ru' ? 'Из трёх оставьте две' : 'Keep two of three')}
+            : (locale === 'ru' ? 'Выберите одну. Резерв — по желанию' : 'Pick one. Reserve is optional')}
         </h1>
         <p>
           {forcedEventId
             ? (locale === 'ru'
-                ? 'Событие нельзя сжечь или спрятать. Выберите одну из двух возможностей в резерв — она вернётся в следующем месяце.'
-                : 'The event cannot be burned or hidden. Keep one of the two opportunities in reserve for next month.')
+                ? 'Событие нельзя сжечь или спрятать. Одну из двух возможностей можно оставить на следующий месяц — но это не обязательно.'
+                : 'The event cannot be burned or hidden. You may keep one opportunity for next month, but you do not have to.')
             : (locale === 'ru'
-                ? 'Первая выбранная карта разыгрывается сейчас. Вторая остаётся в резерве и вернётся в следующем месяце. Третья сгорает.'
-                : 'Your first pick plays now. Your second stays in reserve for next month. The third burns.')}
+                ? 'Первая выбранная карта разыгрывается сейчас. Вторую можно оставить в резерве. Всё остальное сгорит и не вернётся в следующем месяце.'
+                : 'Your first pick plays now. A second may stay in reserve. Everything else burns and will not return next month.')}
         </p>
       </header>
 
@@ -141,12 +141,22 @@ export const PersonalCardPicker: React.FC<PersonalCardPickerProps> = ({ optionId
           <span className={selected[0] ? 'done' : ''}>
             {forcedEventId ? (locale === 'ru' ? 'Событие сейчас' : 'Event now') : `1 ${locale === 'ru' ? 'сейчас' : 'now'}`}
           </span>
-          <span className={selected[1] ? 'done' : ''}>2 {locale === 'ru' ? 'в резерв' : 'reserve'}</span>
+          {selected[1] ? (
+            <button
+              type="button"
+              className="personal-draft-clear-reserve"
+              onClick={() => setSelected((current) => current.slice(0, 1))}
+            >
+              {locale === 'ru' ? '× Сбросить резерв' : '× Clear reserve'}
+            </button>
+          ) : (
+            <span>{locale === 'ru' ? 'Резерв не обязателен' : 'Reserve is optional'}</span>
+          )}
         </div>
-        <button type="button" disabled={selected.length !== 2} onClick={submit}>
-          {forcedEventId
-            ? (locale === 'ru' ? 'Принять и сохранить резерв' : 'Accept and save reserve')
-            : (locale === 'ru' ? 'Оставить эти две' : 'Keep these two')}
+        <button type="button" disabled={!selected[0]} onClick={submit}>
+          {selected[1]
+            ? (locale === 'ru' ? 'Играть + сохранить' : 'Play + keep')
+            : (locale === 'ru' ? 'Играть без резерва' : 'Play without reserve')}
         </button>
       </footer>
     </div>

@@ -10,8 +10,8 @@
 Ship and observe the new two-level game:
 
 - **ОБЫЧНЫЙ / BASIC** is the default: every player receives three private cards,
-  keeps one to play now and one rolling reserve for the next month, burns the
-  third, answers simultaneously, sees one compact shared market effect, and owns
+  keeps one to play now, may keep one rolling reserve for the next month, burns
+  everything else, answers simultaneously, sees one compact shared market effect, and owns
   the right to keep, burn or sell the active opportunity at a self-chosen price.
 - **PRO** keeps the shared table, percentages, partnerships and advanced deal
   controls for players who intentionally opt in.
@@ -208,13 +208,40 @@ night survival job. Do not “fix” this by removing losses.
 - Release `eb4f2f9` is live on canonical Pages and preview `ce549a13` with
   `dyor-focus-DEvu4kT4.js` and `dyor-focus-index-B3TK8KWx.css`. Canonical bundle
   probes and an interactive production replay confirm the new rules and controls.
+- The BASIC reserve is optional. One active card is mandatory (or the dealt
+  crisis is forced); a second card may be kept or explicitly cleared. Every
+  burned option is recorded per player and excluded from that player's next
+  monthly hand, so rejecting both futures directions does not feed either one
+  straight back.
+- Offline bots now list a sellable personal opportunity on months 2, 5, 8 and
+  so on when their hand contains one. The first month stays quiet for the guided
+  tour. The recipient sees the real bounded `Стол возможностей` tray with owner,
+  asking price and round expiry; engine authority and one-card-per-buyer rules
+  remain unchanged.
+- Market and general actions now share one stable 44px dock position beside `?`.
+  On open-market rounds the same button becomes a pulsing green shop and moves
+  `Рынок · открыт` to the first menu item; Bank, Labor, pets and other actions do
+  not move or disappear.
+- Public business scarcity is latency-safe: a player may buy at most one shared
+  asset per market window. After all three public lots sell, any player who did
+  not buy may pay `$150` once for one private off-market offer. The server keeps
+  that result private to the requesting player.
+- Bank is one non-scrolling Telegram-safe sheet with a persistent three-number
+  overview and three 44px tabs: `Погасить`, `Взять`, `Депозиты`. Existing
+  obligations, new credit and active deposits no longer compete in one long
+  vertical document.
+- Verification: 178/178 engine tests, 12/12 server tests, web/server TypeScript,
+  production build and `git diff --check` PASS. Browser replay at iPhone 16 Pro
+  402×874 confirmed optional reserve, a quiet first month, a real bot listing in
+  month two, one stable action button, and all three bank panes with zero internal
+  scroll (`259–403px` content inside the available sheet).
 
 ## Next Step
 
-1. Deploy the updated WebSocket server before claiming the private 3→2 hand in
-   online rooms; a Pages-only release remains backward-compatible but the old
-   server cannot author the new private options, forced-crisis validation or
-   reserve provenance.
+1. Deploy the updated WebSocket server before claiming optional reserve, private
+   paid market search or one-purchase-per-window rules in online rooms. The old
+   server cannot validate the new nullable reserve or `search_business_market`
+   command.
 2. Run production reconnect smoke and a short six-seat check of shared market
    consumption plus leave-to-bot handoff after deployment.
 3. Play a human-facing 15-round BASIC match and record where decisions feel flat,

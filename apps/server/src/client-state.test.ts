@@ -37,12 +37,25 @@ describe('client state card copy', () => {
     expect(Object.keys(p2State.personalCardOptionIds ?? {})).toEqual(['p2']);
     expect(Object.keys(p1State.personalCardReserveIds ?? {})).toEqual(['p1']);
     expect(Object.keys(p2State.personalCardReserveIds ?? {})).toEqual(['p2']);
+    expect(Object.keys(p1State.personalCardDiscardIds ?? {})).toEqual(['p1']);
+    expect(Object.keys(p2State.personalCardDiscardIds ?? {})).toEqual(['p2']);
     expect(Object.keys(p1State.personalCardCarriedIds ?? {})).toEqual(['p1']);
     expect(Object.keys(p2State.personalCardCarriedIds ?? {})).toEqual(['p2']);
     expect(p1State.personalCardOptionIds?.p1).toHaveLength(3);
     expect(p2State.personalCardOptionIds?.p2).toHaveLength(3);
     expect(p1State.currentCardId).toBe(state.personalCardIds?.p1);
     expect(p2State.currentCardId).toBe(state.personalCardIds?.p2);
+  });
+
+  it('keeps paid business search results private to their player', () => {
+    const state = createMatch(45, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+    ]);
+    state.businessMarket.personalOfferIds = { p1: 'coffee', p2: 'storage' };
+
+    expect(toClientState(state, 'p1')?.businessMarket.personalOfferIds).toEqual({ p1: 'coffee' });
+    expect(toClientState(state, 'p2')?.businessMarket.personalOfferIds).toEqual({ p2: 'storage' });
   });
 
   it('exposes lock status without leaking another player choice', () => {

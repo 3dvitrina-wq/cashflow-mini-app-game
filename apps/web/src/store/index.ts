@@ -20,6 +20,7 @@ import {
   previewChoice as enginePreviewChoice,
   canAffordChoice,
   cardIdForPlayer,
+  BUSINESS_MARKET_SEARCH_FEE,
   shouldAcceptPersonalCardOffer,
   type NewPlayer,
   type FairnessResult,
@@ -73,7 +74,7 @@ interface AppState {
   startMultiplayerMatch: (serverState: EngineMatchState, localPlayerId: string) => void;
   receiveServerState: (serverState: EngineMatchState) => void;
   nextRound: () => void;
-  selectPersonalCards: (activeCardId: string, reserveCardId: string) => boolean;
+  selectPersonalCards: (activeCardId: string, reserveCardId?: string | null) => boolean;
   submitIntent: (choiceIdx: number) => void;
   offerPersonalCard: (offer: {
     audience: 'direct' | 'table';
@@ -96,6 +97,7 @@ interface AppState {
   openFutures: (tokenSymbol: string, direction: FuturesDirection, leverage: number, amount: number) => boolean;
   buyPet: (petId: string) => boolean;
   buyAsset: (assetId: BusinessAssetId) => boolean;
+  searchBusinessMarket: () => boolean;
   surrenderMatch: () => boolean;
   leaveMatch: () => boolean;
   sellAsset: (assetId: string, salePrice?: number) => boolean;
@@ -476,6 +478,34 @@ function lockDefaultPersonalSelection(state: EngineMatchState, playerId: string)
   }).state;
 }
 
+function maybeListBotOpportunity(state: EngineMatchState, humanId: string): EngineMatchState {
+  // Start on month two so a new player's ownership tutorial is not covered by
+  // a second competing surface. Then repeat every three months.
+  if (state.experienceMode !== 'basic' || (state.round - 2) % 3 !== 0) return state;
+  if ((state.personalCardOffers ?? []).some((offer) => offer.round === state.round && offer.status === 'pending')) return state;
+  const candidates = state.players.filter((player) => {
+    if (!player.alive || player.id === humanId || state.pendingIntents[player.id]) return false;
+    const card = getCard(cardIdForPlayer(state, player.id));
+    return card?.type === 'opportunity' || card?.type === 'modern_earning';
+  });
+  const seller = candidates[(state.round + candidates.length) % Math.max(1, candidates.length)];
+  if (!seller) return state;
+  const card = getCard(cardIdForPlayer(state, seller.id));
+  const costs = (card?.choices ?? [])
+    .flatMap((choice) => choice.effects)
+    .filter((effect) => effect.type === 'cash.delta' && (effect.amount ?? 0) < 0)
+    .map((effect) => Math.abs(effect.amount ?? 0));
+  const anchor = costs.length > 0 ? Math.min(...costs) : 1_000;
+  const askingPrice = Math.max(150, Math.min(1_500, Math.round(anchor * 0.2 / 50) * 50));
+  const listed = resolveCommand(state, {
+    type: 'offer_personal_card',
+    playerId: seller.id,
+    audience: 'table',
+    askingPrice,
+  });
+  return listed.events.some((event) => event.type === 'command_rejected') ? state : listed.state;
+}
+
 // Resolve all queued intents (settlement is in advanceRound), then advance the
 // round: draw next card, open the negotiation interest window for opportunity/
 // social cards, detect an incoming bot invite, and open the next round's intent
@@ -748,7 +778,8 @@ export const useStore = create<AppState>((set, get) => ({
       !me
       || !asset
       || market.openedRound !== st.engineMatch.round
-      || !market.offerIds.includes(assetId)
+      || market.boughtPlayerIds?.includes(me.id)
+      || (!market.offerIds.includes(assetId) && market.personalOfferIds?.[me.id] !== assetId)
       || me.cash < asset.price
       || me.businessSlotsUsed + asset.slotsUsed > me.businessSlotsMax
     ) return false;
@@ -762,6 +793,27 @@ export const useStore = create<AppState>((set, get) => ({
     }
     const result = resolveCommand(st.engineMatch, cmd);
     const rejected = result.events.some((e) => e.type === 'command_rejected');
+    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
+    return !rejected;
+  },
+
+  searchBusinessMarket: () => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    const me = getLocalPlayer(st);
+    const market = st.engineMatch.businessMarket;
+    if (
+      !me
+      || market.openedRound !== st.engineMatch.round
+      || market.offerIds.length > 0
+      || market.boughtPlayerIds?.includes(me.id)
+      || market.searchedPlayerIds?.includes(me.id)
+      || me.cash < BUSINESS_MARKET_SEARCH_FEE
+    ) return false;
+    const command: Command = { type: 'search_business_market', playerId: me.id };
+    if (st.isMultiplayer) return wsClient.send({ type: 'command', command });
+    const result = resolveCommand(st.engineMatch, command);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
     set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
     return !rejected;
   },
@@ -1109,7 +1161,8 @@ export const useStore = create<AppState>((set, get) => ({
     if (st.isMultiplayer) return wsClient.send({ type: 'command', command });
     const result = resolveCommand(st.engineMatch, command);
     if (result.events.some((event) => event.type === 'command_rejected')) return false;
-    set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
+    const next = maybeListBotOpportunity(result.state, human.id);
+    set({ engineMatch: next, match: toUiMatch(next, st.negotiatingPlayerIds) });
     return true;
   },
 

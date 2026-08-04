@@ -477,7 +477,7 @@ export type Command =
       type: 'select_personal_cards';
       playerId: PlayerId;
       activeCardId: CardId;
-      reserveCardId: CardId;
+      reserveCardId?: CardId | null;
     }
   | {
       type: 'offer_personal_card';
@@ -497,6 +497,7 @@ export type Command =
   | { type: 'buy_protection'; playerId: PlayerId; protectionId: string }
   | { type: 'hire_staff'; playerId: PlayerId; staffId: string; salary?: number; bonus?: { slots?: number; income?: number } }
   | { type: 'buy_asset'; playerId: PlayerId; assetId: BusinessAssetId }
+  | { type: 'search_business_market'; playerId: PlayerId }
   | { type: 'buy_pet'; playerId: PlayerId; petId: string }
   | { type: 'surrender'; playerId: PlayerId }
   | { type: 'file_bankruptcy'; playerId: PlayerId }
@@ -612,13 +613,15 @@ export interface MatchState {
   // simultaneously. PRO keeps the shared-table/draft negotiation systems.
   experienceMode?: ExperienceMode;
   personalCardIds?: Record<PlayerId, CardId | null>;
-  /** BASIC: three private candidates from which the player keeps two. */
+  /** BASIC: three private candidates from which the player plays one. */
   personalCardOptionIds?: Record<PlayerId, CardId[]>;
-  /** BASIC: the kept card that returns to next month's three-card hand. */
+  /** BASIC: optional kept card that returns to next month's three-card hand. */
   personalCardReserveIds?: Record<PlayerId, CardId | null>;
+  /** BASIC: cards explicitly burned last month; excluded from that player's next hand. */
+  personalCardDiscardIds?: Record<PlayerId, CardId[]>;
   /** BASIC: identifies which candidate actually arrived from last month's reserve. */
   personalCardCarriedIds?: Record<PlayerId, CardId | null>;
-  /** BASIC: true until the human names one card for now and one for later. */
+  /** BASIC: true until the human names one card for now and optionally one for later. */
   personalCardSelectionPending?: Record<PlayerId, boolean>;
   personalCardOffers?: PersonalCardOffer[];
   globalCardId?: CardId | null;
@@ -643,6 +646,12 @@ export interface MatchState {
     openedRound: number;
     nextOpenRound: number;
     offerIds: BusinessAssetId[];
+    /** One purchase per player keeps latency from deciding who sweeps the market. */
+    boughtPlayerIds?: PlayerId[];
+    /** One paid deep-search attempt per player in a sold-out market window. */
+    searchedPlayerIds?: PlayerId[];
+    /** Private off-market result revealed only to its player. */
+    personalOfferIds?: Record<PlayerId, BusinessAssetId | null>;
   };
 
   // Events

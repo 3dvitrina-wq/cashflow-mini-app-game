@@ -22,6 +22,7 @@ import type {
   TokenSymbol,
 } from '../../shared/src/index';
 import {
+  BUSINESS_ASSET_IDS,
   BUSINESS_MARKET_CADENCE_ROUNDS,
   BUSINESS_MARKET_OFFER_COUNT,
   DEFAULT_EPOCH,
@@ -183,6 +184,8 @@ const BUSINESS_MARKET_TIERS: readonly (readonly BusinessAssetId[])[] = [
   ['ai-startup', 'logistics', 'crypto-mining', 'office'],
 ];
 
+export const BUSINESS_MARKET_SEARCH_FEE = 150;
+
 /**
  * One reachable, one mid-size and one ambitious business per market window.
  * Each tier is shuffled by the match seed and rotates independently, preserving
@@ -207,7 +210,18 @@ function businessMarketForRound(seed: Seed, openedRound: number): MatchState['bu
     openedRound,
     nextOpenRound: openedRound + BUSINESS_MARKET_CADENCE_ROUNDS,
     offerIds: businessMarketOfferIds(seed, openedRound),
+    boughtPlayerIds: [],
+    searchedPlayerIds: [],
+    personalOfferIds: {},
   };
+}
+
+function searchedBusinessOfferId(state: MatchState, playerId: string): BusinessAssetId | null {
+  const publicWindowIds = new Set(businessMarketOfferIds(state.seed, state.businessMarket.openedRound));
+  const candidates = BUSINESS_ASSET_IDS.filter((assetId) => !publicWindowIds.has(assetId));
+  if (candidates.length === 0) return null;
+  const playerIndex = Math.max(0, state.players.findIndex((player) => player.id === playerId));
+  return candidates[rngInt(state.seed ^ 0x53454152, state.round * 97 + playerIndex * 17, candidates.length)] ?? null;
 }
 
 // ─── Player Creation ────────────────────────────────────────────────────────
@@ -433,7 +447,8 @@ export function cardIdForPlayer(state: MatchState, playerId: string): string | n
 /**
  * Deal a private three-card hand to every alive BASIC player.
  *
- * One card is played now, one is carried into the next month, and one is burned.
+ * One card is played now, a second may be carried into the next month, and the
+ * rest are burned. Cards burned by a player cannot return in their next hand.
  * Bots lock the deterministic default immediately. Humans keep the same defaults
  * only as a timeout fallback and must explicitly confirm or change them in UI.
  */
@@ -444,6 +459,8 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
   const carriedIds: Record<string, string | null> = {};
   const pending: Record<string, boolean> = {};
   const previousReserves = state.personalCardReserveIds ?? {};
+  const previousDiscards = state.personalCardDiscardIds ?? {};
+  const discards: Record<string, string[]> = {};
   let cursor = startCursor;
 
   for (const player of state.players) {
@@ -452,6 +469,7 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       options[player.id] = [];
       reserves[player.id] = null;
       carriedIds[player.id] = null;
+      discards[player.id] = [];
       pending[player.id] = false;
       continue;
     }
@@ -479,7 +497,7 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       const candidateId = state.deck[index];
       cursor = (cursor + 1) % Math.max(1, state.deck.length);
       inspected += 1;
-      if (hand.includes(candidateId)) continue;
+      if (hand.includes(candidateId) || previousDiscards[player.id]?.includes(candidateId)) continue;
       const candidate = getCard(candidateId);
       const allowedInBasic = candidate && candidate.type !== 'market_pulse' && candidate.type !== 'social';
       const alreadyHasCrisis = hand.some((cardId) => getCard(cardId)?.type === 'crisis');
@@ -496,7 +514,10 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       if (hand.length >= 3) break;
       const fallback = getCard(fallbackId);
       const alreadyHasCrisis = hand.some((cardId) => getCard(cardId)?.type === 'crisis');
-      if (!hand.includes(fallbackId) && fallback && !(fallback.type === 'crisis' && alreadyHasCrisis)) {
+      if (!hand.includes(fallbackId)
+        && !previousDiscards[player.id]?.includes(fallbackId)
+        && fallback
+        && !(fallback.type === 'crisis' && alreadyHasCrisis)) {
         hand.push(fallbackId);
       }
     }
@@ -513,12 +534,16 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
     personal[player.id] = activeCardId;
     options[player.id] = orderedHand.slice(0, 3);
     reserves[player.id] = reserveCardId;
+    discards[player.id] = player.isBot
+      ? orderedHand.filter((cardId) => cardId !== activeCardId && cardId !== reserveCardId)
+      : [];
     pending[player.id] = !player.isBot && orderedHand.length === 3;
   }
 
   state.personalCardIds = personal;
   state.personalCardOptionIds = options;
   state.personalCardReserveIds = reserves;
+  state.personalCardDiscardIds = discards;
   state.personalCardCarriedIds = carriedIds;
   state.personalCardSelectionPending = pending;
   // Advance the weighted deck cursor after all private hands. Without this the
@@ -670,15 +695,15 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (!player?.alive) return 'player not available';
     if (!state.personalCardSelectionPending?.[player.id]) return 'personal cards already selected';
     const options = state.personalCardOptionIds?.[player.id] ?? [];
-    if (cmd.activeCardId === cmd.reserveCardId) return 'active and reserve cards must be different';
-    if (!options.includes(cmd.activeCardId) || !options.includes(cmd.reserveCardId)) {
+    if (cmd.reserveCardId && cmd.activeCardId === cmd.reserveCardId) return 'active and reserve cards must be different';
+    if (!options.includes(cmd.activeCardId) || (cmd.reserveCardId && !options.includes(cmd.reserveCardId))) {
       return 'selected personal card is not in this hand';
     }
     const forcedCrisisId = options.find((cardId) => getCard(cardId)?.type === 'crisis');
     if (forcedCrisisId && cmd.activeCardId !== forcedCrisisId) {
       return 'crisis events must be resolved now';
     }
-    if (getCard(cmd.reserveCardId)?.type === 'crisis') {
+    if (cmd.reserveCardId && getCard(cmd.reserveCardId)?.type === 'crisis') {
       return 'crisis events cannot be reserved';
     }
     return null;
@@ -782,6 +807,7 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     || cmd.type === 'deposit'
     || cmd.type === 'withdraw'
     || cmd.type === 'buy_asset'
+    || cmd.type === 'search_business_market'
     || cmd.type === 'buy_pet'
   ) {
     const player = state.players.find((p) => p.id === cmd.playerId);
@@ -806,13 +832,27 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       if (!isBusinessMarketOpen(state)) {
         return `business market is closed until round ${state.businessMarket.nextOpenRound}`;
       }
-      if (!state.businessMarket.offerIds.includes(asset.id)) {
+      if (state.businessMarket.boughtPlayerIds?.includes(player.id)) {
+        return 'player already bought from this market window';
+      }
+      const isPublicOffer = state.businessMarket.offerIds.includes(asset.id);
+      const isPersonalOffer = state.businessMarket.personalOfferIds?.[player.id] === asset.id;
+      if (!isPublicOffer && !isPersonalOffer) {
         return 'business asset is not available in the current market';
       }
       if (asset.price > player.cash) return 'insufficient cash to buy asset';
       if (player.businessSlotsUsed + asset.slotsUsed > player.businessSlotsMax) {
         return 'no free business slots';
       }
+    }
+    if (cmd.type === 'search_business_market') {
+      if (!isBusinessMarketOpen(state)) {
+        return `business market is closed until round ${state.businessMarket.nextOpenRound}`;
+      }
+      if (state.businessMarket.offerIds.length > 0) return 'public business offers are still available';
+      if (state.businessMarket.boughtPlayerIds?.includes(player.id)) return 'player already bought from this market window';
+      if (state.businessMarket.searchedPlayerIds?.includes(player.id)) return 'market search already used this window';
+      if (player.cash < BUSINESS_MARKET_SEARCH_FEE) return 'insufficient cash for market search';
     }
     if (cmd.type === 'buy_pet') {
       const pet = getPetEconomyDefinition(cmd.petId);
@@ -944,19 +984,23 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
     state.personalCardReserveIds ??= {};
     state.personalCardSelectionPending ??= {};
     state.personalCardIds[cmd.playerId] = cmd.activeCardId;
-    state.personalCardReserveIds[cmd.playerId] = cmd.reserveCardId;
+    state.personalCardDiscardIds ??= {};
+    state.personalCardReserveIds[cmd.playerId] = cmd.reserveCardId ?? null;
     state.personalCardSelectionPending[cmd.playerId] = false;
+    const discarded: string[] = [];
     for (const cardId of options) {
       if (cardId !== cmd.activeCardId && cardId !== cmd.reserveCardId) {
         state.discardPile.push(cardId);
+        discarded.push(cardId);
       }
     }
+    state.personalCardDiscardIds[cmd.playerId] = discarded;
     if (cmd.playerId === active.id) state.currentCardId = cmd.activeCardId;
     events.push({
       type: 'command_accepted',
       playerId: cmd.playerId,
       message: 'personal cards selected',
-      payload: { activeCardId: cmd.activeCardId, reserveCardId: cmd.reserveCardId },
+      payload: { activeCardId: cmd.activeCardId, reserveCardId: cmd.reserveCardId ?? null },
     });
     state.eventLog.push(...events);
     return { state, events };
@@ -973,9 +1017,15 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         state.personalCardSelectionPending[cmd.playerId] = false;
         const activeCardId = state.personalCardIds?.[cmd.playerId];
         const reserveCardId = state.personalCardReserveIds?.[cmd.playerId];
+        const discarded: string[] = [];
         for (const optionId of state.personalCardOptionIds?.[cmd.playerId] ?? []) {
-          if (optionId !== activeCardId && optionId !== reserveCardId) state.discardPile.push(optionId);
+          if (optionId !== activeCardId && optionId !== reserveCardId) {
+            state.discardPile.push(optionId);
+            discarded.push(optionId);
+          }
         }
+        state.personalCardDiscardIds ??= {};
+        state.personalCardDiscardIds[cmd.playerId] = discarded;
       }
       state.pendingIntents[cmd.playerId] = cmd;
       events.push({ type: 'command_accepted', playerId: cmd.playerId, message: `intent:${cmd.type}` });
@@ -1126,6 +1176,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       if (state.personalCardIds) state.personalCardIds[player.id] = null;
       if (state.personalCardOptionIds) state.personalCardOptionIds[player.id] = [];
       if (state.personalCardReserveIds) state.personalCardReserveIds[player.id] = null;
+      if (state.personalCardDiscardIds) state.personalCardDiscardIds[player.id] = [];
       if (state.personalCardCarriedIds) state.personalCardCarriedIds[player.id] = null;
       if (state.personalCardSelectionPending) state.personalCardSelectionPending[player.id] = false;
       if (state.activeInterestWindow) {
@@ -1220,13 +1271,37 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         slotsUsed: assetConfig.slotsUsed,
       });
       player.businessSlotsUsed += assetConfig.slotsUsed;
-      state.businessMarket.offerIds = state.businessMarket.offerIds.filter((id) => id !== assetConfig.id);
+      const isPersonalOffer = state.businessMarket.personalOfferIds?.[player.id] === assetConfig.id;
+      if (isPersonalOffer && state.businessMarket.personalOfferIds) {
+        state.businessMarket.personalOfferIds[player.id] = null;
+      } else {
+        state.businessMarket.offerIds = state.businessMarket.offerIds.filter((id) => id !== assetConfig.id);
+      }
+      state.businessMarket.boughtPlayerIds = [...new Set([...(state.businessMarket.boughtPlayerIds ?? []), player.id])];
       if (!player.businesses.includes(assetConfig.name)) player.businesses.push(assetConfig.name);
       events.push({ type: 'money', playerId: player.id, amount: -assetConfig.price, message: `bought ${assetConfig.name}` });
       events.push({ type: 'effect', playerId: player.id, effectType: 'asset.add', amount: assetConfig.price, message: assetConfig.name });
       if (assetConfig.incomePerRound !== 0) {
         events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: assetConfig.incomePerRound, message: `${assetConfig.name} monthly payout` });
       }
+      break;
+    }
+
+    case 'search_business_market': {
+      const player = state.players.find((candidate) => candidate.id === cmd.playerId);
+      if (!player) break;
+      const foundId = searchedBusinessOfferId(state, player.id);
+      player.cash -= BUSINESS_MARKET_SEARCH_FEE;
+      state.businessMarket.searchedPlayerIds = [...new Set([...(state.businessMarket.searchedPlayerIds ?? []), player.id])];
+      state.businessMarket.personalOfferIds ??= {};
+      state.businessMarket.personalOfferIds[player.id] = foundId;
+      events.push({ type: 'money', playerId: player.id, amount: -BUSINESS_MARKET_SEARCH_FEE, message: 'business market search' });
+      events.push({
+        type: 'effect',
+        playerId: player.id,
+        effectType: 'market.event.apply',
+        message: foundId ? `personal business offer:${foundId}` : 'personal business search empty',
+      });
       break;
     }
 

@@ -60,6 +60,39 @@ describe('BASIC private simultaneous cards', () => {
     expect(state.discardPile).toContain(options.find((cardId) => cardId !== activeCardId && cardId !== reserveCardId));
   });
 
+  it('allows playing one card without a reserve and keeps both burns out of the next hand', () => {
+    let state = createMatch(780, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    state = openIntentWindow(state);
+    const p1Options = state.personalCardOptionIds?.p1 ?? [];
+    const p2Options = state.personalCardOptionIds?.p2 ?? [];
+    const p1Active = p1Options.find((cardId) => getCard(cardId)?.type === 'crisis') ?? p1Options[0]!;
+    const burned = p1Options.filter((cardId) => cardId !== p1Active);
+    const p2Active = p2Options.find((cardId) => getCard(cardId)?.type === 'crisis') ?? p2Options[0]!;
+    const p2Reserve = p2Options.find((cardId) => cardId !== p2Active && getCard(cardId)?.type !== 'crisis')!;
+
+    state = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p1',
+      activeCardId: p1Active,
+      reserveCardId: null,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p2',
+      activeCardId: p2Active,
+      reserveCardId: p2Reserve,
+    }).state;
+
+    expect(state.personalCardReserveIds?.p1).toBeNull();
+    expect(state.personalCardDiscardIds?.p1).toEqual(burned);
+
+    state = resolveCommand(state, { type: 'pass', playerId: 'p1' }).state;
+    state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
+    state = advanceRound(resolveAllIntents(state).state).state;
+
+    expect(state.personalCardOptionIds?.p1?.some((cardId) => burned.includes(cardId))).toBe(false);
+  });
+
   it('forces a dealt crisis to resolve now instead of allowing it to be burned or reserved', () => {
     let state = createMatch(1, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
     let crisisPlayerId = state.players.find((player) =>

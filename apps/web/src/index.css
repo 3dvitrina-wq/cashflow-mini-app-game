@@ -411,6 +411,17 @@ button {
 .personal-draft-footer > div { display: flex; flex-direction: column; gap: 3px; }
 .personal-draft-footer span { color: #6F716F; font-size: 9px; font-weight: 900; text-transform: uppercase; }
 .personal-draft-footer span.done { color: #5BD7E0; }
+.personal-draft-clear-reserve {
+  min-height: 24px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #83E8EF;
+  font-size: 9px;
+  font-weight: 900;
+  text-align: left;
+  text-transform: uppercase;
+}
 .personal-draft-footer button {
   min-height: 52px;
   border: 0;
@@ -420,6 +431,14 @@ button {
   font-size: 15px;
   font-weight: 950;
   box-shadow: 0 10px 28px rgba(91,215,224,.18);
+}
+.personal-draft-footer > div .personal-draft-clear-reserve {
+  min-height: 24px;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: #83E8EF;
+  font-size: 9px;
 }
 .personal-draft-footer button:disabled { background: #252A31; color: #696D73; box-shadow: none; }
 
@@ -435,7 +454,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .survival-choice-market-available { animation: none; }
   .personal-draft-card { transition: none; }
 }
 
@@ -699,25 +717,6 @@ button {
   background: rgba(255, 255, 255, .06);
   color: #F5F4ED;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .06);
-}
-
-.turn-plus-badge {
-  position: absolute;
-  top: -9px;
-  right: -9px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background: #E84B2A;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 0 0 2px #0B0D11;
-  z-index: 4;
-  pointer-events: none;
 }
 
 /* ============ PLAYER RAIL ============ */
@@ -1138,6 +1137,12 @@ button {
   backdrop-filter: blur(16px);
   font-size: 12px;
   font-weight: 850;
+}
+
+.table-tools-menu-item-active {
+  border-color: rgba(40,199,111,.64);
+  background: linear-gradient(180deg, rgba(23,70,45,.98), rgba(12,38,25,.98));
+  box-shadow: 0 0 0 1px rgba(40,199,111,.14), 0 8px 20px rgba(0,0,0,.42);
 }
 
 .table-tools-menu-icon {
@@ -1783,72 +1788,6 @@ button {
 
 .decision-choice-panel .survival-choice-selected .survival-choice-icon {
   background: rgba(245, 197, 36, .18);
-}
-
-.decision-choice-panel .survival-choice-market {
-  flex: 0 0 60px;
-  width: 60px;
-  min-width: 60px;
-  max-width: 60px;
-  min-height: 60px;
-  margin-left: auto;
-  padding: 0;
-  overflow: visible;
-  align-items: center;
-  justify-content: center;
-  border-color: rgba(245, 197, 36, .22);
-  background:
-    radial-gradient(circle at 18% 0%, rgba(245,197,36,.18), transparent 40%),
-    linear-gradient(180deg, rgba(74, 54, 20, .96), rgba(33, 25, 12, .98));
-  color: #FFF7DE;
-}
-
-.decision-choice-panel .survival-choice-market .survival-choice-icon {
-  width: 30px;
-  height: 30px;
-  flex: 0 0 30px;
-  background: rgba(255, 247, 222, .14);
-  color: #FFF7DE;
-}
-
-.decision-choice-panel .survival-choice-market-available {
-  flex-direction: column;
-  gap: 2px;
-  border-color: rgba(40, 199, 111, .76);
-  background:
-    radial-gradient(circle at 18% 0%, rgba(40,199,111,.25), transparent 44%),
-    linear-gradient(180deg, rgba(23, 70, 45, .98), rgba(12, 38, 25, .99));
-  color: #8CF0B7;
-  animation: market-entry-pulse 1600ms ease-in-out infinite;
-}
-
-.decision-choice-panel .survival-choice-market-available .survival-choice-icon {
-  width: 26px;
-  height: 26px;
-  flex-basis: 26px;
-  background: rgba(40, 199, 111, .16);
-  color: #8CF0B7;
-}
-
-.survival-choice-market-label {
-  color: #8CF0B7;
-  font-size: 8px;
-  font-weight: 950;
-  line-height: 1;
-  letter-spacing: .03em;
-}
-
-.decision-choice-panel .survival-choice-market-open {
-  border-color: rgba(245, 197, 36, .86);
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.10),
-    0 0 0 1.5px rgba(245,197,36,.22),
-    0 8px 16px rgba(0,0,0,.34);
-}
-
-.decision-choice-panel .survival-choice-market-open .survival-choice-icon svg {
-  transform: rotate(45deg);
-  transition: transform .2s ease;
 }
 
 .decision-choice-panel .survival-choice-label {
@@ -2900,6 +2839,18 @@ button {
   transform: scale(.96);
 }
 
+.turn-tools-button-market-active {
+  border-color: rgba(40,199,111,.78);
+  background: linear-gradient(180deg, rgba(23,70,45,.98), rgba(12,38,25,.98));
+  color: #8CF0B7;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.10), 0 0 0 1px rgba(40,199,111,.16), 0 9px 20px rgba(0,0,0,.36);
+  animation: market-entry-pulse 1800ms ease-in-out 3;
+}
+
+.turn-tools-button-market-active > span {
+  background: #28C76F;
+}
+
 .turn-confirm-button {
   min-height: 58px;
   display: flex;
@@ -3750,6 +3701,10 @@ button {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .turn-tools-button-market-active { animation: none; }
+}
+
 @media (max-height: 700px) {
   .card-stage {
     min-height: 0;
@@ -4402,6 +4357,302 @@ button {
 /* ============ PLAYER / BOT PROFILE ============ */
 .bottom-sheet:has(.player-profile-sheet) .bottom-sheet-content {
   padding: 12px 14px max(var(--safe-bottom), 14px);
+}
+
+/* Bank is a compact three-pane control surface, not a vertical document. */
+.bottom-sheet:has(.bank-sheet) {
+  overflow: hidden;
+}
+
+.bottom-sheet:has(.bank-sheet) .bottom-sheet-content {
+  overflow: hidden;
+  padding: 10px 12px 12px;
+}
+
+.bank-sheet {
+  display: grid;
+  gap: 9px;
+  color: #F5F4ED;
+}
+
+.bank-overview {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bank-overview > div {
+  min-width: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 12px;
+  background: rgba(255,255,255,.035);
+  padding: 8px 9px;
+}
+
+.bank-overview span,
+.bank-credit-result span {
+  display: block;
+  color: #858378;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+.bank-overview strong {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  font-size: 15px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bank-overview .positive { color: #53E391; }
+.bank-overview .negative { color: #FF8B70; }
+.bank-overview .cyan { color: #83E8EF; }
+
+.bank-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  background: rgba(0,0,0,.18);
+  padding: 4px;
+}
+
+.bank-tabs button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #949187;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.bank-tabs button[aria-selected="true"] {
+  background: linear-gradient(180deg, rgba(245,197,36,.2), rgba(245,197,36,.09));
+  color: #F7D75B;
+  box-shadow: inset 0 0 0 1px rgba(245,197,36,.26);
+}
+
+.bank-tabs b {
+  display: inline-grid;
+  min-width: 17px;
+  height: 17px;
+  margin-left: 3px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  font-size: 9px;
+}
+
+.bank-pane {
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  background: rgba(7,9,13,.34);
+  padding: 11px;
+}
+
+.bank-pane-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, 1.35fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.bank-pane-header > div span,
+.bank-credit-intro span {
+  display: block;
+  color: #FF8B70;
+  font-size: 8px;
+  font-weight: 950;
+  letter-spacing: .08em;
+}
+
+.bank-pane-header > div strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.bank-pane-header p {
+  margin: 0;
+  color: #A29F95;
+  font-size: 10px;
+  line-height: 1.32;
+}
+
+.bank-pane-header p b { color: #FF8B70; }
+.bank-pane-header-cyan > div span { color: #83E8EF; }
+
+.bank-debt-list,
+.bank-deposit-list {
+  display: grid;
+  gap: 6px;
+}
+
+.bank-debt-row,
+.bank-deposit-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 58px;
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,.03);
+  padding: 6px 7px 6px 10px;
+}
+
+.bank-debt-row > div {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1px 8px;
+}
+
+.bank-debt-row span {
+  overflow: hidden;
+  color: #C7C3B8;
+  font-size: 10px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bank-debt-row strong { color: #F5F4ED; font-size: 13px; text-align: right; }
+.bank-debt-row small { grid-column: 1 / -1; color: #FF8B70; font-size: 9px; }
+.bank-debt-row button,
+.bank-deposit-row button {
+  min-width: 88px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: #F5C524;
+  color: #151006;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.bank-debt-row button:disabled,
+.bank-deposit-row button:disabled,
+.bank-deposit-offers button:disabled,
+.bank-primary-action:disabled,
+.bank-preset-row button:disabled { opacity: .34; }
+
+.bank-empty {
+  display: grid;
+  min-height: 82px;
+  place-content: center;
+  border: 1px dashed rgba(83,227,145,.24);
+  border-radius: 13px;
+  color: #8D8A80;
+  text-align: center;
+}
+
+.bank-empty strong { color: #53E391; font-size: 14px; }
+.bank-empty span { margin-top: 3px; font-size: 10px; }
+
+.bank-credit-intro {
+  display: grid;
+  min-height: 82px;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+}
+
+.bank-credit-intro img {
+  width: 76px;
+  height: 76px;
+  object-fit: contain;
+  filter: drop-shadow(0 10px 14px rgba(0,0,0,.3));
+}
+
+.bank-credit-intro strong {
+  display: block;
+  margin: 3px 0;
+  font-size: 14px;
+  line-height: 1.08;
+}
+
+.bank-credit-intro small { display: block; color: #918E84; font-size: 9px; line-height: 1.25; }
+
+.bank-preset-row,
+.bank-deposit-offers,
+.bank-credit-result {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.bank-preset-row button {
+  min-height: 44px;
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 11px;
+  background: rgba(255,255,255,.04);
+  color: #B9B6AC;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.bank-preset-row button[aria-pressed="true"] {
+  border-color: rgba(245,197,36,.52);
+  background: rgba(245,197,36,.16);
+  color: #F7D75B;
+}
+
+.bank-credit-result { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bank-credit-result > div {
+  border-radius: 11px;
+  background: rgba(255,255,255,.035);
+  padding: 8px 10px;
+}
+.bank-credit-result strong { display: block; margin-top: 2px; color: #F5F4ED; font-size: 14px; }
+.bank-credit-result > div:last-child strong { color: #FF8B70; }
+
+.bank-primary-action {
+  min-height: 48px;
+  border: 0;
+  border-radius: 13px;
+  background: linear-gradient(180deg, #53E391, #1FA75D);
+  color: #07150D;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.bank-deposit-offers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.bank-deposit-offers button {
+  display: grid;
+  min-height: 54px;
+  align-content: center;
+  border: 1px solid rgba(91,215,224,.22);
+  border-radius: 12px;
+  background: rgba(91,215,224,.06);
+  color: #F5F4ED;
+}
+.bank-deposit-offers span { color: #8E8B82; font-size: 9px; font-weight: 850; }
+.bank-deposit-offers strong { margin-top: 2px; color: #83E8EF; font-size: 14px; }
+
+.bank-deposit-row > div { display: grid; }
+.bank-deposit-row strong { font-size: 13px; }
+.bank-deposit-row span { color: #8E8B82; font-size: 9px; }
+.bank-deposit-row button { background: #5BD7E0; }
+
+@media (max-height: 760px) {
+  .bottom-sheet:has(.bank-sheet) .bottom-sheet-content { padding-top: 7px; }
+  .bank-sheet { gap: 6px; }
+  .bank-overview > div { padding-block: 6px; }
+  .bank-pane { gap: 6px; padding: 8px; }
+  .bank-credit-intro { min-height: 68px; grid-template-columns: 64px minmax(0,1fr); }
+  .bank-credit-intro img { width: 64px; height: 64px; }
 }
 
 .player-profile-sheet {
