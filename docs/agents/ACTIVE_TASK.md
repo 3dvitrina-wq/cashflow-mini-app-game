@@ -32,7 +32,7 @@ night survival job. Do not “fix” this by removing losses.
   month resolution.
 - The `?` button toggles a persistent preview derived from the same engine math
   used by authoritative resolution.
-- First active match opens a ten-step, skippable, mode-aware guided tour. Its
+- First active match opens an eleven-step, skippable, mode-aware guided tour. Its
   first statement is `Эта карта принадлежит только вам`; the player performs a
   real choice, opens the authoritative `?` preview and tries a profile reaction
   while the match remains paused. The
@@ -60,7 +60,13 @@ night survival job. Do not “fix” this by removing losses.
   the card/market UI instead of masquerading as disappearing notifications.
 - The active-turn mobile layout gives the private card the visual stage, keeps
   the compact money HUD and decisions visible, and never scrolls card copy inside
-  the phone viewport. Deal/meaning/action motion is staged and reduced-motion safe.
+  the phone viewport. Ownership, meaning and actions are temporally staged and
+  reduced-motion safe: a dealt card first says who owns it, then reveals the
+  event signal and copy, so scope and consequence never compete in one banner.
+- Multiple BASIC cards listed by different owners stay separate from the global
+  market. Recipients see one bounded `Стол возможностей` tray with owner, asking
+  price, round expiry and a `1/N` pager. A player may buy one listed card per
+  round; the first server-accepted buyer owns a contested listing.
 - The waiting room now separates room status, seats, bot controls, match settings
   and sticky start/exit actions instead of presenting one undifferentiated stack.
 - Bank, market, labor, pets, events, player profiles, business slots and cashflow
@@ -97,6 +103,15 @@ night survival job. Do not “fix” this by removing losses.
 - Bank recap debt now includes only live Bank liabilities. Paying the displayed
   Bank loan in full yields zero bank debt even when another profession/university
   obligation remains.
+- Financial freedom has one authoritative contract across engine, HUD, tutorial,
+  lobby, bank, cashflow, dashboard and recap: recurring non-salary income must
+  cover recurring expenses and live Bank debt must be zero. Starting mortgages,
+  education and card obligations are individually repayable and lower the
+  recurring target when cleared.
+- All 24 professions now trade salary against a proportionate freedom gap and
+  begin with bounded liquidity. Their deterministic 15-round no-choice baseline
+  stays within a 30-point score band, so a high salary is more purchasing power
+  paired with a much larger finish line rather than a free head start.
 - Pets now preserve exact identity in server snapshots and have canonical
   engine-owned price, upkeep and effects. Their stress/trust/income effects recur
   at settlement, appear as a named ledger line, and the owned pet is visible as
@@ -109,8 +124,8 @@ night survival job. Do not “fix” this by removing losses.
 - PRO-only partnership choices are visibly gated in BASIC.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 159/159; server 10/10; sim 57/57; web/server typecheck; production
-  build; interactive 10-step browser walkthrough at 402×874; Network Lab and
+- Verification: engine 163/163; server 11/11; web/server typecheck; production
+  build; interactive 11-step browser walkthrough at 402×874; Network Lab and
   reconnect smoke; 25-card mobile geometry run; iPhone
   16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
   off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete

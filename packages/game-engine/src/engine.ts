@@ -1408,9 +1408,10 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
     case 'repay_loan': {
       const player = state.players.find((p) => p.id === cmd.playerId);
       if (player) {
-        const idx = player.liabilities.findIndex(
-          (liability) => liability.id === cmd.loanId && isBankCreditor(liability.creditor),
-        );
+        // Starting mortgages/cards/student loans are real economics, not lore.
+        // They can be cleared just like a loan taken during the match. Only an
+        // actual Bank loan moves the coarse debt meter.
+        const idx = player.liabilities.findIndex((liability) => liability.id === cmd.loanId);
         const loan = idx >= 0 ? player.liabilities[idx] : undefined;
         if (!loan) {
           events.push({ type: 'command_rejected', playerId: player.id, message: 'loan not found' });
@@ -1420,7 +1421,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
           // Repay principal from cash and lift the recurring interest load.
           player.cash -= loan.principal;
           player.liabilities.splice(idx, 1);
-          player.debt = Math.max(0, player.debt - 1);
+          if (isBankCreditor(loan.creditor)) player.debt = Math.max(0, player.debt - 1);
           events.push({ type: 'money', playerId: player.id, amount: -loan.principal, message: 'loan repaid' });
         }
       }
@@ -1664,6 +1665,23 @@ export interface Cashflow {
   net: number;
 }
 
+/**
+ * One authoritative view of the player's distance from the rat race.
+ * UI, tutorial and recap must use this instead of rebuilding the goal from
+ * salary-era fields. Recurring income deliberately excludes salary.
+ */
+export interface FinancialFreedomStatus {
+  recurringIncome: number;
+  recurringExpense: number;
+  recurringNet: number;
+  progress: number;
+  gap: number;
+  bankDebt: number;
+  passiveCovered: boolean;
+  bankDebtCleared: boolean;
+  achieved: boolean;
+}
+
 /** Recurring non-salary cashflow after upkeep, debt service and its marginal tax. */
 export function passiveCashflow(
   player: PlayerState,
@@ -1690,6 +1708,37 @@ export function monthlyCashflow(state: MatchState, player: PlayerState): Cashflo
   const income = activeIncome + passive.income;
   const expense = passive.expense + activeTax;
   return { income, expense, net: income - expense };
+}
+
+export function financialFreedomStatus(
+  player: PlayerState,
+  macro: MatchState['macro'] = DEFAULT_MACRO,
+): FinancialFreedomStatus {
+  const recurring = passiveCashflow(player, macro);
+  const bankDebt = Math.round(
+    player.liabilities.reduce(
+      (sum, liability) => (isBankCreditor(liability.creditor) && liability.remainingPayments > 0
+        ? sum + liability.principal
+        : sum),
+      0,
+    ),
+  );
+  const passiveCovered = recurring.net >= 0;
+  const bankDebtCleared = bankDebt === 0;
+
+  return {
+    recurringIncome: recurring.income,
+    recurringExpense: recurring.expense,
+    recurringNet: recurring.net,
+    progress: recurring.expense <= 0
+      ? 1
+      : Math.max(0, Math.min(1, recurring.income / recurring.expense)),
+    gap: Math.max(0, -recurring.net),
+    bankDebt,
+    passiveCovered,
+    bankDebtCleared,
+    achieved: passiveCovered && bankDebtCleared,
+  };
 }
 
 // ─── Advance Round ──────────────────────────────────────────────────────────
@@ -2033,17 +2082,11 @@ export function scoreBreakdown(
   macro: MatchState['macro'] = DEFAULT_MACRO,
 ): ScoreBreakdown {
   const recurring = passiveCashflow(player, macro);
+  const freedom = financialFreedomStatus(player, macro);
   const passiveAnnual = Math.round(recurring.net * 12);
   const cash = Math.round(player.cash);
   const assetValue = Math.round(player.assets.reduce((s, a) => s + a.value, 0));
-  const bankDebt = Math.round(
-    player.liabilities.reduce(
-      (s, liability) => (isBankCreditor(liability.creditor) && liability.remainingPayments > 0
-        ? s + liability.principal
-        : s),
-      0,
-    ),
-  );
+  const bankDebt = freedom.bankDebt;
 
   const bonuses: ScoreBonus[] = [];
   if (recurring.net >= 0) bonuses.push({ key: 'rat_race_out', amount: 5000 });
@@ -2054,7 +2097,7 @@ export function scoreBreakdown(
 
   const bonusTotal = bonuses.reduce((s, b) => s + b.amount, 0);
   const total = passiveAnnual + cash + assetValue - bankDebt + bonusTotal;
-  const freedomAchieved = recurring.net >= 0 && bankDebt === 0;
+  const freedomAchieved = freedom.achieved;
 
   return { passiveAnnual, cash, assetValue, bankDebt, bonuses, total, freedomAchieved };
 }

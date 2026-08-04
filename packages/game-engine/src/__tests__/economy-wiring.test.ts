@@ -194,6 +194,25 @@ describe('bank credit (take_loan)', () => {
     expect(scoreBreakdown(after, state.macro).bankDebt).toBe(0);
   });
 
+  it('lets a profession clear a starting obligation and removes its monthly payment', () => {
+    let state = createMatch(71, [
+      { id: 'p1', name: 'Student', outfit: 'creator', professionId: 'campus_student' },
+      PLAYERS[1],
+    ]);
+    const before = state.players.find((player) => player.id === 'p1')!;
+    before.cash = 2500;
+    const obligation = before.liabilities[0]!;
+    const expenseBefore = monthlyCashflow(state, before).expense;
+
+    state = resolveCommand(state, { type: 'repay_loan', playerId: 'p1', loanId: obligation.id }).state;
+    const after = state.players.find((player) => player.id === 'p1')!;
+
+    expect(after.cash).toBe(2500 - obligation.principal);
+    expect(after.liabilities.some((liability) => liability.id === obligation.id)).toBe(false);
+    expect(monthlyCashflow(state, after).expense).toBe(expenseBefore - Math.round(obligation.principal * obligation.interestRate));
+    expect(after.debt).toBe(0);
+  });
+
   it('profession loan_buffer raises the visible cap', () => {
     const match = createMatch(7, [
       { id: 'p1', name: 'Alex', outfit: 'hustler', isBot: false, professionId: 'investment_banker' },

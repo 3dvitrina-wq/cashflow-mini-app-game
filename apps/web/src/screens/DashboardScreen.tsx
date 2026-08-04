@@ -6,9 +6,12 @@ import iconExpenses from '../assets/generated/dashboard/icon-expenses.svg';
 import iconAssets from '../assets/generated/dashboard/icon-assets.svg';
 import iconDebt from '../assets/generated/dashboard/icon-debt.svg';
 import iconBusiness from '../assets/generated/dashboard/icon-business.svg';
+import { financialFreedomStatus } from '../../../../packages/game-engine/src';
 
 export const DashboardScreen: React.FC = () => {
   const match = useStore((s) => s.match);
+  const engineMatch = useStore((s) => s.engineMatch);
+  const localPlayerId = useStore((s) => s.localPlayerId);
   const me = match.players.find((p) => !p.isBot) || match.players[0];
 
   if (!me) {
@@ -24,7 +27,12 @@ export const DashboardScreen: React.FC = () => {
   const netWorth = me.cash + assetValue - me.debt * 5000;
   const totalIncome = me.cashflowPerMonth + me.passiveIncome;
   const cashflow = me.netCashflow ?? totalIncome - totalExpenses;
-  const freedomProgress = Math.min(100, (me.passiveIncome / Math.max(1, totalExpenses)) * 100);
+  const engineMe = engineMatch?.players.find((player) => player.id === localPlayerId)
+    ?? engineMatch?.players.find((player) => !player.isBot);
+  const freedom = engineMe && engineMatch ? financialFreedomStatus(engineMe, engineMatch.macro) : null;
+  const freedomProgress = freedom
+    ? freedom.progress * 100
+    : Math.min(100, (me.passiveIncome / Math.max(1, totalExpenses)) * 100);
 
   return (
     <div className="dashboard-shell">
@@ -81,7 +89,10 @@ export const DashboardScreen: React.FC = () => {
           />
         </div>
         <p style={{ fontSize: 11, color: '#7D7B6F', margin: '8px 0 0' }}>
-          Пассивный доход: ${me.passiveIncome.toLocaleString()} / ${totalExpenses.toLocaleString()} расходов
+          Пассивный доход: ${(freedom?.recurringIncome ?? me.passiveIncome).toLocaleString()} / ${(freedom?.recurringExpense ?? totalExpenses).toLocaleString()} обязательств
+        </p>
+        <p style={{ fontSize: 11, color: freedom?.bankDebtCleared === false ? '#E84B2A' : '#28C76F', margin: '4px 0 0' }}>
+          {freedom?.bankDebtCleared === false ? `☐ Кредит банка: $${freedom.bankDebt.toLocaleString()}` : '☑ Кредит банка: $0'}
         </p>
       </div>
 

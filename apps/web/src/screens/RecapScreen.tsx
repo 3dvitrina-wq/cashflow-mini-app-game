@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CharacterAvatar } from '../assets/CharacterAvatar';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
-import { scoreBreakdown, computeAchievements } from '../../../../packages/game-engine/src';
+import { scoreBreakdown, computeAchievements, financialFreedomStatus } from '../../../../packages/game-engine/src';
 import type { ScoreBonus } from '../../../../packages/game-engine/src';
 import { playSound } from '../lib/sound';
 import { hapticImpact, hapticNotify } from '../hooks/useHaptics';
@@ -77,6 +77,10 @@ export const RecapScreen: React.FC = () => {
   const myRank = myIdx >= 0 ? myIdx + 1 : 1;
   const me = mine?.player;
   const bd = mine?.score;
+  const freedom = useMemo(
+    () => (me ? financialFreedomStatus(me, engineMatch?.macro) : null),
+    [me, engineMatch?.macro],
+  );
   const achievements = useMemo(
     () => (me ? computeAchievements(me, engineMatch?.macro) : []),
     [me, engineMatch?.macro],
@@ -191,6 +195,17 @@ export const RecapScreen: React.FC = () => {
         <h2 className="text-xl font-extrabold mt-1">
           {bd.freedomAchieved ? (ru ? '🕊️ Финансовая свобода' : '🕊️ Financial Freedom') : (ru ? 'Итоги матча' : 'Match Results')}
         </h2>
+
+        {freedom && (
+          <div className="mt-3 grid gap-1.5 text-left">
+            <div className={`rounded-lg px-3 py-2 text-xs font-bold ${freedom.passiveCovered ? 'bg-accent-passive/10 text-accent-passive' : 'bg-white/5 text-text-secondary'}`}>
+              {freedom.passiveCovered ? '☑' : '☐'} {ru ? 'Пассив покрывает обязательства' : 'Recurring income covers obligations'} · ${freedom.recurringIncome.toLocaleString()}/${freedom.recurringExpense.toLocaleString()}
+            </div>
+            <div className={`rounded-lg px-3 py-2 text-xs font-bold ${freedom.bankDebtCleared ? 'bg-accent-passive/10 text-accent-passive' : 'bg-accent-debt/10 text-accent-debt'}`}>
+              {freedom.bankDebtCleared ? '☑' : '☐'} {ru ? 'Кредит игрового банка' : 'Game-bank debt'} · ${freedom.bankDebt.toLocaleString()}
+            </div>
+          </div>
+        )}
 
         {/* Animated score breakdown (the criteria) */}
         <div className="mt-4 space-y-2 text-left">

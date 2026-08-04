@@ -10,6 +10,8 @@ import {
   freedomScore,
   scoreBreakdown,
   passiveCashflow,
+  financialFreedomStatus,
+  monthlyCashflow,
   computeAchievements,
 } from '../engine';
 import { botIntent, parseBotPersona } from '../bot';
@@ -30,6 +32,7 @@ import {
 } from '../registries';
 import { shuffle, rngInt, rngFloat } from '../rng';
 import type { MatchState, PlayerState } from '../../shared/src/index';
+import { getAllProfessions } from '../../../shared/src/index';
 
 // ─── Match Creation ─────────────────────────────────────────────────────────
 
@@ -73,6 +76,33 @@ describe('createMatch', () => {
     const weighted = getWeightedCardIds();
     const expectedMinSize = weighted.reduce((s, c) => s + c.weight, 0);
     expect(state.deck.length).toBe(expectedMinSize);
+  });
+});
+
+describe('profession starting balance', () => {
+  it('gives every profession a comparable passive 15-round baseline', () => {
+    const projectedScores = getAllProfessions().map((profession, index) => {
+      const match = createMatch(9000 + index, [{
+        id: 'p',
+        name: profession.name,
+        outfit: profession.avatarKey,
+        professionId: profession.id,
+      }], { maxRounds: 15 });
+      const player = match.players[0]!;
+      player.cash += monthlyCashflow(match, player).net * 15;
+      return scoreBreakdown(player, match.macro).total;
+    });
+
+    expect(Math.max(...projectedScores) - Math.min(...projectedScores)).toBeLessThanOrEqual(30);
+  });
+
+  it('keeps starting liquidity close while high salaries carry a larger freedom target', () => {
+    const starts = getAllProfessions().map((profession) => profession.startingCash);
+    expect(Math.max(...starts) - Math.min(...starts)).toBeLessThanOrEqual(600);
+
+    const cashier = createMatch(77, [{ id: 'c', name: 'Cashier', outfit: 'hustler', professionId: 'checkout_cashier' }]).players[0]!;
+    const manager = createMatch(78, [{ id: 'm', name: 'Manager', outfit: 'office', professionId: 'top_manager' }]).players[0]!;
+    expect(financialFreedomStatus(manager).gap).toBeGreaterThan(financialFreedomStatus(cashier).gap * 3);
   });
 });
 

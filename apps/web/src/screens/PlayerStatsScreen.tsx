@@ -13,6 +13,7 @@ import { showToast } from '../components/Toast';
 import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.webp';
 import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.webp';
 import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
+import { financialFreedomStatus } from '../../../../packages/game-engine/src';
 import {
   IconAlert,
   IconChart,
@@ -70,7 +71,7 @@ function resolveEnginePet(kind: string | null | undefined): PetCatalogItem | nul
   return PET_BY_KIND[kind] ?? null;
 }
 
-function playerMode(player: PlayerState, cashflow: number): { label: string; text: string; tone: string } {
+function playerMode(player: PlayerState, cashflow: number, freedomAchieved = false): { label: string; text: string; tone: string } {
   if (player.stress >= 8 || player.cash <= 500) {
     return {
       label: 'Режим выживания',
@@ -85,7 +86,7 @@ function playerMode(player: PlayerState, cashflow: number): { label: string; tex
       tone: 'warning',
     };
   }
-  if (player.passiveIncome >= (player.monthlyExpenses ?? 1)) {
+  if (freedomAchieved) {
     return {
       label: 'Почти свобода',
       text: 'Пассив перекрывает расходы. Защищай активы и не лезь в лишний риск.',
@@ -142,7 +143,12 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   const totalIncome = player.cashflowPerMonth + player.passiveIncome;
   const cashflow = player.netCashflow ?? totalIncome - totalExpenses;
   const netWorth = player.cash + (player.assetValue ?? player.businesses.length * 15000) - player.debt * 5000;
-  const freedomProgress = Math.min(100, Math.max(0, (player.passiveIncome / Math.max(1, totalExpenses)) * 100));
+  const freedom = enginePlayer && engineMatch
+    ? financialFreedomStatus(enginePlayer, engineMatch.macro)
+    : null;
+  const freedomProgress = freedom
+    ? freedom.progress * 100
+    : Math.min(100, Math.max(0, (player.passiveIncome / Math.max(1, totalExpenses)) * 100));
   const ownedPets = useMemo(() => {
     const matchOwnedPets = resolveOwnedMatchPets(matchPetIds);
     if (matchOwnedPets.length > 0) return matchOwnedPets;
@@ -158,7 +164,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
     () => ACHIEVEMENTS.filter((a) => meta.achievements.includes(a.id)),
     [meta.achievements],
   );
-  const mode = playerMode(player, cashflow);
+  const mode = playerMode(player, cashflow, freedom?.achieved ?? false);
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.id === activeTab);
 
   useEffect(() => {
@@ -410,7 +416,13 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
               <Metric label="Доверие" value={`${player.trust}/10`} tone="cash" />
               <Metric label="Net Worth" value={formatMoney(netWorth)} tone={netWorth >= 0 ? 'good' : 'bad'} />
             </section>
-            <ProgressCard freedomProgress={freedomProgress} passiveIncome={player.passiveIncome} totalExpenses={totalExpenses} />
+            <ProgressCard
+              freedomProgress={freedomProgress}
+              passiveIncome={freedom?.recurringIncome ?? player.passiveIncome}
+              totalExpenses={freedom?.recurringExpense ?? totalExpenses}
+              bankDebt={freedom?.bankDebt ?? 0}
+              freedomAchieved={freedom?.achieved ?? false}
+            />
             <section
               style={{
                 marginTop: 12,
@@ -683,10 +695,14 @@ function ProgressCard({
   freedomProgress,
   passiveIncome,
   totalExpenses,
+  bankDebt,
+  freedomAchieved,
 }: {
   freedomProgress: number;
   passiveIncome: number;
   totalExpenses: number;
+  bankDebt: number;
+  freedomAchieved: boolean;
 }) {
   return (
     <section className="you-progress-card">
@@ -697,7 +713,16 @@ function ProgressCard({
       <div className="you-progress-track">
         <i style={{ width: `${freedomProgress}%` }} />
       </div>
-      <p>Пассивный доход ${passiveIncome.toLocaleString()} / ${totalExpenses.toLocaleString()} расходов</p>
+      <p>Пассивный доход ${passiveIncome.toLocaleString()} / ${totalExpenses.toLocaleString()} обязательств</p>
+      <div style={{ display: 'grid', gap: 6, marginTop: 9 }}>
+        <span style={{ fontSize: 11, fontWeight: 800, color: passiveIncome >= totalExpenses ? '#53E391' : '#B8B6A9' }}>
+          {passiveIncome >= totalExpenses ? '☑' : '☐'} Пассив покрывает ежемесячную нагрузку
+        </span>
+        <span style={{ fontSize: 11, fontWeight: 800, color: bankDebt === 0 ? '#53E391' : '#B8B6A9' }}>
+          {bankDebt === 0 ? '☑' : '☐'} Кредит игрового банка: {bankDebt === 0 ? '$0' : `$${bankDebt.toLocaleString()}`}
+        </span>
+        {freedomAchieved && <strong style={{ color: '#53E391', fontSize: 12 }}>Финансовая свобода достигнута</strong>}
+      </div>
     </section>
   );
 }

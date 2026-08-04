@@ -30,6 +30,22 @@
 - Active protections: insurance/legal/accounting.
 - Epoch/room mode modifiers.
 
+## Financial Freedom Contract
+
+Salary is tempo, not the finish line. A player reaches financial freedom only when both checks are true:
+
+- recurring non-work income (passive income, assets, pets) covers recurring obligations (life expenses, upkeep, liability payments and marginal tax);
+- debt taken from the in-match Bank is fully repaid.
+
+Starting profession obligations count in the monthly target and may be repaid early to lower it. They do not independently block freedom once the remaining recurring load is covered. The engine, HUD, tutorial, profile and recap must all use `financialFreedomStatus()` as the single calculation.
+
+Profession balance preserves asymmetry without granting a free win:
+
+- starting liquidity stays within a narrow `$1200-$1800` corridor, so every role can make a turn-one decision;
+- higher salary comes with a proportionally larger freedom target;
+- low-income roles grow slowly but need much less passive income;
+- the projected score after 15 passive/no-choice rounds stays within a small common corridor, so actual choices create the spread.
+
 ## Business Slot Rule
 
 Each player has limited business capacity:

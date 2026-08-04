@@ -80,6 +80,29 @@ describe('client state card copy', () => {
     expect(toClientState(state, 'p3')?.personalCardOffers).toHaveLength(0);
   });
 
+  it('delivers every pending table listing as a separate owner-priced offer', () => {
+    let state = createMatch(57, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+      { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
+    ], { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-route', p3: 'opp-ai-shop' };
+    state = openIntentWindow(state);
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 700,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p2', audience: 'table', askingPrice: 3200,
+    }).state;
+
+    const offers = toClientState(state, 'p3')?.personalCardOffers ?? [];
+    expect(offers.map((offer) => [offer.fromPlayerId, offer.cardId, offer.askingPrice])).toEqual([
+      ['p1', 'opp-vending', 700],
+      ['p2', 'opp-route', 3200],
+    ]);
+    expect(Object.keys(toClientState(state, 'p3')?.personalCardIds ?? {})).toEqual(['p3']);
+  });
+
   it('preserves exact authoritative pet identity in recipient snapshots', () => {
     let state = createMatch(61, [
       { id: 'p1', name: 'One', outfit: 'office', isBot: false },

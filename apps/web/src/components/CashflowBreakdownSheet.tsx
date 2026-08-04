@@ -1,10 +1,11 @@
 import React from 'react';
-import { computeTax } from '../../../../packages/game-engine/src';
+import { computeTax, financialFreedomStatus, petIncomePerRound } from '../../../../packages/game-engine/src';
 import type { MatchState, PlayerState } from '../../../../packages/shared/src';
+import { getProfession } from '../../../../packages/shared/src';
 import { BottomSheet } from './BottomSheet';
 
 interface Props {
-  mode: 'income' | 'expense' | null;
+  mode: 'income' | 'expense' | 'freedom' | null;
   engineMatch: MatchState | null;
   localPlayerId: string | null;
   onClose: () => void;
@@ -29,7 +30,7 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   const incomeItems: { icon: string; label: string; sub?: string; amount: number }[] = [];
 
   if (p.activeIncome > 0) {
-    const profLabel = p.professionId ? p.professionId.replace(/_/g, ' ') : 'Зарплата';
+    const profLabel = p.professionId ? getProfession(p.professionId)?.nameRu ?? p.professionId.replace(/_/g, ' ') : 'Зарплата';
     incomeItems.push({ icon: '💼', label: profLabel, amount: p.activeIncome });
   }
   if (p.passiveIncome > 0) {
@@ -47,6 +48,10 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
       ? `🤝 ${partnerNames.join(', ')}${mySharePct != null ? ` · ваша доля ${mySharePct}%` : ''}`
       : undefined;
     incomeItems.push({ icon: '🏢', label: asset.name, sub, amount: asset.incomePerRound });
+  }
+  const petIncome = petIncomePerRound(p);
+  if (petIncome > 0) {
+    incomeItems.push({ icon: '🐾', label: 'Питомец', sub: 'Ежемесячный эффект', amount: petIncome });
   }
 
   // ── expense items ────────────────────────────────────────────────────────────
@@ -82,10 +87,88 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   const totalIncome = incomeItems.reduce((s, i) => s + i.amount, 0);
   const totalExpense = expenseItems.reduce((s, i) => s + i.amount, 0);
   const net = totalIncome - totalExpense;
+  const freedom = financialFreedomStatus(p, engineMatch.macro);
+  const freedomPercent = Math.round(freedom.progress * 100);
 
   return (
-    <BottomSheet isOpen={Boolean(mode)} onClose={onClose} title="Денежный поток">
+    <BottomSheet isOpen={Boolean(mode)} onClose={onClose} title={mode === 'freedom' ? 'Путь к свободе' : 'Денежный поток'}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+
+          <section
+            style={{
+              padding: 14,
+              marginBottom: 8,
+              borderRadius: 16,
+              background: freedom.achieved
+                ? 'linear-gradient(135deg, rgba(40,199,111,.18), rgba(91,215,224,.08))'
+                : 'linear-gradient(135deg, rgba(245,197,36,.13), rgba(91,215,224,.06))',
+              border: `1px solid ${freedom.achieved ? 'rgba(40,199,111,.34)' : 'rgba(245,197,36,.24)'}`,
+            }}
+            aria-label="Условия финансовой свободы"
+          >
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 900, color: freedom.achieved ? '#53E391' : '#F5C524', letterSpacing: '.08em' }}>
+                  ЦЕЛЬ МАТЧА
+                </div>
+                <strong style={{ display: 'block', marginTop: 3, fontSize: 17, color: '#F5F4ED' }}>
+                  {freedom.achieved ? 'Вы вышли из крысиных бегов' : `До свободы ещё $${freedom.gap.toLocaleString('ru-RU')}/мес`}
+                </strong>
+              </div>
+              <b style={{ fontSize: 22, color: freedom.achieved ? '#53E391' : '#F5C524' }}>{freedomPercent}%</b>
+            </div>
+
+            <div style={{ height: 7, margin: '11px 0', overflow: 'hidden', borderRadius: 99, background: 'rgba(255,255,255,.08)' }}>
+              <div
+                style={{
+                  width: `${freedomPercent}%`,
+                  height: '100%',
+                  borderRadius: 99,
+                  background: freedom.achieved ? '#28C76F' : 'linear-gradient(90deg, #F5C524, #5BD7E0)',
+                  transition: 'width .45s ease',
+                }}
+              />
+            </div>
+
+            {[
+              {
+                done: freedom.passiveCovered,
+                label: 'Пассив покрывает обязательства',
+                value: `$${freedom.recurringIncome.toLocaleString('ru-RU')} / $${freedom.recurringExpense.toLocaleString('ru-RU')}`,
+              },
+              {
+                done: freedom.bankDebtCleared,
+                label: 'Кредит игрового банка погашен',
+                value: freedom.bankDebtCleared ? '$0' : `$${freedom.bankDebt.toLocaleString('ru-RU')}`,
+              },
+            ].map((check) => (
+              <div key={check.label} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '6px 0' }}>
+                <span
+                  aria-hidden="true"
+                  style={{
+                    width: 22,
+                    height: 22,
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    borderRadius: 7,
+                    background: check.done ? '#28C76F' : 'rgba(255,255,255,.06)',
+                    border: check.done ? '1px solid #53E391' : '1px solid rgba(255,255,255,.14)',
+                    color: check.done ? '#08140D' : '#7D7B6F',
+                    fontWeight: 1000,
+                  }}
+                >
+                  {check.done ? '✓' : ''}
+                </span>
+                <span style={{ flex: 1, fontSize: 12, fontWeight: 800, color: check.done ? '#DDF8E8' : '#D8D4C8' }}>{check.label}</span>
+                <b style={{ fontSize: 12, color: check.done ? '#53E391' : '#F5C524' }}>{check.value}</b>
+              </div>
+            ))}
+
+            <p style={{ margin: '7px 0 0', fontSize: 11, lineHeight: 1.4, color: '#989589' }}>
+              Зарплата даёт деньги для решений, но не считается свободой. Погашение стартовых обязательств уменьшает ежемесячную цель.
+            </p>
+          </section>
 
           {/* Income section label */}
           {incomeItems.length > 0 && (

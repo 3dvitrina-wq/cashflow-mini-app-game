@@ -34,7 +34,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
   const loanCapMultiplier = profession?.heroPower.type === 'loan_buffer' ? 1 + profession.heroPower.value : 1;
   const cap = Math.max(0, Math.round(cashflow * 10 * loanCapMultiplier));
   const depositBoost = profession?.heroPower.type === 'deposit_yield_boost' ? profession.heroPower.value : 0;
-  const bankLoans = (enginePlayer?.liabilities ?? []).filter((liability) => isBankCreditor(liability.creditor));
+  const activeLiabilities = (enginePlayer?.liabilities ?? []).filter((liability) => liability.remainingPayments > 0);
   const deposits = enginePlayer?.deposits ?? [];
 
   const nextMonthlyInterest = useMemo(() => Math.round(amount * 0.1), [amount]);
@@ -58,7 +58,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
       showToast('Не хватает наличных для возврата', 'error');
       return;
     }
-    showToast(`Кредит $${principal.toLocaleString()} погашён — нагрузка снята`, 'success');
+    showToast(`Обязательство $${principal.toLocaleString()} погашено — цель свободы стала ближе`, 'success');
   };
 
   const handleDeposit = (depositAmount: number, lockPeriod?: number) => {
@@ -337,7 +337,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {bankLoans.length > 0 && (
+        {activeLiabilities.length > 0 && (
           <div
             style={{
               padding: 16,
@@ -346,9 +346,12 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
               border: '1px solid rgba(232,75,42,0.2)',
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 900, color: '#FF8B70', marginBottom: 10 }}>Активные кредиты</div>
+            <div style={{ fontSize: 13, fontWeight: 900, color: '#FF8B70', marginBottom: 4 }}>Обязательства и кредиты</div>
+            <div style={{ fontSize: 11, lineHeight: 1.4, color: '#989589', marginBottom: 10 }}>
+              Погашение снимает ежемесячный платёж и уменьшает сумму пассива, нужную для финансовой свободы.
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {bankLoans.map((loan) => (
+              {activeLiabilities.map((loan) => (
                 <div
                   key={loan.id}
                   style={{
@@ -362,13 +365,17 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                   }}
                 >
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#F5F4ED' }}>${loan.principal.toLocaleString()}</div>
+                    <div style={{ fontSize: 11, fontWeight: 800, color: isBankCreditor(loan.creditor) ? '#FF8B70' : '#B8B6A9' }}>
+                      {isBankCreditor(loan.creditor) ? 'КРЕДИТ ИГРОВОГО БАНКА' : loan.creditor}
+                    </div>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: '#F5F4ED', marginTop: 2 }}>${loan.principal.toLocaleString()}</div>
                     <div style={{ fontSize: 11, color: '#7D7B6F' }}>
-                      −${Math.round(loan.principal * loan.interestRate).toLocaleString()}/мес в расход
+                      −${Math.round(loan.principal * loan.interestRate).toLocaleString()}/мес · {loan.remainingPayments >= 900 ? 'до погашения' : `ещё ${loan.remainingPayments} мес.`}
                     </div>
                   </div>
                   <button
                     onClick={() => handleRepay(loan.id, loan.principal)}
+                    disabled={(me?.cash ?? 0) < loan.principal}
                     style={{
                       height: 44,
                       padding: '0 14px',
@@ -378,9 +385,10 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                       fontSize: 12,
                       background: '#F5C524',
                       color: '#0B0B0C',
+                      opacity: (me?.cash ?? 0) < loan.principal ? 0.35 : 1,
                     }}
                   >
-                    Вернуть
+                    Погасить
                   </button>
                 </div>
               ))}

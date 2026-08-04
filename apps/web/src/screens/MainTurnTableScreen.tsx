@@ -28,7 +28,7 @@ import { useModalLayer } from '../hooks/useModalLayer';
 import { playSound } from '../lib/sound';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
-import { monthlyCashflow, petIncomePerRound } from '../../../../packages/game-engine/src';
+import { financialFreedomStatus, monthlyCashflow, petIncomePerRound } from '../../../../packages/game-engine/src';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
 type HostMoment = {
@@ -221,13 +221,13 @@ const PlayerReactionBadge: React.FC<{ reaction?: FloatingReaction }> = ({ reacti
 const PlayerTile: React.FC<{
   player: PlayerState;
   pet?: PetCatalogItem;
+  freedomProgress?: number;
   reaction?: FloatingReaction;
   onTap?: (player: PlayerState) => void;
-}> = ({ player, pet, reaction, onTap }) => {
-  const ringColor = RING_COLORS[player.mood] || '#7D7B6F';
-  const ringFill = Math.max(20, 100 - player.stress * 8);
-  const displayedCashflow = player.netCashflow ?? player.cashflowPerMonth;
-  const positive = displayedCashflow >= 0;
+}> = ({ player, pet, freedomProgress = 0, reaction, onTap }) => {
+  const freedomPercent = Math.max(0, Math.min(100, Math.round(freedomProgress)));
+  const ringColor = freedomPercent >= 100 ? '#28C76F' : RING_COLORS[player.mood] || '#7D7B6F';
+  const ringFill = Math.max(3, freedomPercent);
 
   const badge = player.isNegotiating ? (
     <span className="player-mood-badge player-negotiating-badge" title="В переговорах">
@@ -270,8 +270,8 @@ const PlayerTile: React.FC<{
             draggable={false}
           />
           <div className="player-portrait-info">
-            <span className="player-pnl" style={{ color: positive ? '#28C76F' : '#E84B2A' }}>
-              {positive ? '↑' : '↓'} {positive ? '+' : '-'}${compactMoney(Math.abs(displayedCashflow))}
+            <span className="player-pnl" style={{ color: freedomPercent >= 100 ? '#53E391' : '#F5C524' }}>
+              ◔ {freedomPercent}%
             </span>
             <div className="player-dots">
               {Array.from({ length: 5 }).map((_, i) => (
@@ -428,7 +428,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [fabExpanded, setFabExpanded] = useState(false);
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [isConfirmPreviewOpen, setIsConfirmPreviewOpen] = useState(false);
-  const [cardRevealPhase, setCardRevealPhase] = useState<'dealing' | 'ready'>('dealing');
+  const [cardRevealPhase, setCardRevealPhase] = useState<'ownership' | 'dealing' | 'ready'>('ownership');
   const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
@@ -440,7 +440,8 @@ export const MainTurnTableScreen: React.FC = () => {
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
-  const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | null>(null);
+  const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | 'freedom' | null>(null);
+  const [incomingOfferIndex, setIncomingOfferIndex] = useState(0);
   const reactionsDialogRef = useRef<HTMLDivElement>(null);
   const firstReactionRef = useRef<HTMLButtonElement>(null);
   const fabMenuRef = useRef<HTMLDivElement>(null);
@@ -616,7 +617,19 @@ export const MainTurnTableScreen: React.FC = () => {
     () => new Map((engineMatch?.players ?? []).map((player) => [player.id, player])),
     [engineMatch?.players],
   );
-  const tablePet = resolveTablePet(enginePlayersById.get(me.id)?.pet);
+  const engineMe = enginePlayersById.get(me.id);
+  const freedomByPlayerId = useMemo(
+    () => new Map((engineMatch?.players ?? []).map((player) => [
+      player.id,
+      financialFreedomStatus(player, engineMatch?.macro).progress * 100,
+    ])),
+    [engineMatch?.macro, engineMatch?.players],
+  );
+  const freedom = useMemo(
+    () => (engineMe ? financialFreedomStatus(engineMe, engineMatch?.macro) : null),
+    [engineMatch?.macro, engineMe],
+  );
+  const tablePet = resolveTablePet(engineMe?.pet);
   const activePlayer = match.players.find((p) => p.isActive) ?? me;
   const submittedIntentPlayerIds = new Set(
     engineMatch?.submittedIntentPlayerIds
@@ -650,9 +663,13 @@ export const MainTurnTableScreen: React.FC = () => {
       setCardRevealPhase('ready');
       return;
     }
-    setCardRevealPhase('dealing');
-    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 620);
-    return () => window.clearTimeout(revealTimer);
+    setCardRevealPhase('ownership');
+    const ownershipTimer = window.setTimeout(() => setCardRevealPhase('dealing'), 960);
+    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 1560);
+    return () => {
+      window.clearTimeout(ownershipTimer);
+      window.clearTimeout(revealTimer);
+    };
   }, [card?.id, match.round, canActNow, isAdvancingTime]);
 
   useEffect(() => {
@@ -680,12 +697,23 @@ export const MainTurnTableScreen: React.FC = () => {
     const reactionTimer = window.setTimeout(() => showPlayerReaction(bot.id, label), 540 + (match.round % 3) * 180);
     return () => window.clearTimeout(reactionTimer);
   }, [canActNow, card?.id, card?.type, cardRevealPhase, isRoomTutorialPaused, isTutorialActive, match.players, match.round, me?.id, showPlayerReaction]);
-  const incomingPersonalOffers = !isProMode && me?.id
+  const acceptedPersonalOfferThisRound = !isProMode && me?.id
+    ? (engineMatch?.personalCardOffers ?? []).some((offer) =>
+        offer.round === engineMatch?.round
+        && offer.status === 'accepted'
+        && offer.toPlayerId === me.id)
+    : false;
+  const incomingPersonalOffers = !isProMode && me?.id && !acceptedPersonalOfferThisRound
     ? (engineMatch?.personalCardOffers ?? []).filter((offer) =>
         offer.status === 'pending'
         && offer.fromPlayerId !== me.id
         && (offer.audience === 'table' || offer.toPlayerId === me.id))
     : [];
+  const incomingOfferKey = incomingPersonalOffers.map((offer) => offer.id).join('|');
+  useEffect(() => {
+    setIncomingOfferIndex((current) => Math.max(0, Math.min(current, incomingPersonalOffers.length - 1)));
+  }, [incomingOfferKey, incomingPersonalOffers.length]);
+  const activeIncomingPersonalOffer = incomingPersonalOffers[incomingOfferIndex] ?? incomingPersonalOffers[0];
   const settlementLedger = useMemo(() => {
     if (!engineMatch) return null;
     const player = engineMatch.players.find((candidate) => candidate.id === localPlayerId)
@@ -821,7 +849,9 @@ export const MainTurnTableScreen: React.FC = () => {
     : canActNow
     ? isProMode
       ? (locale === 'ru' ? 'Общий стол · выбор сейчас' : 'Shared table · choose now')
-      : (locale === 'ru' ? 'Личная карта · только вам' : 'Private card · only you')
+      : cardRevealPhase === 'ownership'
+        ? (locale === 'ru' ? 'Раздаём вашу карту' : 'Dealing your card')
+        : (locale === 'ru' ? 'Ваш ход · решите или передайте' : 'Your turn · decide or pass it on')
     : locale === 'ru'
     ? `Ходит ${activePlayer.name}`
     : `${activePlayer.name} acts now`;
@@ -1296,6 +1326,7 @@ export const MainTurnTableScreen: React.FC = () => {
               key={p.id}
               player={p}
               pet={resolveTablePet(enginePlayersById.get(p.id)?.pet)}
+              freedomProgress={freedomByPlayerId.get(p.id)}
               reaction={playerReactions[p.id]}
               onTap={handlePlayerTap}
             />
@@ -1392,26 +1423,35 @@ export const MainTurnTableScreen: React.FC = () => {
               <article
                 data-tour="card"
                 className={`dyor-card dyor-card-poster flex-1 card-density-${cardDensity} card-reveal-${cardRevealPhase} ${card.type === 'crisis' ? 'dyor-card-crisis animate-crisis-glow' : 'dyor-card-default'}`}
-                aria-busy={cardRevealPhase === 'dealing'}
-                onPointerDown={() => cardRevealPhase === 'dealing' && setCardRevealPhase('ready')}
+                aria-busy={cardRevealPhase !== 'ready'}
+                onPointerDown={() => cardRevealPhase !== 'ready' && setCardRevealPhase('ready')}
                 style={{
                   '--card-art-image': cardArtwork?.src ? `url(${cardArtwork.src})` : 'none',
                   '--card-art-bg': cardArtwork?.background ?? 'transparent',
                   '--card-art-size': cardArtwork?.fit === 'contain' ? '58% auto' : 'cover',
                 } as React.CSSProperties}
               >
+                {cardRevealPhase === 'ownership' && (
+                  <div className={`card-ownership-intro ${isProMode ? 'card-ownership-intro-shared' : 'card-ownership-intro-private'}`}>
+                    <div className="card-ownership-back" aria-hidden="true"><span>DYOR</span></div>
+                    <div className="card-ownership-copy">
+                      <strong>
+                        {isProMode
+                          ? (locale === 'ru' ? 'КАРТА СТОЛА' : 'TABLE CARD')
+                          : (locale === 'ru' ? 'ВАША КАРТА' : 'YOUR CARD')}
+                      </strong>
+                      <span>
+                        {isProMode
+                          ? (locale === 'ru' ? 'Одна ситуация для всех игроков' : 'One situation for every player')
+                          : (locale === 'ru' ? 'Только вам · решите, продайте или отдайте столу' : 'Only yours · decide, sell or list it for the table')}
+                      </span>
+                    </div>
+                  </div>
+                )}
                 {/* One readable stage: gameplay cards never create a nested scroll. */}
                 <div className="card-scroll-area card-poster-content">
                   <div className={`card-event-signal card-event-signal-${activeCardSignal.tone} ${isProMode ? 'card-event-signal-shared' : 'card-event-signal-private'}`}>
-                    <span>
-                      {isProMode
-                        ? (locale === 'ru' ? 'ОБЩАЯ КАРТА · ДЛЯ ВСЕХ' : 'SHARED CARD · FOR EVERYONE')
-                        : (locale === 'ru' ? 'ЛИЧНАЯ КАРТА · ТОЛЬКО ВАМ' : 'PRIVATE CARD · ONLY YOU')}
-                    </span>
-                    <p>
-                      {activeCardSignal.label}
-                      {!isProMode && (locale === 'ru' ? ' · у остальных свои' : ' · everyone else has their own')}
-                    </p>
+                    <p>{activeCardSignal.label}</p>
                   </div>
                   <div className="card-poster-kicker">
                     <span className="card-type-badge">
@@ -1553,10 +1593,29 @@ export const MainTurnTableScreen: React.FC = () => {
                       <em>{locale === 'ru' ? 'Долг' : 'Debt'}</em>
                       <strong>{me.debt}/10</strong>
                     </span>
-                    <span>
+                    <span
+                      className={`you-freedom-goal${freedom?.achieved ? ' you-freedom-goal-done' : ''}`}
+                      data-tour="freedom"
+                      role="button"
+                      tabIndex={0}
+                      style={{ ['--freedom-progress' as string]: `${Math.round((freedom?.progress ?? 0) * 100)}%` } as React.CSSProperties}
+                      onClick={(event) => { event.stopPropagation(); setCashflowSheet('freedom'); }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setCashflowSheet('freedom');
+                        }
+                      }}
+                      aria-label={freedom?.achieved
+                        ? (locale === 'ru' ? 'Финансовая свобода достигнута' : 'Financial freedom achieved')
+                        : (locale === 'ru'
+                            ? `Цель свободы: ${freedom?.recurringIncome ?? 0} из ${freedom?.recurringExpense ?? 0} долларов в месяц`
+                            : `Freedom goal: ${freedom?.recurringIncome ?? 0} of ${freedom?.recurringExpense ?? 0} dollars per month`)}
+                    >
                       <IconSprout size={12} />
-                      <em>{locale === 'ru' ? 'Пассив' : 'Passive'}</em>
-                      <strong>+${moneyShort(me.passiveIncome)}</strong>
+                      <em>{locale === 'ru' ? 'Свобода' : 'Freedom'}</em>
+                      <strong>{freedom?.achieved ? '✓' : `$${moneyShort(freedom?.recurringIncome ?? 0)}/$${moneyShort(freedom?.recurringExpense ?? 0)}`}</strong>
                     </span>
                   </div>
 
@@ -1940,59 +1999,96 @@ export const MainTurnTableScreen: React.FC = () => {
         />
       )}
 
-      {incomingPersonalOffers.length > 0 && (
-        <div className="negot-banner-wrapper" role="region" aria-label={locale === 'ru' ? 'Требуется решение' : 'Decision required'} aria-live="polite" data-label={locale === 'ru' ? 'ТРЕБУЕТСЯ РЕШЕНИЕ' : 'DECISION REQUIRED'} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {incomingPersonalOffers.map((incomingPersonalOffer) => {
-        const from = match.players.find((player) => player.id === incomingPersonalOffer.fromPlayerId);
-        const incomingPersonalCard = getLocalizedCard(incomingPersonalOffer.cardId, locale);
-        const canPay = (me?.cash ?? 0) >= incomingPersonalOffer.askingPrice;
+      {activeIncomingPersonalOffer && (() => {
+        const from = match.players.find((player) => player.id === activeIncomingPersonalOffer.fromPlayerId);
+        const incomingPersonalCard = getLocalizedCard(activeIncomingPersonalOffer.cardId, locale);
+        const canPay = (me?.cash ?? 0) >= activeIncomingPersonalOffer.askingPrice;
+        const offerCount = incomingPersonalOffers.length;
+        const hasOfferQueue = offerCount > 1;
         return (
-          <div key={incomingPersonalOffer.id} style={{
-              background: 'rgba(91,215,224,0.12)', border: '1px solid rgba(91,215,224,0.45)',
-              borderRadius: 16, padding: 14, display: 'flex', flexDirection: 'column', gap: 10,
-            }}>
-              <strong style={{ color: '#5BD7E0', fontSize: 14 }}>
-                {incomingPersonalOffer.audience === 'table'
-                  ? (locale === 'ru' ? `${from?.name ?? 'Игрок'} выставил карту столу` : `${from?.name ?? 'Player'} listed a card`)
-                  : (locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает карту лично вам` : `${from?.name ?? 'Player'} offers you a card`)}
-              </strong>
-              <span style={{ color: '#F5F4ED', fontSize: 13, fontWeight: 900 }}>
+          <div
+            className="negot-banner-wrapper personal-offer-tray"
+            role="region"
+            aria-label={locale === 'ru' ? 'Стол возможностей' : 'Opportunity table'}
+            aria-live="polite"
+            data-label={locale === 'ru' ? 'СТОЛ ВОЗМОЖНОСТЕЙ' : 'OPPORTUNITY TABLE'}
+          >
+            <div className="personal-offer-tray__card" key={activeIncomingPersonalOffer.id}>
+              <div className="personal-offer-tray__header">
+                <div className="personal-offer-tray__source">
+                  <span>
+                    {activeIncomingPersonalOffer.audience === 'table'
+                      ? (locale === 'ru' ? 'КАРТА ИГРОКА · ДО КОНЦА РАУНДА' : 'PLAYER CARD · THIS ROUND')
+                      : (locale === 'ru' ? 'ЛИЧНО ВАМ · ДО КОНЦА РАУНДА' : 'DIRECT TO YOU · THIS ROUND')}
+                  </span>
+                  <strong>
+                    {activeIncomingPersonalOffer.audience === 'table'
+                      ? (locale === 'ru' ? `${from?.name ?? 'Игрок'} выставил возможность` : `${from?.name ?? 'Player'} listed an opportunity`)
+                      : (locale === 'ru' ? `${from?.name ?? 'Игрок'} предлагает возможность` : `${from?.name ?? 'Player'} sent an opportunity`)}
+                  </strong>
+                </div>
+                {hasOfferQueue && (
+                  <div className="personal-offer-tray__pager" aria-label={locale === 'ru' ? 'Другие карты на столе' : 'Other cards on the table'}>
+                    <button
+                      type="button"
+                      aria-label={locale === 'ru' ? 'Предыдущая карта' : 'Previous card'}
+                      onClick={() => setIncomingOfferIndex((current) => (current - 1 + offerCount) % offerCount)}
+                    >
+                      ‹
+                    </button>
+                    <b>{incomingOfferIndex + 1}/{offerCount}</b>
+                    <button
+                      type="button"
+                      aria-label={locale === 'ru' ? 'Следующая карта' : 'Next card'}
+                      onClick={() => setIncomingOfferIndex((current) => (current + 1) % offerCount)}
+                    >
+                      ›
+                    </button>
+                  </div>
+                )}
+              </div>
+              <div className="personal-offer-tray__title">
                 {incomingPersonalCard?.title ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
-                {' · '}${incomingPersonalOffer.askingPrice.toLocaleString()}
-              </span>
-              <span style={{ color: '#B8B6A9', fontSize: 12, lineHeight: 1.35 }}>
+              </div>
+              <div className="personal-offer-tray__copy">
                 {incomingPersonalCard?.text ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
-                {' · '}
-                {locale === 'ru'
-                  ? 'Цена платится сейчас за право решить по этой карте вместо своей.'
-                  : 'Pay now for the right to choose on this card instead of yours.'}
-              </span>
-              <div style={{ display: 'flex', gap: 8 }}>
+              </div>
+              <div className="personal-offer-tray__terms">
+                <span>{locale === 'ru' ? 'Цена владельца' : 'Owner price'}</span>
+                <strong>${activeIncomingPersonalOffer.askingPrice.toLocaleString()}</strong>
+              </div>
+              <div className="personal-offer-tray__actions">
                 <button
                   type="button"
+                  className="personal-offer-tray__buy"
                   disabled={!canPay}
-                  onClick={() => acceptPersonalCard(incomingPersonalOffer.id)}
-                  style={{ flex: 1, minHeight: 44, borderRadius: 11, border: 0, background: '#28C76F', color: '#0B0B0C', fontWeight: 900, opacity: canPay ? 1 : .45 }}
+                  onClick={() => acceptPersonalCard(activeIncomingPersonalOffer.id)}
                 >
                   {canPay
-                    ? (locale === 'ru' ? `Купить за $${incomingPersonalOffer.askingPrice.toLocaleString()}` : `Buy for $${incomingPersonalOffer.askingPrice.toLocaleString()}`)
+                    ? (locale === 'ru' ? `Забрать за $${activeIncomingPersonalOffer.askingPrice.toLocaleString()}` : `Take for $${activeIncomingPersonalOffer.askingPrice.toLocaleString()}`)
                     : (locale === 'ru' ? 'Не хватает денег' : 'Not enough cash')}
                 </button>
-                {incomingPersonalOffer.audience === 'direct' && (
+                {activeIncomingPersonalOffer.audience === 'direct' && (
                   <button
                     type="button"
-                    onClick={() => declinePersonalCard(incomingPersonalOffer.id)}
-                    style={{ flex: 1, minHeight: 44, borderRadius: 11, border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#B8B6A9', fontWeight: 800 }}
+                    className="personal-offer-tray__decline"
+                    onClick={() => declinePersonalCard(activeIncomingPersonalOffer.id)}
                   >
                     {locale === 'ru' ? 'Отказаться' : 'Decline'}
                   </button>
                 )}
               </div>
+              {hasOfferQueue && (
+                <div className="personal-offer-tray__hint">
+                  {locale === 'ru'
+                    ? `На столе ещё ${offerCount - 1}. Можно забрать только одну карту за раунд.`
+                    : `${offerCount - 1} more on the table. You can take only one card per round.`}
+                </div>
+              )}
+            </div>
           </div>
         );
-          })}
-        </div>
-      )}
+      })()}
 
       {/* Phase 3: Interest Window Banner */}
       {isProMode && interestWindow?.status === 'open' && (

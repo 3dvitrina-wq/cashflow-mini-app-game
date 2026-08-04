@@ -48,6 +48,7 @@ import { hapticImpact } from '../hooks/useHaptics';
 import { useModalLayer } from '../hooks/useModalLayer';
 import { showToast } from '../components/Toast';
 import { getAllProfessions, type ProfessionDefinition } from '../../../../packages/shared/src';
+import { createPlayer, financialFreedomStatus } from '../../../../packages/game-engine/src';
 
 const OUTFITS: Outfit[] = ['hustler', 'trader', 'operator', 'nomad', 'creator', 'office'];
 
@@ -458,6 +459,15 @@ export const LobbyScreen: React.FC = () => {
     () => resolveGeneratedCharacter(selectedCharacterId) ?? resolveGeneratedCharacter('burnout_clerk'),
     [selectedCharacterId],
   );
+  const rolledEconomy = useMemo(() => {
+    const preview = createPlayer({
+      id: 'profession-preview',
+      name: rolledProfession.name,
+      outfit: rolledProfession.avatarKey,
+      professionId: rolledProfession.id,
+    });
+    return financialFreedomStatus(preview);
+  }, [rolledProfession]);
   const myLevel = levelFromXp(playerData.xp);
   const earnedAchievements = useMemo(
     () => ACHIEVEMENTS.filter((a) => playerData.achievements.includes(a.id)),
@@ -1124,6 +1134,11 @@ export const LobbyScreen: React.FC = () => {
                 </div>
                 <div className="lobby-hero-profession">
                   Профессия: <b>{rolledProfession.nameRu}</b>
+                </div>
+                <div className="lobby-hero-economy" aria-label="Стартовая экономика профессии">
+                  <span><small>Оклад</small><b>+${rolledProfession.baseSalary}</b></span>
+                  <span><small>Старт</small><b>${rolledProfession.startingCash}</b></span>
+                  <span><small>Цель</small><b>$0/${rolledEconomy.recurringExpense}</b></span>
                 </div>
                 <span className="lobby-player-status">
                   <IconReadyDot size={8} />

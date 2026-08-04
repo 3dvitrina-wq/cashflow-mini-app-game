@@ -117,6 +117,52 @@ describe('BASIC private simultaneous cards', () => {
     expect(secondBuyer.events.some((event) => event.type === 'command_rejected')).toBe(true);
     expect(cardIdForPlayer(secondBuyer.state, 'p3')).toBe('opp-ai-shop');
   });
+
+  it('keeps simultaneous table listings separate and lets each buyer take at most one', () => {
+    let state = createMatch(29, [
+      ...PLAYERS,
+      { id: 'p4', name: 'D', outfit: 'office' as const },
+    ], { experienceMode: 'basic' });
+    state.personalCardIds = {
+      p1: 'opp-vending',
+      p2: 'opp-route',
+      p3: 'opp-ai-shop',
+      p4: 'opp-storage',
+    };
+    state.players.forEach((player) => { player.cash = 20_000; });
+    state = openIntentWindow(state);
+
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 900,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p2', audience: 'table', askingPrice: 2400,
+    }).state;
+
+    const pendingOffers = state.personalCardOffers?.filter((offer) => offer.status === 'pending') ?? [];
+    expect(pendingOffers).toHaveLength(2);
+    expect(pendingOffers.map((offer) => [offer.fromPlayerId, offer.cardId, offer.askingPrice])).toEqual([
+      ['p1', 'opp-vending', 900],
+      ['p2', 'opp-route', 2400],
+    ]);
+
+    state = resolveCommand(state, {
+      type: 'accept_personal_card', playerId: 'p3', offerId: pendingOffers[0].id,
+    }).state;
+    expect(cardIdForPlayer(state, 'p3')).toBe('opp-vending');
+
+    const secondAcceptance = resolveCommand(state, {
+      type: 'accept_personal_card', playerId: 'p3', offerId: pendingOffers[1].id,
+    });
+    expect(secondAcceptance.events.some((event) => event.type === 'command_rejected')).toBe(true);
+    expect(secondAcceptance.state.personalCardOffers?.find((offer) => offer.id === pendingOffers[1].id)?.status).toBe('pending');
+
+    const otherBuyer = resolveCommand(secondAcceptance.state, {
+      type: 'accept_personal_card', playerId: 'p4', offerId: pendingOffers[1].id,
+    });
+    expect(otherBuyer.events.some((event) => event.type === 'command_rejected')).toBe(false);
+    expect(cardIdForPlayer(otherBuyer.state, 'p4')).toBe('opp-route');
+  });
 });
 
 describe('choice preview uses authoritative cashflow', () => {
