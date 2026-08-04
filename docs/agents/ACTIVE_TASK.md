@@ -191,12 +191,30 @@ night survival job. Do not “fix” this by removing losses.
 - Release `151a5b9` is live on the canonical Pages host with
   `dyor-focus-vtuGXUhX.js`. Canonical bundle probes find the Russian private 3→2
   picker, the operated coffee-counter choice and the real P2P credit-pool copy.
+- BASIC crises are no longer elective candidates. A hand contains at most one
+  crisis; if dealt, it is pinned as `СРАБОТАЕТ`, must resolve now and cannot be
+  burned or moved into reserve. The player keeps agency over the response choice,
+  while debt restructuring is correctly classified as an optional opportunity.
+- Reserve provenance is explicit. The active card names the saved reserve, and
+  the next month's picker marks the returning card `ИЗ РЕЗЕРВА`. Recipient
+  snapshots expose that provenance only to its owner.
+- An open business market now adds a direct green market CTA without replacing
+  the general action menu. A separate 44px control keeps Bank, Labor/staff, pets,
+  events and settings reachable during the same turn.
+- Verification: 176/176 engine tests, 11/11 server tests, web/server TypeScript,
+  production build and a deterministic 6,000-hand crisis invariant scan PASS.
+  Browser replays at 402×874 and 375×812 covered forced crisis, reserve rollover,
+  simultaneous market/menu access and touch semantics.
+- Release `eb4f2f9` is live on canonical Pages and preview `ce549a13` with
+  `dyor-focus-DEvu4kT4.js` and `dyor-focus-index-B3TK8KWx.css`. Canonical bundle
+  probes and an interactive production replay confirm the new rules and controls.
 
 ## Next Step
 
 1. Deploy the updated WebSocket server before claiming the private 3→2 hand in
    online rooms; a Pages-only release remains backward-compatible but the old
-   server cannot author the new private options.
+   server cannot author the new private options, forced-crisis validation or
+   reserve provenance.
 2. Run production reconnect smoke and a short six-seat check of shared market
    consumption plus leave-to-bot handoff after deployment.
 3. Play a human-facing 15-round BASIC match and record where decisions feel flat,
