@@ -7980,113 +7980,29 @@ button {
   display: grid;
   place-items: center;
   overflow: hidden;
-  background:
-    radial-gradient(circle at 50% 78%, rgba(245,197,36,.14), transparent 34%),
-    linear-gradient(180deg, rgba(22,29,44,.96), rgba(5,8,14,.98));
-  backdrop-filter: blur(10px);
+  background: transparent;
   pointer-events: auto;
-  transition: background-color 360ms var(--ease-in-out-strong);
-  animation: fadeIn 160ms var(--ease-out-strong) both;
-}
-
-.time-advance-sky {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.time-advance-sun,
-.time-advance-moon {
-  position: absolute;
-  left: 50%;
-  top: 25%;
-  width: 74px;
-  height: 74px;
-  border-radius: 50%;
-  transition:
-    opacity 360ms var(--ease-in-out-strong),
-    transform 440ms var(--ease-in-out-strong),
-    filter 360ms ease;
-}
-
-.time-advance-sun {
-  background: radial-gradient(circle at 38% 34%, #FFF5B5, #F5C524 56%, #E18D14);
-  box-shadow: 0 0 68px rgba(245,197,36,.42);
-  transform: translate3d(-50%, 115px, 0) scale(.82);
-  opacity: .25;
-}
-
-.time-advance-moon {
-  background: #EAF3FF;
-  box-shadow: inset -18px -8px 0 #A7B7D2, 0 0 52px rgba(192,218,255,.32);
-  transform: translate3d(-50%, 105px, 0) scale(.78);
-  opacity: 0;
-}
-
-.time-advance-horizon {
-  position: absolute;
-  right: -20%;
-  bottom: -12%;
-  left: -20%;
-  height: 46%;
-  border-radius: 50% 50% 0 0;
-  background:
-    radial-gradient(ellipse at 50% 0%, rgba(91,215,224,.16), transparent 42%),
-    linear-gradient(180deg, #111B24, #06090E 66%);
-  box-shadow: 0 -1px 0 rgba(255,255,255,.06);
-}
-
-.time-advance-night {
-  background:
-    radial-gradient(circle at 50% 22%, rgba(101,132,194,.16), transparent 30%),
-    linear-gradient(180deg, rgba(8,13,27,.985), rgba(2,5,11,.99));
-}
-
-.time-advance-night .time-advance-sun {
-  transform: translate3d(-50%, 210px, 0) scale(.68);
-  opacity: 0;
-}
-
-.time-advance-night .time-advance-moon {
-  transform: translate3d(-50%, 0, 0) scale(1);
-  opacity: 1;
-}
-
-.time-advance-opening {
-  background:
-    radial-gradient(circle at 50% 32%, rgba(245,197,36,.18), transparent 32%),
-    linear-gradient(180deg, rgba(31,45,64,.98), rgba(7,12,19,.99));
-}
-
-.time-advance-opening .time-advance-sun {
-  transform: translate3d(-50%, -8px, 0) scale(1);
-  opacity: 1;
-}
-
-.time-advance-opening .time-advance-moon {
-  transform: translate3d(calc(-50% - 105px), -72px, 0) scale(.72);
-  opacity: 0;
 }
 
 .time-advance-card {
   position: relative;
   z-index: 2;
-  width: min(320px, calc(100vw - 36px));
+  width: min(356px, calc(100vw - 24px));
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  margin-top: 184px;
   padding: 18px 20px;
-  border: 1px solid rgba(255,255,255,.09);
+  border: 1px solid rgba(91,215,224,.25);
   border-radius: 20px;
-  background: rgba(6,9,14,.68);
+  background:
+    radial-gradient(circle at 50% 0%, rgba(91,215,224,.10), transparent 38%),
+    rgba(6,9,14,.94);
   color: #F5F4ED;
   text-align: center;
-  box-shadow: 0 24px 56px rgba(0,0,0,.38), inset 0 1px 0 rgba(255,255,255,.06);
-  backdrop-filter: blur(16px);
-  animation: timeCardIn 240ms var(--ease-out-strong) both;
+  box-shadow: 0 24px 64px rgba(0,0,0,.64), 0 0 0 1px rgba(255,255,255,.025), inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter: blur(20px);
+  animation: timeCardIn 220ms var(--ease-out-strong) both;
 }
 
 .time-advance-card strong {
@@ -8096,9 +8012,7 @@ button {
 }
 
 .time-advance-card-ledger {
-  width: min(356px, calc(100vw - 24px));
   gap: 7px;
-  margin-top: 120px;
   padding: 15px 14px 13px;
 }
 
@@ -8130,7 +8044,7 @@ button {
   opacity: 0;
   transform: translateY(7px);
   animation: settlementLineIn 220ms var(--ease-out-strong) forwards;
-  animation-delay: calc(90ms + var(--ledger-index) * 145ms);
+  animation-delay: calc(140ms + var(--ledger-index) * 210ms);
 }
 
 .settlement-ledger-line > span:first-child {
@@ -8176,7 +8090,7 @@ button {
   font-weight: 800;
   opacity: 0;
   animation: settlementLineIn 220ms var(--ease-out-strong) forwards;
-  animation-delay: calc(180ms + var(--ledger-count) * 145ms);
+  animation-delay: calc(260ms + var(--ledger-count) * 210ms);
 }
 
 .settlement-ledger-totals b {
@@ -8196,7 +8110,7 @@ button {
   border-radius: 12px;
   opacity: 0;
   animation: settlementNetIn 260ms var(--ease-out-strong) forwards;
-  animation-delay: calc(360ms + var(--ledger-count) * 145ms);
+  animation-delay: calc(520ms + var(--ledger-count) * 210ms);
 }
 
 .settlement-ledger-net > span {
@@ -8268,7 +8182,7 @@ button {
 }
 
 .time-advance-card-ledger i::before {
-  animation-duration: 1.76s;
+  animation-duration: var(--settlement-hold, 4s);
 }
 
 @keyframes timeCardIn {
@@ -8282,12 +8196,6 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .time-advance-sun,
-  .time-advance-moon {
-    transition: opacity 160ms ease;
-    transform: translate3d(-50%, 0, 0) scale(1);
-  }
-
   .time-advance-card { animation: fadeIn 160ms ease both; }
   .time-advance-card i::before { animation: none; }
   .settlement-ledger-line,
@@ -10244,12 +10152,6 @@ button {
 
 /* ── Player list ── */
 /* ── Lobby hero card: pick persistent character, roll profession ── */
-/* Strong UI easing (Kowalski): built-in curves are too weak. */
-:root {
-  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
-  --ease-in-out-strong: cubic-bezier(0.77, 0, 0.175, 1);
-}
-
 /* ── Host card: single source of host identity (crown + interior live here) ── */
 .lobby-hero-card {
   display: grid;

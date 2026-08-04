@@ -76,6 +76,8 @@ night survival job. Do not “fix” this by removing losses.
   cannot briefly display the previous month's settlement as the new result.
   The night ledger reveals each income/cost source, asset upkeep, one-off round
   impact, total inflow, total outflow and the reconciled wallet delta in sequence.
+  The table stays spatially fixed during this transition: only the centered
+  ledger animates, with a 4–5.2 second reading window scaled to its line count.
 - Daily reward is claim-once and explicitly closable. Settings exposes only
   working controls: volume, original procedural music, action sounds, haptics,
   host and language.

@@ -737,6 +737,10 @@ export const MainTurnTableScreen: React.FC = () => {
       net: match.lastSettlement,
     };
   }, [engineMatch, localPlayerId, locale, match.lastSettlement]);
+  const settlementHoldMs = Math.min(
+    5200,
+    Math.max(4000, 2500 + (settlementLedger?.lines.length ?? 0) * 240),
+  );
   const isTutorialSuspended = Boolean(
     isProfileOpen
     || isMarketOpen
@@ -915,9 +919,9 @@ export const MainTurnTableScreen: React.FC = () => {
     hapticImpact(match.lastSettlement >= 0 ? 'light' : 'medium');
     const openingTimer = window.setTimeout(() => {
       setRoundTransition((current) => current ? { ...current, phase: 'opening' } : current);
-    }, 1800);
+    }, settlementHoldMs);
     return () => window.clearTimeout(openingTimer);
-  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition]);
+  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition, settlementHoldMs]);
 
   useEffect(() => {
     if (!roundTransition || roundTransition.phase !== 'opening') return;
@@ -1140,14 +1144,9 @@ export const MainTurnTableScreen: React.FC = () => {
       <div className="game-bg-noise" />
       {isAdvancingTime && roundTransition && (
         <div className={`time-advance-overlay time-advance-${roundTransition.phase}`} aria-live="assertive">
-          <div className="time-advance-sky" aria-hidden="true">
-            <span className="time-advance-sun" />
-            <span className="time-advance-moon" />
-            <span className="time-advance-horizon" />
-          </div>
           <div
-            key={roundTransition.phase}
             className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}`}
+            style={{ ['--settlement-hold' as string]: `${settlementHoldMs}ms` } as React.CSSProperties}
           >
             <span className="time-advance-kicker">
               {roundTransition.phase === 'closing'
