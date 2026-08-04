@@ -543,6 +543,13 @@ export interface OfferPayload {
   sourceCardId?: string;
 }
 
+/** A BASIC card choice bound to the card that was visible when it was staged. */
+export interface PersonalCardIntent {
+  cardId: CardId;
+  /** `null` is the deterministic pass/fallback choice. */
+  choiceIndex: number | null;
+}
+
 // ─── Game Events ────────────────────────────────────────────────────────────
 
 export interface GameEvent {
@@ -623,6 +630,10 @@ export interface MatchState {
   personalCardCarriedIds?: Record<PlayerId, CardId | null>;
   /** BASIC: true until the human names one card for now and optionally one for later. */
   personalCardSelectionPending?: Record<PlayerId, boolean>;
+  /** BASIC: one separately owned opportunity bought from another player this round. */
+  personalCardPurchasedIds?: Record<PlayerId, CardId | null>;
+  /** BASIC: card-bound choices staged in display order; max two per player. */
+  personalCardIntentQueues?: Record<PlayerId, PersonalCardIntent[]>;
   personalCardOffers?: PersonalCardOffer[];
   globalCardId?: CardId | null;
 

@@ -5,7 +5,7 @@ import { useStore } from '../store';
 import bankLoanKiosk from '../assets/generated/bank/bank-loan-kiosk.webp';
 import { getProfession } from '../../../../packages/shared/src';
 import { isBankCreditor } from '../../../../packages/game-engine/src';
-import { liabilityNameRu } from '../lib/liabilities';
+import { liabilityNameRu, selectLiabilityPage } from '../lib/liabilities';
 
 interface BankScreenProps {
   isOpen: boolean;
@@ -39,6 +39,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
   const activeLiabilities = (enginePlayer?.liabilities ?? []).filter((liability) => liability.remainingPayments > 0);
   const deposits = enginePlayer?.deposits ?? [];
   const [tab, setTab] = useState<BankTab>(activeLiabilities.length > 0 ? 'debts' : 'credit');
+  const [liabilityPageIndex, setLiabilityPageIndex] = useState(0);
   const [amount, setAmount] = useState(1_000);
 
   const cashflow = me?.netCashflow ?? 0;
@@ -51,6 +52,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
     (sum, liability) => sum + Math.round(liability.principal * liability.interestRate),
     0,
   );
+  const liabilityPage = selectLiabilityPage(activeLiabilities, liabilityPageIndex);
   const nextMonthlyInterest = Math.round(amount * 0.1);
 
   const handleLoan = () => {
@@ -66,6 +68,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
       showToast('Не хватает наличных для полного погашения', 'error');
       return;
     }
+    setLiabilityPageIndex((current) => Math.min(current, Math.max(0, activeLiabilities.length - 2)));
     showToast(`${money(principal)} выплачено · ежемесячная нагрузка снижена`, 'success');
   };
 
@@ -114,21 +117,44 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
               <div className="bank-empty"><strong>✓ Долгов нет</strong><span>Банк больше не режет ваш поток.</span></div>
             ) : (
               <div className="bank-debt-list">
-                {activeLiabilities.map((loan) => {
+                <div className="bank-debt-pager" aria-label={`Обязательство ${liabilityPage.index + 1} из ${liabilityPage.count}`}>
+                  <button
+                    type="button"
+                    aria-label="Предыдущее обязательство"
+                    disabled={liabilityPage.index === 0}
+                    onClick={() => setLiabilityPageIndex(liabilityPage.index - 1)}
+                  >
+                    ‹
+                  </button>
+                  <span><b>{liabilityPage.index + 1}</b> из {liabilityPage.count}</span>
+                  <button
+                    type="button"
+                    aria-label="Следующее обязательство"
+                    disabled={liabilityPage.index >= liabilityPage.count - 1}
+                    onClick={() => setLiabilityPageIndex(liabilityPage.index + 1)}
+                  >
+                    ›
+                  </button>
+                </div>
+                {liabilityPage.item && (() => {
+                  const loan = liabilityPage.item;
                   const canRepay = (me?.cash ?? 0) >= loan.principal;
+                  const remainingTerm = isBankCreditor(loan.creditor)
+                    ? 'до погашения'
+                    : `${loan.remainingPayments} мес.`;
                   return (
-                    <div className="bank-debt-row" key={loan.id}>
+                    <div className="bank-debt-row" key={loan.id} data-liability-id={loan.id}>
                       <div>
                         <span>{liabilityNameRu(loan.creditor)}</span>
-                        <strong>{money(loan.principal)}</strong>
-                        <small>−{money(Math.round(loan.principal * loan.interestRate))}/мес</small>
+                        <strong aria-label={`Остаток ${money(loan.principal)}`}>{money(loan.principal)}</strong>
+                        <small>Платёж −{money(Math.round(loan.principal * loan.interestRate))}/мес · {remainingTerm}</small>
                       </div>
                       <button type="button" onClick={() => handleRepay(loan.id, loan.principal)} disabled={!canRepay}>
                         {canRepay ? 'Погасить' : 'Мало денег'}
                       </button>
                     </div>
                   );
-                })}
+                })()}
               </div>
             )}
           </section>

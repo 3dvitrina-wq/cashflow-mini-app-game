@@ -239,6 +239,20 @@ night survival job. Do not “fix” this by removing losses.
   `2ebd280c` is deployed, and the canonical host now serves
   `dyor-focus-B9vBjisL.js`; direct probes find the optional-reserve, discard,
   unified-market and paid-search actions.
+- A bought player listing is now a second recipient-private opportunity, not a
+  replacement for the buyer's selected card. BASIC stages card-bound choices in
+  order and exposes `1/2 · ВАША` then `2/2 · КУПЛЕНА`; only the second choice
+  locks the player. Purchase payment stays immediate, both effects resolve in the
+  same month, and bot/deadline fallback completes both without stalling.
+- The compact Bank no longer clips profession obligations. `Погасить` pages the
+  complete authoritative liability list one item at a time with 44px controls,
+  showing balance, monthly payment and remaining term while preserving the
+  non-scrolling Telegram-safe sheet.
+- Verification: 180/180 engine tests, 14/14 server tests, 2/2 Bank pager tests,
+  3/3 sequential-card transition tests, web/server TypeScript, production build
+  and `git diff --check` PASS. A clean 402×874 replay bought a bot listing,
+  resolved both enabled cards in order and advanced only after card two; Bank
+  rendered a live profession debt without overflow.
 
 ## Next Step
 

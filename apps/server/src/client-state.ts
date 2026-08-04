@@ -31,7 +31,7 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
     submittedIntentPlayerIds,
     // A BASIC network snapshot must never disclose the other seats' private cards.
     personalCardIds: viewerPlayerId && state.experienceMode === 'basic'
-      ? { [viewerPlayerId]: visibleCardId }
+      ? { [viewerPlayerId]: state.personalCardIds?.[viewerPlayerId] ?? null }
       : state.personalCardIds,
     personalCardOptionIds: viewerPlayerId && state.experienceMode === 'basic'
       ? { [viewerPlayerId]: state.personalCardOptionIds?.[viewerPlayerId] ?? [] }
@@ -48,6 +48,12 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
     personalCardSelectionPending: viewerPlayerId && state.experienceMode === 'basic'
       ? { [viewerPlayerId]: state.personalCardSelectionPending?.[viewerPlayerId] ?? false }
       : state.personalCardSelectionPending,
+    personalCardPurchasedIds: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardPurchasedIds?.[viewerPlayerId] ?? null }
+      : state.personalCardPurchasedIds,
+    personalCardIntentQueues: viewerPlayerId && state.experienceMode === 'basic'
+      ? { [viewerPlayerId]: state.personalCardIntentQueues?.[viewerPlayerId] ?? [] }
+      : state.personalCardIntentQueues,
     personalCardOffers: viewerPlayerId && state.experienceMode === 'basic'
       ? (state.personalCardOffers ?? []).filter((offer) =>
           offer.fromPlayerId === viewerPlayerId

@@ -16,6 +16,7 @@ import type {
   Outfit,
   Partnership,
   PersonalCardOffer,
+  PersonalCardIntent,
   PlayerState,
   Seed,
   TimerSettings,
@@ -393,6 +394,8 @@ export function createMatch(
     personalCardReserveIds: {},
     personalCardCarriedIds: {},
     personalCardSelectionPending: {},
+    personalCardPurchasedIds: {},
+    personalCardIntentQueues: {},
     personalCardOffers: [],
     globalCardId: null,
 
@@ -439,6 +442,9 @@ export function activePlayer(state: MatchState): PlayerState | null {
 /** The card this player is actually allowed to see and resolve this round. */
 export function cardIdForPlayer(state: MatchState, playerId: string): string | null {
   if (state.experienceMode === 'basic') {
+    const purchasedCardId = state.personalCardPurchasedIds?.[playerId];
+    const stagedCount = state.personalCardIntentQueues?.[playerId]?.length ?? 0;
+    if (purchasedCardId && stagedCount >= 1) return purchasedCardId;
     return state.personalCardIds?.[playerId] ?? null;
   }
   return state.currentCardId;
@@ -546,6 +552,8 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
   state.personalCardDiscardIds = discards;
   state.personalCardCarriedIds = carriedIds;
   state.personalCardSelectionPending = pending;
+  state.personalCardPurchasedIds = {};
+  state.personalCardIntentQueues = {};
   // Advance the weighted deck cursor after all private hands. Without this the
   // next month would reopen the same slice of the deck around the carried card.
   state.deckCursor = cursor;
@@ -650,11 +658,23 @@ function maybeUseCrisisImmunity(
 // the clamp-to-zero damage model resolve it). Shared by validateCommand and the UI
 // so a button is never offered for a command the engine would reject.
 export function canAffordChoice(state: MatchState, playerId: string, choiceIndex: number): boolean {
-  const choices = getCard(cardIdForPlayer(state, playerId))?.choices ?? [];
+  // A bought BASIC card is chosen after the selected card but both apply in one
+  // batch. Validate the second choice against the cash/state left by the staged
+  // first choice so the queue cannot over-commit money before resolution.
+  const decisionState = state.experienceMode === 'basic'
+    && (state.personalCardIntentQueues?.[playerId]?.length ?? 0) > 0
+    ? clone(state)
+    : state;
+  if (decisionState !== state) {
+    for (const intent of decisionState.personalCardIntentQueues?.[playerId] ?? []) {
+      applyPersonalCardIntent(decisionState, playerId, intent);
+    }
+  }
+  const choices = getCard(cardIdForPlayer(decisionState, playerId))?.choices ?? [];
   const choice = choices[choiceIndex];
-  const actor = state.players.find((p) => p.id === playerId);
+  const actor = decisionState.players.find((p) => p.id === playerId);
   if (!choice || !actor) return true; // not an affordability question
-  if (state.experienceMode === 'basic' && choice.effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')) {
+  if (decisionState.experienceMode === 'basic' && choice.effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')) {
     return false;
   }
   if (choiceUpfrontCost(choice) <= actor.cash) return true;
@@ -674,6 +694,55 @@ function acceptedPersonalOfferFor(state: MatchState, playerId: string) {
     offer.round === state.round
     && offer.status === 'accepted'
     && offer.toPlayerId === playerId);
+}
+
+export interface PersonalCardProgress {
+  current: number;
+  total: number;
+  completed: number;
+  ready: boolean;
+}
+
+/** Recipient-private progress through the selected card and optional bought card. */
+export function personalCardProgress(state: MatchState, playerId: string): PersonalCardProgress {
+  const total = state.personalCardPurchasedIds?.[playerId] ? 2 : 1;
+  const completed = Math.min(total, state.personalCardIntentQueues?.[playerId]?.length ?? 0);
+  return {
+    current: Math.min(total, completed + 1),
+    total,
+    completed,
+    ready: state.pendingIntents[playerId] != null,
+  };
+}
+
+function stagePersonalCardIntent(
+  state: MatchState,
+  playerId: string,
+  command: Extract<Command, { type: 'choose_option' | 'pass' }>,
+): GameEvent[] {
+  const cardId = cardIdForPlayer(state, playerId);
+  if (!cardId) return [{ type: 'command_rejected', playerId, message: 'personal card not found' }];
+
+  state.personalCardIntentQueues ??= {};
+  const queue = state.personalCardIntentQueues[playerId] ?? [];
+  const total = state.personalCardPurchasedIds?.[playerId] ? 2 : 1;
+  if (queue.length >= total) {
+    return [{ type: 'command_rejected', playerId, message: 'all personal cards already selected' }];
+  }
+
+  queue.push({
+    cardId,
+    choiceIndex: command.type === 'choose_option' ? command.choiceIndex : null,
+  });
+  state.personalCardIntentQueues[playerId] = queue;
+  if (queue.length >= total) state.pendingIntents[playerId] = command;
+
+  return [{
+    type: 'command_accepted',
+    playerId,
+    message: `intent:${command.type}:${queue.length}/${total}`,
+    payload: { cardId, current: queue.length, total },
+  }];
 }
 
 export function validateCommand(state: MatchState, cmd: Command): string | null {
@@ -750,6 +819,7 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (offer.audience === 'direct' && offer.toPlayerId !== cmd.playerId) return 'personal card offer belongs to another player';
     if (state.pendingIntents[cmd.playerId]) return 'player already locked a choice';
     if (acceptedPersonalOfferFor(state, cmd.playerId)) return 'player already accepted a card this round';
+    if (state.personalCardPurchasedIds?.[cmd.playerId]) return 'player already bought a card this round';
     const buyer = state.players.find((candidate) => candidate.id === cmd.playerId);
     if (!buyer?.alive) return 'player not available';
     if (cmd.type === 'accept_personal_card' && buyer.cash < offer.askingPrice) return 'insufficient cash for asking price';
@@ -1027,8 +1097,12 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         state.personalCardDiscardIds ??= {};
         state.personalCardDiscardIds[cmd.playerId] = discarded;
       }
-      state.pendingIntents[cmd.playerId] = cmd;
-      events.push({ type: 'command_accepted', playerId: cmd.playerId, message: `intent:${cmd.type}` });
+      if (state.experienceMode === 'basic') {
+        events.push(...stagePersonalCardIntent(state, cmd.playerId, cmd));
+      } else {
+        state.pendingIntents[cmd.playerId] = cmd;
+        events.push({ type: 'command_accepted', playerId: cmd.playerId, message: `intent:${cmd.type}` });
+      }
     }
     state.eventLog.push(...events);
     return { state, events };
@@ -1074,7 +1148,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
           status: 'pending',
         });
         if (cmd.audience === 'table') {
-          state.pendingIntents[actor.id] = { type: 'pass', playerId: actor.id };
+          events.push(...stagePersonalCardIntent(state, actor.id, { type: 'pass', playerId: actor.id }));
         }
         events.push({
           type: 'deal',
@@ -1089,11 +1163,15 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
     case 'accept_personal_card': {
       const offer = state.personalCardOffers?.find((candidate) => candidate.id === cmd.offerId);
       if (offer) {
-        const previousCard = state.personalCardIds?.[actor.id];
-        if (previousCard) state.discardPile.push(previousCard);
-        state.personalCardIds ??= {};
-        state.personalCardIds[actor.id] = offer.cardId;
-        state.pendingIntents[offer.fromPlayerId] = { type: 'pass', playerId: offer.fromPlayerId };
+        state.personalCardPurchasedIds ??= {};
+        state.personalCardPurchasedIds[actor.id] = offer.cardId;
+        // Table listings already staged the seller's primary pass when listed.
+        // Direct offers stage it only when a buyer actually accepts.
+        if (offer.audience === 'direct' && !state.pendingIntents[offer.fromPlayerId]) {
+          events.push(...stagePersonalCardIntent(state, offer.fromPlayerId, {
+            type: 'pass', playerId: offer.fromPlayerId,
+          }));
+        }
         const seller = state.players.find((player) => player.id === offer.fromPlayerId);
         if (seller && offer.askingPrice > 0) {
           actor.cash -= offer.askingPrice;
@@ -1179,6 +1257,8 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       if (state.personalCardDiscardIds) state.personalCardDiscardIds[player.id] = [];
       if (state.personalCardCarriedIds) state.personalCardCarriedIds[player.id] = null;
       if (state.personalCardSelectionPending) state.personalCardSelectionPending[player.id] = false;
+      if (state.personalCardPurchasedIds) state.personalCardPurchasedIds[player.id] = null;
+      if (state.personalCardIntentQueues) state.personalCardIntentQueues[player.id] = [];
       if (state.activeInterestWindow) {
         state.activeInterestWindow.eligiblePlayers = state.activeInterestWindow.eligiblePlayers
           .filter((id) => id !== player.id);
@@ -1672,6 +1752,50 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
 
 // ─── Resolve All Intents (intent_window → resolution) ───────────────────────
 
+function applyPersonalCardIntent(
+  state: MatchState,
+  playerId: string,
+  intent: PersonalCardIntent,
+): GameEvent[] {
+  const actor = state.players.find((player) => player.id === playerId);
+  const card = getCard(intent.cardId);
+  if (!actor || !card) {
+    return [{ type: 'command_rejected', playerId, message: 'queued personal card not found' }];
+  }
+
+  const events: GameEvent[] = [{
+    type: 'command_accepted',
+    playerId,
+    message: intent.choiceIndex === null ? 'pass' : 'choose_option',
+    payload: { cardId: intent.cardId, choiceIndex: intent.choiceIndex },
+  }];
+  if (intent.choiceIndex === null) {
+    if (card.choices) {
+      const safe = card.choices[card.choices.length - 1];
+      if (safe) events.push(...applyEffects(state, actor, safe.effects));
+    } else if (card.effects && actor.id === activePlayer(state)?.id) {
+      events.push(...applyEffects(state, actor, card.effects));
+    }
+  } else {
+    const choice = card.choices?.[intent.choiceIndex];
+    if (choice) {
+      const immunityEvents = maybeUseCrisisImmunity(state, actor, card, intent.choiceIndex);
+      if (immunityEvents) {
+        events.push(...immunityEvents);
+        if (!immunityEvents.some((event) => event.payload?.blocked === true)) {
+          events.push(...applyEffects(state, actor, choice.effects));
+        }
+      } else {
+        events.push(...applyEffects(state, actor, choice.effects));
+      }
+    }
+  }
+  if (card.hostCue) events.push({ type: 'host', cue: card.hostCue, message: `personal:${card.id}` });
+  if (card.animation) events.push({ type: 'animation', payload: card.animation as unknown as Record<string, unknown> });
+  actor.avatarState = deriveAvatarState(actor);
+  return events;
+}
+
 export function resolveAllIntents(prev: MatchState): CommandResult {
   const state = clone(prev);
   const events: GameEvent[] = [];
@@ -1693,25 +1817,42 @@ export function resolveAllIntents(prev: MatchState): CommandResult {
   // collected here so partnerships can be formed once everyone's choice is applied.
   const coInvestors: { playerId: string; contribution: number; fullCost: number }[] = [];
 
-  let currentState = state;
-  for (const [playerId, intent] of Object.entries(state.pendingIntents)) {
-    if (intent) {
-      if (intent.type === 'choose_option') {
-        const intentCard = getCard(cardIdForPlayer(state, playerId));
-        const inv = intentCard?.choices?.[intent.choiceIndex]?.effects.find((e) => e.type === 'partnership.invite');
-        if (inv) {
-          const contribution = (inv.payload?.['contribution'] as number) ?? inv.amount ?? 0;
-          const fullCost = (inv.payload?.['fullCost'] as number) ?? contribution;
-          coInvestors.push({ playerId, contribution, fullCost });
-        }
-      }
-      const result = resolveCommand(currentState, intent);
-      events.push(...result.events);
-      currentState = result.state;
+  if (state.experienceMode === 'basic') {
+    for (const player of state.players) {
+      const queued = state.personalCardIntentQueues?.[player.id] ?? [];
+      const legacyIntent = state.pendingIntents[player.id];
+      const intents = queued.length > 0
+        ? queued
+        : legacyIntent && (legacyIntent.type === 'choose_option' || legacyIntent.type === 'pass')
+          ? [{
+              cardId: state.personalCardIds?.[player.id] ?? '',
+              choiceIndex: legacyIntent.type === 'choose_option' ? legacyIntent.choiceIndex : null,
+            }]
+          : [];
+      for (const intent of intents) events.push(...applyPersonalCardIntent(state, player.id, intent));
+      state.pendingIntents[player.id] = null;
     }
-    currentState.pendingIntents[playerId] = null;
+  } else {
+    let currentState = state;
+    for (const [playerId, intent] of Object.entries(state.pendingIntents)) {
+      if (intent) {
+        if (intent.type === 'choose_option') {
+          const intentCard = getCard(cardIdForPlayer(state, playerId));
+          const inv = intentCard?.choices?.[intent.choiceIndex]?.effects.find((e) => e.type === 'partnership.invite');
+          if (inv) {
+            const contribution = (inv.payload?.['contribution'] as number) ?? inv.amount ?? 0;
+            const fullCost = (inv.payload?.['fullCost'] as number) ?? contribution;
+            coInvestors.push({ playerId, contribution, fullCost });
+          }
+        }
+        const result = resolveCommand(currentState, intent);
+        events.push(...result.events);
+        currentState = result.state;
+      }
+      currentState.pendingIntents[playerId] = null;
+    }
+    Object.assign(state, currentState);
   }
-  Object.assign(state, currentState);
 
   if (state.experienceMode !== 'basic') {
     events.push(...formPartnerships(state, coInvestors));
@@ -1821,6 +1962,7 @@ export function openIntentWindow(prev: MatchState): MatchState {
   const state = clone(prev);
   state.phase = 'intent_window';
   for (const p of state.players) state.pendingIntents[p.id] = null;
+  if (state.experienceMode === 'basic') state.personalCardIntentQueues = {};
   return state;
 }
 
@@ -2215,6 +2357,9 @@ export function advanceRound(prev: MatchState): CommandResult {
 
   if (state.experienceMode === 'basic') {
     for (const cardId of Object.values(state.personalCardIds ?? {})) {
+      if (cardId) state.discardPile.push(cardId);
+    }
+    for (const cardId of Object.values(state.personalCardPurchasedIds ?? {})) {
       if (cardId) state.discardPile.push(cardId);
     }
     dealPersonalCards(state, state.deckCursor);

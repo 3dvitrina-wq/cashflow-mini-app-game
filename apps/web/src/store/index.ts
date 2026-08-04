@@ -457,10 +457,19 @@ function queueOfflineIntentWithFallback(
   player: EnginePlayerState,
   intent: Command,
 ): EngineMatchState {
-  let next = resolveCommand(state, intent).state;
-  if (next.pendingIntents[player.id]) return next;
-  if (intent.type !== 'pass') {
-    next = resolveCommand(next, { type: 'pass', playerId: player.id }).state;
+  let next = state;
+  let nextIntent = intent;
+  let attempts = 0;
+  while (!next.pendingIntents[player.id] && attempts < 2) {
+    const result = resolveCommand(next, nextIntent);
+    const rejected = result.events.some((event) => event.type === 'command_rejected');
+    next = result.state;
+    if (next.pendingIntents[player.id]) break;
+    const currentPlayer = next.players.find((candidate) => candidate.id === player.id);
+    nextIntent = rejected || !currentPlayer
+      ? { type: 'pass', playerId: player.id }
+      : botChoiceIntent(next, currentPlayer);
+    attempts += 1;
   }
   return next;
 }

@@ -1521,6 +1521,23 @@ button {
 .card-poster-kicker {
   display: flex;
   justify-content: center;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.personal-card-sequence {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  padding: 4px 9px;
+  border: 1px solid rgba(91, 215, 224, .44);
+  border-radius: 999px;
+  background: rgba(7, 34, 38, .72);
+  color: #8CE8EF;
+  font-size: 9px;
+  font-weight: 950;
+  letter-spacing: .08em;
 }
 
 .card-poster-copy {
@@ -4497,6 +4514,41 @@ button {
 .bank-deposit-list {
   display: grid;
   gap: 6px;
+}
+
+.bank-debt-pager {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 8px;
+}
+
+.bank-debt-pager button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 10px;
+  background: rgba(255,255,255,.045);
+  color: #F5C524;
+  font-size: 22px;
+  font-weight: 850;
+}
+
+.bank-debt-pager button:disabled {
+  opacity: .25;
+}
+
+.bank-debt-pager span {
+  color: #8E8B82;
+  font-size: 10px;
+  font-weight: 850;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.bank-debt-pager b {
+  color: #F5F4ED;
+  font-size: 12px;
 }
 
 .bank-debt-row,

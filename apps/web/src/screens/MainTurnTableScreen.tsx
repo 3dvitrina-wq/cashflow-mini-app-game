@@ -5,6 +5,7 @@ import { resolveCharacterImage } from '../assets/characterRenderer';
 import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
 import { useStore } from '../store';
 import { wsClient } from '../lib/wsClient';
+import { shouldReleasePersonalCardTransition } from '../lib/personalCardSequence';
 import type { PlayerState, CharacterMood } from '../store/types';
 import { PlayerProfile } from '../components/PlayerProfile';
 import { InterestWindowBanner } from '../components/negotiation/InterestWindowBanner';
@@ -34,6 +35,7 @@ import {
   localizedTimelineLabel,
   monthlyCashflow,
   petIncomePerRound,
+  personalCardProgress,
   stressPassiveIncomePenalty,
   synergyCashflow,
 } from '../../../../packages/game-engine/src';
@@ -49,6 +51,7 @@ type RoundTransition = {
   fromRound: number;
   fromMonth: number;
   fromYear: number;
+  fromPersonalCompleted: number;
 };
 
 type SettlementLedgerLine = {
@@ -670,6 +673,9 @@ export const MainTurnTableScreen: React.FC = () => {
   const personalCardOptionIds = me?.id ? engineMatch?.personalCardOptionIds?.[me.id] ?? [] : [];
   const reserveCardId = me?.id ? engineMatch?.personalCardReserveIds?.[me.id] ?? null : null;
   const returningCardId = me?.id ? engineMatch?.personalCardCarriedIds?.[me.id] ?? null : null;
+  const personalSequence = engineMatch && me?.id
+    ? personalCardProgress(engineMatch, me.id)
+    : { current: 1, total: 1, completed: 0, ready: false };
   const reserveCardCopy = useMemo(
     () => reserveCardId ? getLocalizedCard(reserveCardId, locale) : null,
     [locale, reserveCardId],
@@ -1019,6 +1025,7 @@ export const MainTurnTableScreen: React.FC = () => {
         fromRound: match.round,
         fromMonth: match.calendarMonth,
         fromYear: match.calendarYear,
+        fromPersonalCompleted: personalSequence.completed,
       });
       playSound('select');
       hapticImpact('medium');
@@ -1039,7 +1046,7 @@ export const MainTurnTableScreen: React.FC = () => {
         submitIntent(choiceIdx);
       }, 180));
     },
-    [isAdvancingTime, isMultiplayer, locale, match.calendarMonth, match.calendarYear, match.round, networkStatus, submitIntent]
+    [isAdvancingTime, isMultiplayer, locale, match.calendarMonth, match.calendarYear, match.round, networkStatus, personalSequence.completed, submitIntent]
   );
 
   // Wait silently on the table for the authoritative next round, then show one
@@ -1047,6 +1054,12 @@ export const MainTurnTableScreen: React.FC = () => {
   // trailer with a single causal report.
   useEffect(() => {
     if (!roundTransition || roundTransition.phase !== 'waiting') return;
+    if (shouldReleasePersonalCardTransition(roundTransition, match.round, personalSequence)) {
+      setRoundTransition(null);
+      setIsAdvancingTime(false);
+      setIsConfirmPreviewOpen(false);
+      return;
+    }
     if (match.round <= roundTransition.fromRound) {
       const stalledTimer = window.setTimeout(() => {
         setRoundTransition(null);
@@ -1064,7 +1077,16 @@ export const MainTurnTableScreen: React.FC = () => {
     playSound(match.lastSettlement >= 0 ? 'coin' : 'spend');
     hapticImpact(match.lastSettlement >= 0 ? 'light' : 'medium');
     setRoundTransition((current) => current ? { ...current, phase: 'summary' } : current);
-  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition]);
+  }, [
+    isMultiplayer,
+    locale,
+    match.lastSettlement,
+    match.round,
+    personalSequence.completed,
+    personalSequence.ready,
+    personalSequence.total,
+    roundTransition,
+  ]);
 
   useEffect(() => {
     if (!roundTransition || roundTransition.phase !== 'summary') return;
@@ -1533,6 +1555,17 @@ export const MainTurnTableScreen: React.FC = () => {
                       <IconAlert size={11} />
                       {cardTypeLabel(card.type, locale === 'ru')}
                     </span>
+                    {!isProMode && personalSequence.total > 1 && (
+                      <span className="personal-card-sequence" aria-label={locale === 'ru'
+                        ? `Карта ${personalSequence.current} из ${personalSequence.total}`
+                        : `Card ${personalSequence.current} of ${personalSequence.total}`}>
+                        {personalSequence.current}/{personalSequence.total}
+                        {' · '}
+                        {personalSequence.current === 1
+                          ? (locale === 'ru' ? 'ВАША' : 'YOURS')
+                          : (locale === 'ru' ? 'КУПЛЕНА' : 'PURCHASED')}
+                      </span>
+                    )}
                   </div>
 
                   <div className="card-poster-copy">

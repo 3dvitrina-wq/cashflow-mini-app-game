@@ -100,19 +100,25 @@ function openSharedWindowIfNeeded(room: Room): void {
 
 function queueBotIntents(room: Room): void {
   if (!room.engineState || room.engineState.phase !== 'intent_window') return;
-  for (const player of room.engineState.players.filter((p) => p.alive)) {
-    if (room.engineState.pendingIntents[player.id]) continue;
-    const member = room.members.find((m) => m.playerId === player.id);
+  for (const initialPlayer of room.engineState.players.filter((p) => p.alive)) {
+    if (room.engineState.pendingIntents[initialPlayer.id]) continue;
+    const member = room.members.find((m) => m.playerId === initialPlayer.id);
     if (!member?.isBot && !member?.botControlled) continue;
-    const botState = room.engineState.experienceMode === 'basic'
-      ? { ...room.engineState, currentCardId: cardIdForPlayer(room.engineState, player.id) }
-      : room.engineState;
-    const raw = toRoundIntent(player.id, normalizeBotCommand(player.id, botIntent(botState, player)));
-    let result = resolveCommand(room.engineState, raw);
-    if (wasRejected(result.events)) {
-      result = resolveCommand(room.engineState, { type: 'pass', playerId: player.id });
+    let attempts = 0;
+    while (!room.engineState.pendingIntents[initialPlayer.id] && attempts < 2) {
+      const player = room.engineState.players.find((candidate) => candidate.id === initialPlayer.id);
+      if (!player) break;
+      const botState = room.engineState.experienceMode === 'basic'
+        ? { ...room.engineState, currentCardId: cardIdForPlayer(room.engineState, player.id) }
+        : room.engineState;
+      const raw = toRoundIntent(player.id, normalizeBotCommand(player.id, botIntent(botState, player)));
+      let result = resolveCommand(room.engineState, raw);
+      if (wasRejected(result.events)) {
+        result = resolveCommand(room.engineState, { type: 'pass', playerId: player.id });
+      }
+      room.engineState = result.state;
+      attempts += 1;
     }
-    room.engineState = result.state;
   }
 }
 
@@ -136,8 +142,11 @@ export function expireSharedIntentWindow(code: string): Room | null {
   const room = rooms.get(code);
   if (!room?.engineState || room.engineState.phase !== 'intent_window') return null;
   for (const player of room.engineState.players.filter((candidate) => candidate.alive)) {
-    if (room.engineState.pendingIntents[player.id]) continue;
-    room.engineState = resolveCommand(room.engineState, { type: 'pass', playerId: player.id }).state;
+    let attempts = 0;
+    while (!room.engineState.pendingIntents[player.id] && attempts < 2) {
+      room.engineState = resolveCommand(room.engineState, { type: 'pass', playerId: player.id }).state;
+      attempts += 1;
+    }
   }
   resolveSharedWindowIfReady(room);
   return room;

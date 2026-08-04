@@ -127,6 +127,34 @@ describe('client state card copy', () => {
     expect(Object.keys(toClientState(state, 'p3')?.personalCardIds ?? {})).toEqual(['p3']);
   });
 
+  it('keeps a bought card and its staged choice private while preserving the selected card', () => {
+    let state = createMatch(58, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+      { id: 'p3', name: 'Three', outfit: 'creator', isBot: false },
+    ], { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-ai-shop', p3: 'opp-route' };
+    state.personalCardSelectionPending = { p1: false, p2: false, p3: false };
+    state.players.forEach((player) => { player.cash = 20_000; });
+    state = openIntentWindow(state);
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 900,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'accept_personal_card', playerId: 'p2', offerId: state.personalCardOffers![0].id,
+    }).state;
+    state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
+
+    const buyer = toClientState(state, 'p2')!;
+    const observer = toClientState(state, 'p3')!;
+    expect(buyer.personalCardIds).toEqual({ p2: 'opp-ai-shop' });
+    expect(buyer.personalCardPurchasedIds).toEqual({ p2: 'opp-vending' });
+    expect(buyer.personalCardIntentQueues?.p2).toHaveLength(1);
+    expect(buyer.currentCardId).toBe('opp-vending');
+    expect(observer.personalCardPurchasedIds).toEqual({ p3: null });
+    expect(observer.personalCardIntentQueues).toEqual({ p3: [] });
+  });
+
   it('preserves exact authoritative pet identity in recipient snapshots', () => {
     let state = createMatch(61, [
       { id: 'p1', name: 'One', outfit: 'office', isBot: false },

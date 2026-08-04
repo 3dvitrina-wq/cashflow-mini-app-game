@@ -30,6 +30,34 @@ describe('shared room intent deadline', () => {
         && event.message === 'intent:pass',
     )).toBe(true);
   });
+
+  it('passes both owned BASIC cards for a silent buyer in one deadline', () => {
+    const room = createRoom(true);
+    joinRoom(room.code, { playerId: 'p1', name: 'A', outfit: 'trader', ws: null });
+    joinRoom(room.code, { playerId: 'p2', name: 'B', outfit: 'office', ws: null });
+    const started = startRoom(room.code, { experienceMode: 'basic' })!;
+    const state = started.engineState!;
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-ai-shop' };
+    state.personalCardSelectionPending = { p1: false, p2: false };
+    state.players.forEach((player) => { player.cash = 20_000; });
+
+    expect(applyCommand(room.code, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 900,
+    }).rejected).toBe(false);
+    const offerId = started.engineState?.personalCardOffers?.[0]?.id;
+    expect(applyCommand(room.code, {
+      type: 'accept_personal_card', playerId: 'p2', offerId: offerId!,
+    }).rejected).toBe(false);
+    expect(started.engineState?.personalCardIds?.p2).toBe('opp-ai-shop');
+    expect(started.engineState?.personalCardPurchasedIds?.p2).toBe('opp-vending');
+    expect(started.engineState?.pendingIntents.p2).toBeNull();
+
+    const expired = expireSharedIntentWindow(room.code)!;
+    expect(expired.engineState?.round).toBe(2);
+    expect(expired.engineState?.phase).toBe('intent_window');
+    expect(expired.engineState?.eventLog.some((event) =>
+      event.playerId === 'p2' && event.message === 'intent:pass:2/2')).toBe(true);
+  });
 });
 
 describe('first-run tutorial pause', () => {

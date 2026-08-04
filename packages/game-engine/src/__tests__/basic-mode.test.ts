@@ -215,15 +215,78 @@ describe('BASIC private simultaneous cards', () => {
 
     state = resolveCommand(state, { type: 'accept_personal_card', playerId: 'p2', offerId: offer!.id }).state;
     expect(state.pendingIntents.p1).toEqual({ type: 'pass', playerId: 'p1' });
-    expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-route');
+    expect(state.personalCardPurchasedIds?.p2).toBe('opp-vending');
     expect(state.players[0].cash).toBe(sellerCashBefore + 1200);
     expect(state.players[1].cash).toBe(buyerCashBefore - 1200);
 
+    state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
     state = resolveCommand(state, { type: 'choose_option', playerId: 'p2', choiceIndex: 1 }).state;
     const resolved = resolveAllIntents(state).state;
     expect(resolved.players[0].cash).toBe(sellerCashBefore + 1200);
     expect(resolved.players[1].cash).toBe(buyerCashBefore - 1200 - 600);
     expect(resolved.players[1].passiveIncome).toBe(120);
+  });
+
+  it('keeps a bought opportunity separate and locks the buyer only after both cards resolve', () => {
+    let state = createMatch(191, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-ai-shop' };
+    markPersonalSelectionComplete(state);
+    state.players.forEach((player) => { player.cash = 20_000; });
+    state = openIntentWindow(state);
+
+    state = resolveCommand(state, {
+      type: 'offer_personal_card',
+      playerId: 'p1',
+      audience: 'table',
+      askingPrice: 900,
+    }).state;
+    const offer = state.personalCardOffers?.[0];
+    state = resolveCommand(state, {
+      type: 'accept_personal_card', playerId: 'p2', offerId: offer!.id,
+    }).state;
+
+    expect(state.personalCardIds?.p2).toBe('opp-ai-shop');
+    expect(state.personalCardPurchasedIds?.p2).toBe('opp-vending');
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-ai-shop');
+
+    state = resolveCommand(state, { type: 'choose_option', playerId: 'p2', choiceIndex: 1 }).state;
+    expect(state.pendingIntents.p2).toBeNull();
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
+    expect(allIntentsSubmitted(state)).toBe(false);
+
+    state = resolveCommand(state, { type: 'choose_option', playerId: 'p2', choiceIndex: 1 }).state;
+    expect(state.pendingIntents.p2).not.toBeNull();
+    expect(allIntentsSubmitted(state)).toBe(true);
+
+    const resolved = resolveAllIntents(state).state;
+    expect(resolved.players[1].passiveIncome).toBe(520);
+  });
+
+  it('validates the bought-card choice after the staged selected-card cost', () => {
+    let state = createMatch(192, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    state.personalCardIds = { p1: 'opp-vending', p2: 'opp-ai-shop' };
+    markPersonalSelectionComplete(state);
+    state.players[1].cash = 1_000;
+    state = openIntentWindow(state);
+    state = resolveCommand(state, {
+      type: 'offer_personal_card', playerId: 'p1', audience: 'table', askingPrice: 0,
+    }).state;
+    state = resolveCommand(state, {
+      type: 'accept_personal_card', playerId: 'p2', offerId: state.personalCardOffers![0].id,
+    }).state;
+    state = resolveCommand(state, { type: 'choose_option', playerId: 'p2', choiceIndex: 1 }).state;
+
+    const overCommitted = resolveCommand(state, {
+      type: 'choose_option', playerId: 'p2', choiceIndex: 1,
+    });
+    expect(overCommitted.events.some((event) =>
+      event.type === 'command_rejected' && event.message === 'insufficient cash for this option')).toBe(true);
+    expect(overCommitted.state.pendingIntents.p2).toBeNull();
+
+    state = resolveCommand(overCommitted.state, { type: 'pass', playerId: 'p2' }).state;
+    expect(state.pendingIntents.p2).not.toBeNull();
   });
 
   it('lists a card to the whole table without waiting and sells it to the first consenting buyer', () => {
@@ -244,7 +307,8 @@ describe('BASIC private simultaneous cards', () => {
     expect(offer?.audience).toBe('table');
 
     state = resolveCommand(state, { type: 'accept_personal_card', playerId: 'p2', offerId: offer!.id }).state;
-    expect(cardIdForPlayer(state, 'p2')).toBe('opp-vending');
+    expect(cardIdForPlayer(state, 'p2')).toBe('opp-route');
+    expect(state.personalCardPurchasedIds?.p2).toBe('opp-vending');
     expect(state.players[0].cash).toBe(13_600);
     expect(state.players[1].cash).toBe(6_400);
 
@@ -285,7 +349,8 @@ describe('BASIC private simultaneous cards', () => {
     state = resolveCommand(state, {
       type: 'accept_personal_card', playerId: 'p3', offerId: pendingOffers[0].id,
     }).state;
-    expect(cardIdForPlayer(state, 'p3')).toBe('opp-vending');
+    expect(cardIdForPlayer(state, 'p3')).toBe('opp-ai-shop');
+    expect(state.personalCardPurchasedIds?.p3).toBe('opp-vending');
 
     const secondAcceptance = resolveCommand(state, {
       type: 'accept_personal_card', playerId: 'p3', offerId: pendingOffers[1].id,
@@ -297,7 +362,8 @@ describe('BASIC private simultaneous cards', () => {
       type: 'accept_personal_card', playerId: 'p4', offerId: pendingOffers[1].id,
     });
     expect(otherBuyer.events.some((event) => event.type === 'command_rejected')).toBe(false);
-    expect(cardIdForPlayer(otherBuyer.state, 'p4')).toBe('opp-route');
+    expect(cardIdForPlayer(otherBuyer.state, 'p4')).toBe('opp-storage');
+    expect(otherBuyer.state.personalCardPurchasedIds?.p4).toBe('opp-route');
   });
 });
 
