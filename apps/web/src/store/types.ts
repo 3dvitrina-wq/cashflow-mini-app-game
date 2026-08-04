@@ -94,6 +94,16 @@ export interface MatchState {
   calendarMonth: number;
   calendarYear: number;
   lastSettlement: number;
+  lastStressResults?: {
+    playerId: string;
+    stress: number;
+    penaltyRate: number;
+    lostIncome: number;
+    blackout: boolean;
+    lostAssetId?: string;
+    lostAssetName?: string;
+    lostAssetIncome?: number;
+  }[];
   // Futures positions that settled this round (realized win/loss), for a reveal toast.
   lastFuturesResults?: { pnl: number; liquidated: boolean }[];
   matchMode?: 'classic' | 'draft';

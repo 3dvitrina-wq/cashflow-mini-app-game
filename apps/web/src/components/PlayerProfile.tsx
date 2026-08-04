@@ -4,6 +4,7 @@ import type { PlayerState } from '../store/types';
 import { useI18n } from '../i18n';
 import { resolveCharacterImage } from '../assets/characterRenderer';
 import { REACTIONS } from '../assets/reactions';
+import { stressPassiveIncomePenalty } from '../../../../packages/game-engine/src';
 
 interface PlayerProfileProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
   if (!player) return null;
 
   const outfitLabel = t(`outfit.${player.outfit}`);
+  const stressPenalty = Math.round(stressPassiveIncomePenalty(player.stress) * 100);
 
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Профиль игрока">
@@ -105,6 +107,9 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
             <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>СТРЕСС</div>
             <div style={{ fontSize: 18, fontWeight: 900, color: '#E84B2A' }}>
               {player.stress}/10
+            </div>
+            <div style={{ marginTop: 2, fontSize: 10, color: stressPenalty > 0 ? '#FF8B70' : '#7D7B6F' }}>
+              {stressPenalty > 0 ? `−${stressPenalty}% пассива` : 'без штрафа'}
             </div>
           </div>
 

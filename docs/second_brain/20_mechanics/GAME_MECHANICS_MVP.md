@@ -161,7 +161,27 @@ Room can choose 1/2/3 minute turns.
 
 ## Stress, Insurance, Reputation, Epochs
 
-Stress, insurance, lawyers, reputation, epoch packs, post-match recap tags, and room modes are core state fields even if the first content set is small. See `STRESS_INSURANCE_REPUTATION_MODES.md`.
+Stress is an economic input, not a decorative meter. The authoritative monthly
+cashflow applies it only to passive and business income; salary and pet income
+remain intact:
+
+- below 3 (including half-steps): no penalty;
+- 3: −10 percent passive/business income;
+- 4: −15 percent;
+- 5–6: −25 percent;
+- 7–10: −50 percent every month;
+- 8–10: every other month is a deterministic full passive/business-income
+  failure, so the player can anticipate the rhythm and act before it lands;
+- 9: 20 percent monthly risk of losing one solely owned income asset;
+- 10: 35 percent monthly risk of losing one solely owned income asset.
+
+The month report must name both missed income and a lost business. Stress uses
+half-steps internally and the UI must not round them into a different penalty
+tier. Co-owned assets are excluded from automatic burnout loss until the
+partnership contract has an explicit failure rule.
+
+Insurance, lawyers, reputation, epoch packs, post-match recap tags, and room
+modes remain core state fields. See `STRESS_INSURANCE_REPUTATION_MODES.md`.
 
 ## Life Events and Social Contracts
 

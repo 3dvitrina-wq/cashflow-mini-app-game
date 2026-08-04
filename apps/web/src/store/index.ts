@@ -279,7 +279,9 @@ function toUiPlayer(
     monthlyExpenses: Math.round(monthlyExpenses),
     netCashflow: Math.round(netCashflow),
     assetValue: Math.round(assetValue),
-    stress: Math.round(p.stress),
+    // Preserve half-steps: settlement changes stress by 0.5 and the UI must show
+    // the same tier that the authoritative income penalty actually uses.
+    stress: p.stress,
     trust: Math.round(p.trust),
     debt: Math.round(p.debt),
     businessSlots: Math.min(10, Math.max(0, p.businessSlotsMax)),
@@ -314,6 +316,7 @@ function toUiMatch(state: EngineMatchState, negotiatingIds: string[] = []): Matc
     calendarMonth: state.timeline.month,
     calendarYear: state.timeline.year,
     lastSettlement: 0,
+    lastStressResults: state.lastStressResults,
     matchMode: state.matchMode ?? 'classic',
     experienceMode: state.experienceMode ?? 'pro',
   };
@@ -334,6 +337,7 @@ function createInitialMatch(): MatchState {
     calendarMonth: 1,
     calendarYear: 1,
     lastSettlement: 0,
+    lastStressResults: [],
   };
 }
 

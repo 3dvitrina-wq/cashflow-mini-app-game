@@ -5,6 +5,7 @@ import { useStore } from '../store';
 import bankLoanKiosk from '../assets/generated/bank/bank-loan-kiosk.webp';
 import { getProfession } from '../../../../packages/shared/src';
 import { isBankCreditor } from '../../../../packages/game-engine/src';
+import { liabilityNameRu } from '../lib/liabilities';
 
 interface BankScreenProps {
   isOpen: boolean;
@@ -36,6 +37,11 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
   const depositBoost = profession?.heroPower.type === 'deposit_yield_boost' ? profession.heroPower.value : 0;
   const activeLiabilities = (enginePlayer?.liabilities ?? []).filter((liability) => liability.remainingPayments > 0);
   const deposits = enginePlayer?.deposits ?? [];
+  const liabilityPrincipal = activeLiabilities.reduce((sum, liability) => sum + liability.principal, 0);
+  const liabilityMonthlyCost = activeLiabilities.reduce(
+    (sum, liability) => sum + Math.round(liability.principal * liability.interestRate),
+    0,
+  );
 
   const nextMonthlyInterest = useMemo(() => Math.round(amount * 0.1), [amount]);
 
@@ -84,9 +90,87 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
     showToast('Депозит закрыт, деньги вернулись на руки', 'success');
   };
 
+  const liabilitiesPanel = activeLiabilities.length > 0 ? (
+    <section
+      aria-label="Ипотека и кредиты"
+      style={{
+        padding: 15,
+        borderRadius: 18,
+        background: 'linear-gradient(135deg, rgba(232,75,42,.11), rgba(245,197,36,.05))',
+        border: '1px solid rgba(232,75,42,.28)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 5 }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 950, color: '#FF8B70', letterSpacing: '.08em' }}>СНАЧАЛА — СТАРЫЕ ДОЛГИ</div>
+          <h3 style={{ margin: '3px 0 0', color: '#F5F4ED', fontSize: 18, lineHeight: 1.05 }}>Ипотека и кредиты</h3>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <strong style={{ display: 'block', color: '#FF8B70', fontSize: 15 }}>${liabilityPrincipal.toLocaleString()}</strong>
+          <span style={{ color: '#989589', fontSize: 10 }}>−${liabilityMonthlyCost.toLocaleString()}/мес</span>
+        </div>
+      </div>
+      <p style={{ margin: '0 0 10px', fontSize: 11, lineHeight: 1.4, color: '#AAA79C' }}>
+        Погашение полностью убирает ежемесячный платёж и снижает сумму пассивного дохода, нужную для выхода из крысиных бегов.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {activeLiabilities.map((loan) => (
+          <div
+            key={loan.id}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: 10,
+              borderRadius: 14,
+              background: 'rgba(0,0,0,.2)',
+              border: '1px solid rgba(255,255,255,.06)',
+            }}
+          >
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ overflow: 'hidden', color: isBankCreditor(loan.creditor) ? '#FF8B70' : '#D7D3C8', fontSize: 11, fontWeight: 850, textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {liabilityNameRu(loan.creditor)}
+              </div>
+              <div style={{ marginTop: 2, color: '#F5F4ED', fontSize: 15, fontWeight: 900 }}>${loan.principal.toLocaleString()}</div>
+              <div style={{ color: '#8D8A7F', fontSize: 10 }}>
+                Забирает −${Math.round(loan.principal * loan.interestRate).toLocaleString()}/мес
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleRepay(loan.id, loan.principal)}
+              disabled={(me?.cash ?? 0) < loan.principal}
+              style={{
+                minWidth: 102,
+                height: 44,
+                padding: '0 12px',
+                border: 'none',
+                borderRadius: 11,
+                background: '#F5C524',
+                color: '#0B0B0C',
+                fontSize: 11,
+                fontWeight: 900,
+                opacity: (me?.cash ?? 0) < loan.principal ? 0.35 : 1,
+              }}
+            >
+              {(me?.cash ?? 0) < loan.principal ? 'Мало денег' : 'Погасить'}
+            </button>
+          </div>
+        ))}
+      </div>
+    </section>
+  ) : (
+    <section style={{ padding: 13, borderRadius: 16, background: 'rgba(40,199,111,.08)', border: '1px solid rgba(40,199,111,.22)' }}>
+      <strong style={{ display: 'block', color: '#53E391', fontSize: 13 }}>✓ Ипотека и кредиты погашены</strong>
+      <span style={{ color: '#989589', fontSize: 11 }}>Теперь долговые платежи не увеличивают цель свободы.</span>
+    </section>
+  );
+
   return (
     <BottomSheet isOpen={isOpen} onClose={onClose} title="Банк">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {liabilitiesPanel}
+
         <div
           style={{
             position: 'relative',
@@ -337,64 +421,6 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
           </div>
         )}
 
-        {activeLiabilities.length > 0 && (
-          <div
-            style={{
-              padding: 16,
-              borderRadius: 18,
-              background: 'rgba(232,75,42,0.06)',
-              border: '1px solid rgba(232,75,42,0.2)',
-            }}
-          >
-            <div style={{ fontSize: 13, fontWeight: 900, color: '#FF8B70', marginBottom: 4 }}>Обязательства и кредиты</div>
-            <div style={{ fontSize: 11, lineHeight: 1.4, color: '#989589', marginBottom: 10 }}>
-              Погашение снимает ежемесячный платёж и уменьшает сумму пассива, нужную для финансовой свободы.
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-              {activeLiabilities.map((loan) => (
-                <div
-                  key={loan.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 10,
-                    padding: 10,
-                    borderRadius: 14,
-                    background: 'rgba(0,0,0,.16)',
-                    border: '1px solid rgba(255,255,255,.05)',
-                  }}
-                >
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 800, color: isBankCreditor(loan.creditor) ? '#FF8B70' : '#B8B6A9' }}>
-                      {isBankCreditor(loan.creditor) ? 'КРЕДИТ ИГРОВОГО БАНКА' : loan.creditor}
-                    </div>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: '#F5F4ED', marginTop: 2 }}>${loan.principal.toLocaleString()}</div>
-                    <div style={{ fontSize: 11, color: '#7D7B6F' }}>
-                      −${Math.round(loan.principal * loan.interestRate).toLocaleString()}/мес · {loan.remainingPayments >= 900 ? 'до погашения' : `ещё ${loan.remainingPayments} мес.`}
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleRepay(loan.id, loan.principal)}
-                    disabled={(me?.cash ?? 0) < loan.principal}
-                    style={{
-                      height: 44,
-                      padding: '0 14px',
-                      borderRadius: 10,
-                      border: 'none',
-                      fontWeight: 800,
-                      fontSize: 12,
-                      background: '#F5C524',
-                      color: '#0B0B0C',
-                      opacity: (me?.cash ?? 0) < loan.principal ? 0.35 : 1,
-                    }}
-                  >
-                    Погасить
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </BottomSheet>
   );

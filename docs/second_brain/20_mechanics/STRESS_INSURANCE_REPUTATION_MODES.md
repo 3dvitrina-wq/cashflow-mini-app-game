@@ -20,6 +20,11 @@ Stress increases when a player has:
 
 Stress effects:
 
+- monthly passive/business income follows the visible 0/10/15/25/50 percent
+  penalty curve defined in `GAME_MECHANICS_MVP.md`;
+- stress 8+ produces a full passive/business-income failure every other month;
+- stress 9/10 adds a deterministic 20/35 percent chance of losing one solely
+  owned income asset after that month's settlement;
 - worse decision quality in bot/autopilot mode;
 - higher chance of business mistake events;
 - slower deal analysis;
@@ -157,4 +162,3 @@ MVP engine should already include fields for:
 - post-match recap tags.
 
 Even if content is small at first, these fields prevent later rewrites.
-

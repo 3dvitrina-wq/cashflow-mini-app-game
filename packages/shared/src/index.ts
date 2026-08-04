@@ -565,6 +565,17 @@ export interface GameEvent {
   payload?: Record<string, unknown>;
 }
 
+export interface StressSettlementResult {
+  playerId: PlayerId;
+  stress: number;
+  penaltyRate: number;
+  lostIncome: number;
+  blackout: boolean;
+  lostAssetId?: AssetId;
+  lostAssetName?: string;
+  lostAssetIncome?: number;
+}
+
 // ─── Match State ────────────────────────────────────────────────────────────
 
 export interface MatchState {
@@ -622,6 +633,8 @@ export interface MatchState {
 
   // Events
   eventLog: GameEvent[];
+  /** Most recent authoritative stress failures, rendered in the month report. */
+  lastStressResults?: StressSettlementResult[];
   version: number;
 
   // Phase 3: active interest window (null when none open)

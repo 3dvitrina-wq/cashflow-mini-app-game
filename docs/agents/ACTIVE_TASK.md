@@ -25,14 +25,16 @@ night survival job. Do not “fix” this by removing losses.
 
 ## Current verified state
 
-- Private card ownership and the shared market strip are explicit in mobile UI.
+- Private card ownership is explicit in mobile UI. The shared market is a
+  two-second center-stage event after the month ledger, not a permanent strip
+  competing with the private card.
 - BASIC private cards and personal offers are server-authoritative and private
   per recipient.
 - Other players can see who locked in, but cannot read the selected choice before
   month resolution.
 - The `?` button toggles a persistent preview derived from the same engine math
   used by authoritative resolution.
-- First active match opens an eleven-step, skippable, mode-aware guided tour. Its
+- First active match opens a ten-step, skippable, mode-aware guided tour. Its
   first statement is `Эта карта принадлежит только вам`; the player performs a
   real choice, opens the authoritative `?` preview and tries a profile reaction
   while the match remains paused. The
@@ -108,6 +110,18 @@ night survival job. Do not “fix” this by removing losses.
   cover recurring expenses and live Bank debt must be zero. Starting mortgages,
   education and card obligations are individually repayable and lower the
   recurring target when cleared.
+- Stress now changes authoritative money rather than only mood: 3/4/5–6/7+
+  remove 10/15/25/50 percent of passive and business income, stress 8+ causes
+  an every-other-month full passive failure, and stress 9/10 adds a 20/35
+  percent risk of losing one solely owned business. Half-step stress is preserved
+  in UI, the current percentage is visible on the table/profile, and the month
+  ledger names missed income or a lost business.
+- The top calendar uses a compact Russian month label; month transitions keep
+  the full Russian month and season. The persistent turn-status and global-market
+  banners no longer compete with portraits and the private card.
+- The freedom sheet links directly to Bank repayment. Bank opens with a localized
+  mortgage/credit panel before new-credit offers, so the rat-race exit action is
+  discoverable in the first viewport.
 - All 24 professions now trade salary against a proportionate freedom gap and
   begin with bounded liquidity. Their deterministic 15-round no-choice baseline
   stays within a 30-point score band, so a high salary is more purchasing power
@@ -124,8 +138,8 @@ night survival job. Do not “fix” this by removing losses.
 - PRO-only partnership choices are visibly gated in BASIC.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 163/163; server 11/11; web/server typecheck; production
-  build; interactive 11-step browser walkthrough at 402×874; Network Lab and
+- Verification: engine 168/168; server 11/11; web/server typecheck; production
+  build; interactive 10-step browser walkthrough at 402×874; Network Lab and
   reconnect smoke; 25-card mobile geometry run; iPhone
   16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
   off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete

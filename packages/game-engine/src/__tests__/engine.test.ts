@@ -12,13 +12,16 @@ import {
   passiveCashflow,
   financialFreedomStatus,
   monthlyCashflow,
+  stressBusinessLossChance,
+  stressIncomeImpact,
+  stressPassiveIncomePenalty,
   computeAchievements,
 } from '../engine';
 import { botIntent, parseBotPersona } from '../bot';
 import { getCard, CARDS, getCardsByType, getWeightedCardIds } from '../cards';
 import { applyEffects, isResolved, isPlaceholder, registeredEffectTypes } from '../effects';
 import { checkEligibility, registeredConditions } from '../conditions';
-import { advanceTimeline, createTimeline, monthToSeason } from '../timeline';
+import { advanceTimeline, createTimeline, localizedTimelineLabel, localizedTimelineShortLabel, monthToSeason } from '../timeline';
 import { TemplateHost } from '../host';
 import {
   getCharacter,
@@ -103,6 +106,103 @@ describe('profession starting balance', () => {
     const cashier = createMatch(77, [{ id: 'c', name: 'Cashier', outfit: 'hustler', professionId: 'checkout_cashier' }]).players[0]!;
     const manager = createMatch(78, [{ id: 'm', name: 'Manager', outfit: 'office', professionId: 'top_manager' }]).players[0]!;
     expect(financialFreedomStatus(manager).gap).toBeGreaterThan(financialFreedomStatus(cashier).gap * 3);
+  });
+});
+
+describe('stress has authoritative economic consequences', () => {
+  it('reduces passive and business income on the visible stress curve', () => {
+    const state = createMatch(501, [{ id: 'p', name: 'Owner', outfit: 'trader' }], { maxRounds: 15 });
+    const player = state.players[0]!;
+    player.passiveIncome = 1000;
+    player.assets = [];
+
+    const expected = new Map([
+      [2, 0],
+      [3, 100],
+      [4, 150],
+      [5, 250],
+      [6, 250],
+      [7, 500],
+    ]);
+    for (const [stress, lostIncome] of expected) {
+      player.stress = stress;
+      expect(stressIncomeImpact(state, player).lostIncome, `stress ${stress}`).toBe(lostIncome);
+    }
+    expect(stressPassiveIncomePenalty(3)).toBe(0.10);
+    expect(stressPassiveIncomePenalty(4)).toBe(0.15);
+    expect(stressPassiveIncomePenalty(6)).toBe(0.25);
+    expect(stressPassiveIncomePenalty(8)).toBe(0.50);
+    expect(stressPassiveIncomePenalty(2.5)).toBe(0);
+    expect(stressPassiveIncomePenalty(3.5)).toBe(0.10);
+    expect(stressPassiveIncomePenalty(4.5)).toBe(0.15);
+    expect(stressPassiveIncomePenalty(6.5)).toBe(0.25);
+  });
+
+  it('turns stress 8+ into an every-other-round passive-income blackout', () => {
+    const state = createMatch(502, [{ id: 'p', name: 'Owner', outfit: 'trader' }], { maxRounds: 15 });
+    const player = state.players[0]!;
+    player.passiveIncome = 1000;
+    player.assets = [];
+    player.stress = 8;
+
+    const first = stressIncomeImpact(state, player);
+    state.round += 1;
+    const second = stressIncomeImpact(state, player);
+
+    expect([first.blackout, second.blackout].sort()).toEqual([false, true]);
+    expect([first.lostIncome, second.lostIncome].sort((a, b) => a - b)).toEqual([500, 1000]);
+  });
+
+  it('charges the stress loss in authoritative monthly cash and never salary or pet income', () => {
+    const state = createMatch(503, [{ id: 'p', name: 'Owner', outfit: 'trader' }], { maxRounds: 15 });
+    const player = state.players[0]!;
+    player.cash = 1000;
+    player.activeIncome = 400;
+    player.passiveIncome = 1000;
+    player.expenses = 0;
+    player.liabilities = [];
+    player.assets = [];
+    player.pet = null;
+    player.stress = 4;
+    state.macro.taxRate = 0;
+
+    const flow = monthlyCashflow(state, player);
+    expect(flow).toEqual({ income: 1250, expense: 0, net: 1250 });
+
+    const settled = advanceRound(state).state.players[0]!;
+    expect(settled.cash).toBe(2250);
+  });
+
+  it('can remove one owned business at stress 9-10 and records the failure', () => {
+    expect(stressBusinessLossChance(8)).toBe(0);
+    expect(stressBusinessLossChance(9)).toBe(0.20);
+    expect(stressBusinessLossChance(10)).toBe(0.35);
+
+    const state = createMatch(4, [{ id: 'p', name: 'Owner', outfit: 'trader' }], { maxRounds: 15 });
+    const player = state.players[0]!;
+    player.stress = 10;
+    player.assets = [{
+      id: 'stress-test-business',
+      kind: 'business',
+      name: 'Тестовый киоск',
+      tags: [],
+      synergyKeys: [],
+      incomePerRound: 300,
+      upkeepPerRound: 0,
+      value: 1200,
+      acquiredRound: 1,
+      slotsUsed: 1,
+    }];
+    player.businesses = ['Тестовый киоск'];
+    player.businessSlotsUsed = 1;
+
+    const result = advanceRound(state);
+    const stressResult = result.state.lastStressResults?.find((item) => item.playerId === player.id);
+
+    expect(stressResult?.lostAssetName).toBe('Тестовый киоск');
+    expect(result.state.players[0].assets).toHaveLength(0);
+    expect(result.state.players[0].businessSlotsUsed).toBe(0);
+    expect(result.events.some((event) => event.effectType === 'asset.remove' && event.payload?.reason === 'stress')).toBe(true);
   });
 });
 
@@ -305,6 +405,15 @@ describe('timeline', () => {
     expect(monthToSeason(7)).toBe('autumn');
     expect(monthToSeason(10)).toBe('winter');
   });
+
+  it('renders every intermediate calendar label in the selected locale', () => {
+    expect(localizedTimelineLabel(1, 1, 'ru')).toBe('🌱 1 год · Январь · Весна');
+    expect(localizedTimelineLabel(1, 4, 'ru')).toBe('☀️ 1 год · Апрель · Лето');
+    expect(localizedTimelineLabel(2, 10, 'ru')).toBe('❄️ 2 год · Октябрь · Зима');
+    expect(localizedTimelineLabel(2, 7, 'en')).toBe('🍂 Year 2 · Jul · Autumn');
+    expect(localizedTimelineShortLabel(2, 10, 'ru')).toBe('❄️ Окт · 2 год');
+    expect(localizedTimelineShortLabel(2, 7, 'en')).toBe('🍂 Jul · Y2');
+  });
 });
 
 // ─── Bot Policy ─────────────────────────────────────────────────────────────
@@ -419,6 +528,7 @@ describe('freedomScore', () => {
       { id: 'p2', name: 'B', outfit: 'office' },
     ]);
     const p = match.players[0]!;
+    p.stress = 2;
     p.passiveIncome = 0;
     p.expenses = 100;
     p.assets.push({

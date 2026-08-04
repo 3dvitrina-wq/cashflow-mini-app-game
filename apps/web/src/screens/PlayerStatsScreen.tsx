@@ -13,7 +13,7 @@ import { showToast } from '../components/Toast';
 import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.webp';
 import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.webp';
 import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
-import { financialFreedomStatus } from '../../../../packages/game-engine/src';
+import { financialFreedomStatus, stressPassiveIncomePenalty } from '../../../../packages/game-engine/src';
 import {
   IconAlert,
   IconChart,
@@ -142,6 +142,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
   const totalExpenses = player.monthlyExpenses ?? player.debt * 500 + 1800;
   const totalIncome = player.cashflowPerMonth + player.passiveIncome;
   const cashflow = player.netCashflow ?? totalIncome - totalExpenses;
+  const stressPenalty = Math.round(stressPassiveIncomePenalty(player.stress) * 100);
   const netWorth = player.cash + (player.assetValue ?? player.businesses.length * 15000) - player.debt * 5000;
   const freedom = enginePlayer && engineMatch
     ? financialFreedomStatus(enginePlayer, engineMatch.macro)
@@ -269,7 +270,12 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
         <section className="you-quick-strip">
           <Metric label="Cash" value={`$${compactMoney(player.cash)}`} tone="cash" icon={<IconCoin size={20} />} />
           <Metric label="Flow" value={`${cashflow >= 0 ? '+' : '-'}$${compactMoney(Math.abs(cashflow))}`} tone={cashflow >= 0 ? 'good' : 'bad'} icon={<IconChart size={20} />} />
-          <Metric label="Stress" value={`${player.stress}/10`} tone={player.stress >= 7 ? 'bad' : 'neutral'} icon={<IconStress size={20} />} />
+          <Metric
+            label="Stress"
+            value={`${player.stress}/10${stressPenalty > 0 ? ` · −${stressPenalty}%` : ''}`}
+            tone={player.stress >= 7 ? 'bad' : 'neutral'}
+            icon={<IconStress size={20} />}
+          />
         </section>
 
         <div className="you-tab-pages" style={{ transform: `translateX(-${activeTabIndex * 100}%)` }}>

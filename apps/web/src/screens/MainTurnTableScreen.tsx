@@ -28,7 +28,14 @@ import { useModalLayer } from '../hooks/useModalLayer';
 import { playSound } from '../lib/sound';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
-import { financialFreedomStatus, monthlyCashflow, petIncomePerRound } from '../../../../packages/game-engine/src';
+import {
+  financialFreedomStatus,
+  localizedTimelineLabel,
+  localizedTimelineShortLabel,
+  monthlyCashflow,
+  petIncomePerRound,
+  stressPassiveIncomePenalty,
+} from '../../../../packages/game-engine/src';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
 type HostMoment = {
@@ -37,9 +44,10 @@ type HostMoment = {
 };
 
 type RoundTransition = {
-  phase: 'closing' | 'night' | 'opening';
+  phase: 'closing' | 'night' | 'market' | 'opening';
   fromRound: number;
-  fromTimeline: string;
+  fromMonth: number;
+  fromYear: number;
 };
 
 type SettlementLedgerLine = {
@@ -720,6 +728,8 @@ export const MainTurnTableScreen: React.FC = () => {
       ?? engineMatch.players.find((candidate) => !candidate.isBot);
     if (!player) return null;
 
+    const stressResult = engineMatch.lastStressResults?.find((result) => result.playerId === player.id);
+    const stressLostIncome = stressResult?.lostIncome ?? 0;
     const flow = monthlyCashflow(engineMatch, player);
     const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
     const assetUpkeep = player.assets.reduce((sum, asset) => sum + asset.upkeepPerRound, 0);
@@ -766,6 +776,26 @@ export const MainTurnTableScreen: React.FC = () => {
         expense: rest.reduce((sum, asset) => sum + asset.upkeepPerRound, 0) || undefined,
       });
     }
+    if (stressLostIncome > 0) {
+      recurringLines.push({
+        id: 'stress-income-loss',
+        icon: stressResult?.blackout ? '💥' : '🫠',
+        label: stressResult?.blackout
+          ? (locale === 'ru' ? `Стресс ${stressResult.stress} · месяц сорван` : `Stress ${stressResult.stress} · month failed`)
+          : (locale === 'ru' ? `Стресс ${stressResult?.stress} · расфокус` : `Stress ${stressResult?.stress} · lost focus`),
+        expense: stressLostIncome,
+      });
+    }
+    if (stressResult?.lostAssetName) {
+      recurringLines.push({
+        id: 'stress-asset-loss',
+        icon: '🔥',
+        label: locale === 'ru' ? `Бизнес потерян: ${stressResult.lostAssetName}` : `Business lost: ${stressResult.lostAssetName}`,
+        detail: stressResult.lostAssetIncome
+          ? (locale === 'ru' ? `−$${stressResult.lostAssetIncome}/мес` : `−$${stressResult.lostAssetIncome}/mo`)
+          : undefined,
+      });
+    }
     if (otherRecurringExpense > 0) {
       recurringLines.push({
         id: 'recurring-expense',
@@ -790,8 +820,8 @@ export const MainTurnTableScreen: React.FC = () => {
 
     return {
       lines: recurringLines,
-      income: flow.income + Math.max(0, decisionDelta),
-      expense: flow.expense + Math.max(0, -decisionDelta),
+      income: flow.income + stressLostIncome + Math.max(0, decisionDelta),
+      expense: flow.expense + stressLostIncome + Math.max(0, -decisionDelta),
       net: match.lastSettlement,
     };
   }, [engineMatch, localPlayerId, locale, match.lastSettlement]);
@@ -799,6 +829,9 @@ export const MainTurnTableScreen: React.FC = () => {
     5200,
     Math.max(4000, 2500 + (settlementLedger?.lines.length ?? 0) * 240),
   );
+  const visibleTimelineLabel = localizedTimelineLabel(match.calendarYear, match.calendarMonth, locale);
+  const compactTimelineLabel = localizedTimelineShortLabel(match.calendarYear, match.calendarMonth, locale);
+  const stressPenaltyPercent = Math.round(stressPassiveIncomePenalty(me?.stress ?? 0) * 100);
   const isTutorialSuspended = Boolean(
     isProfileOpen
     || isMarketOpen
@@ -928,7 +961,8 @@ export const MainTurnTableScreen: React.FC = () => {
       setRoundTransition({
         phase: 'closing',
         fromRound: match.round,
-        fromTimeline: match.timelineLabel,
+        fromMonth: match.calendarMonth,
+        fromYear: match.calendarYear,
       });
       playSound('select');
       hapticImpact('medium');
@@ -953,7 +987,7 @@ export const MainTurnTableScreen: React.FC = () => {
         playSound('whoosh');
       }, 360));
     },
-    [isAdvancingTime, isMultiplayer, locale, match.round, match.timelineLabel, networkStatus, submitIntent]
+    [isAdvancingTime, isMultiplayer, locale, match.calendarMonth, match.calendarYear, match.round, networkStatus, submitIntent]
   );
 
   // Keep the night ledger on-screen long enough to connect decisions to money.
@@ -978,10 +1012,22 @@ export const MainTurnTableScreen: React.FC = () => {
     playSound(match.lastSettlement >= 0 ? 'coin' : 'spend');
     hapticImpact(match.lastSettlement >= 0 ? 'light' : 'medium');
     const openingTimer = window.setTimeout(() => {
-      setRoundTransition((current) => current ? { ...current, phase: 'opening' } : current);
+      setRoundTransition((current) => current
+        ? { ...current, phase: !isProMode && globalCard ? 'market' : 'opening' }
+        : current);
     }, settlementHoldMs);
     return () => window.clearTimeout(openingTimer);
-  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition, settlementHoldMs]);
+  }, [globalCard?.id, isMultiplayer, isProMode, locale, match.lastSettlement, match.round, roundTransition, settlementHoldMs]);
+
+  useEffect(() => {
+    if (!roundTransition || roundTransition.phase !== 'market') return;
+    playSound('deal');
+    hapticImpact('soft');
+    const marketTimer = window.setTimeout(() => {
+      setRoundTransition((current) => current ? { ...current, phase: 'opening' } : current);
+    }, 2200);
+    return () => window.clearTimeout(marketTimer);
+  }, [roundTransition]);
 
   useEffect(() => {
     if (!roundTransition || roundTransition.phase !== 'opening') return;
@@ -1205,7 +1251,7 @@ export const MainTurnTableScreen: React.FC = () => {
       {isAdvancingTime && roundTransition && (
         <div className={`time-advance-overlay time-advance-${roundTransition.phase}`} aria-live="assertive">
           <div
-            className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}`}
+            className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}${roundTransition.phase === 'market' ? ' time-advance-card-market' : ''}`}
             style={{ ['--settlement-hold' as string]: `${settlementHoldMs}ms` } as React.CSSProperties}
           >
             <span className="time-advance-kicker">
@@ -1215,6 +1261,8 @@ export const MainTurnTableScreen: React.FC = () => {
                   ? match.round > roundTransition.fromRound
                     ? (locale === 'ru' ? 'ДЕНЬГИ ЗА МЕСЯЦ' : 'THIS MONTH IN MONEY')
                     : (locale === 'ru' ? 'НОЧЬ · СВОДИМ БАЛАНС' : 'NIGHT · BALANCING BOOKS')
+                  : roundTransition.phase === 'market'
+                    ? (locale === 'ru' ? 'ОБЩИЙ РЫНОК · ДЛЯ ВСЕХ' : 'SHARED MARKET · EVERYONE')
                   : match.round > roundTransition.fromRound
                     ? (locale === 'ru' ? 'НОВЫЙ МЕСЯЦ' : 'NEW MONTH')
                     : (locale === 'ru' ? 'ЖДЁМ СТОЛ' : 'WAITING FOR TABLE')}
@@ -1253,15 +1301,22 @@ export const MainTurnTableScreen: React.FC = () => {
                   <strong>{settlementLedger.net >= 0 ? '+' : '−'}${Math.abs(settlementLedger.net).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</strong>
                 </div>
               </div>
+            ) : roundTransition.phase === 'market' && globalCard ? (
+              <div className="market-pulse-reveal" data-tour="market" aria-label={locale === 'ru' ? 'Общее событие рынка' : 'Shared market event'}>
+                <span>{locale === 'ru' ? 'РЫНОК МЕНЯЕТ УСЛОВИЯ' : 'MARKET CONDITIONS CHANGED'}</span>
+                <strong>{globalCard.title}</strong>
+                <p>{globalCard.consequences.slice(0, 2).join(' · ')}</p>
+                <small>{locale === 'ru' ? 'Одинаково применяется ко всему столу' : 'Applies once to the whole table'}</small>
+              </div>
             ) : (
               <>
                 <strong>
                   {roundTransition.phase === 'closing'
                     ? (locale === 'ru' ? `Раунд ${roundTransition.fromRound} закрывается` : `Round ${roundTransition.fromRound} is closing`)
                     : roundTransition.phase === 'night'
-                      ? roundTransition.fromTimeline
+                      ? localizedTimelineLabel(roundTransition.fromYear, roundTransition.fromMonth, locale)
                       : match.round > roundTransition.fromRound
-                        ? match.timelineLabel
+                        ? visibleTimelineLabel
                         : (locale === 'ru' ? 'Ваш выбор принят' : 'Your choice is locked')}
                 </strong>
                 <span>
@@ -1282,7 +1337,7 @@ export const MainTurnTableScreen: React.FC = () => {
       <header className="game-topbar">
         <div className="game-topbar-main">
           <div className="topbar-pill timeline-pill">
-            <span style={{ fontSize: 11, fontWeight: 800 }}>{match.epochIcon} {match.timelineLabel}</span>
+            <span aria-label={visibleTimelineLabel} style={{ fontSize: 11, fontWeight: 800 }}>{compactTimelineLabel}</span>
           </div>
 
           <div className="topbar-pill" data-tour="time" style={{ color: timerColor }}>
@@ -1302,20 +1357,7 @@ export const MainTurnTableScreen: React.FC = () => {
           </div>
         </div>
 
-        <div className="topbar-pill game-phase-pill" data-tour="phase">
-          <span
-            style={{
-              fontSize: 10.5,
-              fontWeight: 900,
-              color: canActNow ? '#5BD7E0' : '#F5C524',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {phaseLabel}
-          </span>
-        </div>
+        <span className="sr-only" aria-live="polite">{phaseLabel}</span>
       </header>
 
       {/* ========== PLAYER RAIL ========== */}
@@ -1333,22 +1375,6 @@ export const MainTurnTableScreen: React.FC = () => {
           ))}
         </div>
       </section>
-
-      {!isProMode && globalCard && (
-        <section className="global-market-strip" data-tour="market">
-          <span style={{ fontSize: 10, fontWeight: 950, color: '#F5C524', whiteSpace: 'nowrap' }}>
-            {locale === 'ru' ? 'РЫНОК · ВСЕМ' : 'MARKET · ALL'}
-          </span>
-          <span style={{ minWidth: 0, overflow: 'hidden' }}>
-            <b style={{ display: 'block', color: '#F5F4ED', fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {globalCard.title}
-            </b>
-            <small style={{ display: 'block', color: '#9D9A8D', fontSize: 9, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {globalCard.consequences[0]}
-            </small>
-          </span>
-        </section>
-      )}
 
       <section className="game-playfield">
         {/* ========== CARD STAGE (host + card wrapper) ========== */}
@@ -1586,7 +1612,7 @@ export const MainTurnTableScreen: React.FC = () => {
                     <span>
                       <IconStress size={12} />
                       <em>{locale === 'ru' ? 'Стресс' : 'Stress'}</em>
-                      <strong>{me.stress}/10</strong>
+                      <strong>{me.stress}/10{stressPenaltyPercent > 0 ? ` · −${stressPenaltyPercent}%` : ''}</strong>
                     </span>
                     <span>
                       <IconDebt size={12} />
@@ -2280,6 +2306,10 @@ export const MainTurnTableScreen: React.FC = () => {
         engineMatch={engineMatch}
         localPlayerId={localPlayerId}
         onClose={() => setCashflowSheet(null)}
+        onOpenBank={() => {
+          setCashflowSheet(null);
+          setIsBankOpen(true);
+        }}
       />
     </div>
   );

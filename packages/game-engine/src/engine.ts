@@ -1650,12 +1650,64 @@ function computeTaxForIncome(
   return Math.round((bracket1 * effectiveRate1 * 0.1 + bracket2 * effectiveRate2 * 0.1) * taxBandMultiplier * (1 - professionDiscount));
 }
 
+export interface StressIncomeImpact {
+  grossIncome: number;
+  receivedIncome: number;
+  lostIncome: number;
+  penaltyRate: number;
+  blackout: boolean;
+}
+
+/** Visible stress curve: calm is free, overload has a material operating cost. */
+export function stressPassiveIncomePenalty(stress: number): number {
+  if (stress < 3) return 0;
+  if (stress < 4) return 0.10;
+  if (stress < 5) return 0.15;
+  if (stress < 7) return 0.25;
+  return 0.50;
+}
+
+function stressParity(playerId: string): number {
+  return [...playerId].reduce((sum, char) => sum + char.charCodeAt(0), 0) % 2;
+}
+
+/** At stress 8+, focus collapses every other round instead of failing randomly. */
+export function stressBlackoutThisRound(state: MatchState, player: PlayerState): boolean {
+  return player.stress >= 8 && (state.round + stressParity(player.id)) % 2 === 0;
+}
+
+function grossPassiveBusinessIncome(player: PlayerState): number {
+  return player.passiveIncome + player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
+}
+
+export function stressIncomeImpact(state: MatchState, player: PlayerState): StressIncomeImpact {
+  const grossIncome = grossPassiveBusinessIncome(player);
+  const penaltyRate = stressPassiveIncomePenalty(player.stress);
+  const blackout = stressBlackoutThisRound(state, player);
+  const receivedIncome = blackout ? 0 : Math.round(grossIncome * (1 - penaltyRate));
+  return {
+    grossIncome,
+    receivedIncome,
+    lostIncome: Math.max(0, grossIncome - receivedIncome),
+    penaltyRate,
+    blackout,
+  };
+}
+
+export function stressBusinessLossChance(stress: number): number {
+  if (stress >= 10) return 0.35;
+  if (stress >= 9) return 0.20;
+  return 0;
+}
+
 export function computeTax(player: PlayerState, macro: MatchState['macro']): number {
-  const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
+  const recurringIncome = Math.round(
+    grossPassiveBusinessIncome(player) * (1 - stressPassiveIncomePenalty(player.stress)),
+  );
   return computeTaxForIncome(
     player,
     macro,
-    effectiveActiveIncome(player) + player.passiveIncome + assetIncome,
+    effectiveActiveIncome(player) + recurringIncome,
   );
 }
 
@@ -1696,7 +1748,9 @@ export function passiveCashflow(
   const totalTax = computeTax(player, macro);
   const activeTax = computeTaxForIncome(player, macro, effectiveActiveIncome(player));
   const passiveTax = Math.max(0, totalTax - activeTax);
-  const income = player.passiveIncome + assetIncome + petIncomePerRound(player);
+  const income = Math.round(
+    (player.passiveIncome + assetIncome) * (1 - stressPassiveIncomePenalty(player.stress)),
+  ) + petIncomePerRound(player);
   const expense = player.expenses + assetUpkeep + loanPayments + passiveTax;
   return { income, expense, net: income - expense };
 }
@@ -1705,6 +1759,12 @@ export function monthlyCashflow(state: MatchState, player: PlayerState): Cashflo
   const passive = passiveCashflow(player, state.macro);
   const activeIncome = effectiveActiveIncome(player);
   const activeTax = computeTaxForIncome(player, state.macro, activeIncome);
+  if (stressBlackoutThisRound(state, player)) {
+    const passiveTax = Math.max(0, computeTax(player, state.macro) - activeTax);
+    const income = activeIncome + petIncomePerRound(player);
+    const expense = passive.expense - passiveTax + activeTax;
+    return { income, expense, net: income - expense };
+  }
   const income = activeIncome + passive.income;
   const expense = passive.expense + activeTax;
   return { income, expense, net: income - expense };
@@ -1746,10 +1806,14 @@ export function financialFreedomStatus(
 export function advanceRound(prev: MatchState): CommandResult {
   const state = clone(prev);
   const events: GameEvent[] = [];
+  state.lastStressResults = [];
 
   // ─── Settlement phase ─────────────────────────────────────────────────
   for (const p of state.players) {
     if (!p.alive) continue;
+
+    const stressAtSettlement = p.stress;
+    const stressImpact = stressIncomeImpact(state, p);
 
     // Unified monthly flow: cash changes by ONE net figure (income − expense),
     // covering salary/passive/assets/loan-interest/tax together.
@@ -1769,6 +1833,52 @@ export function advanceRound(prev: MatchState): CommandResult {
     // Stress natural recovery/decay
     if (net > 0) p.stress = Math.max(0, p.stress - 0.5);
     if (net < -200) p.stress = Math.min(10, p.stress + 0.5);
+
+    let lostAsset: PlayerState['assets'][number] | undefined;
+    const businessLossChance = stressBusinessLossChance(stressAtSettlement);
+    const ownedBusinesses = p.assets.filter((asset) =>
+      asset.incomePerRound > 0 && (asset.coOwners?.length ?? 0) <= 1);
+    if (businessLossChance > 0 && ownedBusinesses.length > 0) {
+      const playerIndex = state.players.findIndex((candidate) => candidate.id === p.id);
+      const rollSalt = state.round * 104729 + playerIndex * 7919 + 509;
+      if (rngFloat(state.seed, rollSalt) < businessLossChance) {
+        lostAsset = ownedBusinesses[rngInt(state.seed, rollSalt + 1, ownedBusinesses.length)];
+        p.assets = p.assets.filter((asset) => asset.id !== lostAsset?.id);
+        p.businessSlotsUsed = Math.max(0, p.businessSlotsUsed - assetSlotsUsed(lostAsset));
+        if (!p.assets.some((asset) => asset.name === lostAsset?.name)) {
+          p.businesses = p.businesses.filter((name) => name !== lostAsset?.name);
+        }
+        events.push({
+          type: 'effect',
+          playerId: p.id,
+          effectType: 'asset.remove',
+          message: `stress failure:${lostAsset.name}`,
+          payload: { reason: 'stress', assetId: lostAsset.id, assetName: lostAsset.name },
+        });
+      }
+    }
+
+    if (stressImpact.lostIncome > 0 || lostAsset) {
+      state.lastStressResults.push({
+        playerId: p.id,
+        stress: stressAtSettlement,
+        penaltyRate: stressImpact.penaltyRate,
+        lostIncome: stressImpact.lostIncome,
+        blackout: stressImpact.blackout,
+        lostAssetId: lostAsset?.id,
+        lostAssetName: lostAsset?.name,
+        lostAssetIncome: lostAsset?.incomePerRound,
+      });
+      if (stressImpact.lostIncome > 0) {
+        events.push({
+          type: 'money',
+          playerId: p.id,
+          amount: -stressImpact.lostIncome,
+          message: stressImpact.blackout ? 'stress blackout: passive income failed' : 'stress reduced passive income',
+          payload: { stress: stressAtSettlement, penaltyRate: stressImpact.penaltyRate, blackout: stressImpact.blackout },
+        });
+      }
+    }
 
     // Avatar state
     p.avatarState = deriveAvatarState(p);

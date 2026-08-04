@@ -1,21 +1,28 @@
 import React from 'react';
-import { computeTax, financialFreedomStatus, petIncomePerRound } from '../../../../packages/game-engine/src';
+import {
+  financialFreedomStatus,
+  monthlyCashflow,
+  petIncomePerRound,
+  stressIncomeImpact,
+} from '../../../../packages/game-engine/src';
 import type { MatchState, PlayerState } from '../../../../packages/shared/src';
 import { getProfession } from '../../../../packages/shared/src';
 import { BottomSheet } from './BottomSheet';
+import { liabilityNameRu } from '../lib/liabilities';
 
 interface Props {
   mode: 'income' | 'expense' | 'freedom' | null;
   engineMatch: MatchState | null;
   localPlayerId: string | null;
   onClose: () => void;
+  onOpenBank?: () => void;
 }
 
 function fmt(n: number): string {
   return Math.abs(n).toLocaleString('ru-RU');
 }
 
-export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, localPlayerId, onClose }) => {
+export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, localPlayerId, onClose, onOpenBank }) => {
   if (!mode || !engineMatch) return null;
 
   const p: PlayerState | undefined = engineMatch.players.find(
@@ -28,10 +35,14 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
 
   // ── income items ────────────────────────────────────────────────────────────
   const incomeItems: { icon: string; label: string; sub?: string; amount: number }[] = [];
+  const profession = p.professionId ? getProfession(p.professionId) : undefined;
+  const activeIncome = Math.round(
+    p.activeIncome * (1 + (profession?.heroPower.type === 'salary_boost' ? profession.heroPower.value : 0)),
+  );
 
-  if (p.activeIncome > 0) {
-    const profLabel = p.professionId ? getProfession(p.professionId)?.nameRu ?? p.professionId.replace(/_/g, ' ') : 'Зарплата';
-    incomeItems.push({ icon: '💼', label: profLabel, amount: p.activeIncome });
+  if (activeIncome > 0) {
+    const profLabel = profession?.nameRu ?? p.professionId?.replace(/_/g, ' ') ?? 'Зарплата';
+    incomeItems.push({ icon: '💼', label: profLabel, amount: activeIncome });
   }
   if (p.passiveIncome > 0) {
     incomeItems.push({ icon: '🌱', label: 'Пассивный базовый', amount: p.passiveIncome });
@@ -56,9 +67,11 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
 
   // ── expense items ────────────────────────────────────────────────────────────
   const expenseItems: { icon: string; label: string; sub?: string; amount: number }[] = [];
+  let knownRecurringExpenses = 0;
 
   if (p.expenses > 0) {
     expenseItems.push({ icon: '🏠', label: 'Расходы жизни', amount: p.expenses });
+    knownRecurringExpenses += p.expenses;
   }
   for (const asset of p.assets) {
     if (asset.upkeepPerRound <= 0) continue;
@@ -72,14 +85,28 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
       ? `🤝 ${partnerNames.join(', ')}${mySharePct != null ? ` · ваша доля ${mySharePct}%` : ''}`
       : undefined;
     expenseItems.push({ icon: '🔧', label: `${asset.name} (обслуживание)`, sub, amount: asset.upkeepPerRound });
+    knownRecurringExpenses += asset.upkeepPerRound;
   }
   for (const lib of p.liabilities) {
     if (lib.remainingPayments <= 0) continue;
     const payment = Math.round(lib.principal * lib.interestRate);
     if (payment <= 0) continue;
-    expenseItems.push({ icon: '🏦', label: `${lib.creditor} (кредит)`, sub: `${lib.remainingPayments} платежей`, amount: payment });
+    expenseItems.push({ icon: '🏦', label: liabilityNameRu(lib.creditor), sub: `${lib.remainingPayments} платежей`, amount: payment });
+    knownRecurringExpenses += payment;
   }
-  const tax = computeTax(p, engineMatch.macro);
+  const flow = monthlyCashflow(engineMatch, p);
+  const stressImpact = stressIncomeImpact(engineMatch, p);
+  if (stressImpact.lostIncome > 0) {
+    expenseItems.push({
+      icon: stressImpact.blackout ? '💥' : '🫠',
+      label: stressImpact.blackout ? `Стресс ${p.stress}: пассив сорван` : `Стресс ${p.stress}: расфокус`,
+      sub: stressImpact.blackout
+        ? 'В этом месяце бизнесы не принесли доход'
+        : `Потеря ${Math.round(stressImpact.penaltyRate * 100)}% пассивного дохода`,
+      amount: stressImpact.lostIncome,
+    });
+  }
+  const tax = Math.max(0, flow.expense - knownRecurringExpenses);
   if (tax > 0) {
     expenseItems.push({ icon: '📊', label: 'Налог', amount: tax });
   }
@@ -168,6 +195,25 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
             <p style={{ margin: '7px 0 0', fontSize: 11, lineHeight: 1.4, color: '#989589' }}>
               Зарплата даёт деньги для решений, но не считается свободой. Погашение стартовых обязательств уменьшает ежемесячную цель.
             </p>
+            {mode === 'freedom' && p.liabilities.some((liability) => liability.remainingPayments > 0) && onOpenBank && (
+              <button
+                type="button"
+                onClick={onOpenBank}
+                style={{
+                  width: '100%',
+                  minHeight: 46,
+                  marginTop: 11,
+                  border: '1px solid rgba(245,197,36,.34)',
+                  borderRadius: 12,
+                  background: 'rgba(245,197,36,.12)',
+                  color: '#F5C524',
+                  fontSize: 12,
+                  fontWeight: 900,
+                }}
+              >
+                Погасить ипотеку и кредиты в банке →
+              </button>
+            )}
           </section>
 
           {/* Income section label */}

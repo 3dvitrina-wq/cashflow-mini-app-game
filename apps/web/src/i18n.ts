@@ -202,7 +202,8 @@ function translateConsequenceRu(text: string): string {
     .replace('Opens deal window', 'Открывает окно сделки')
     .replace('Opens futures risk', 'Открывает риск фьючерсов')
     .replace('Outcome depends on your choice', 'Исход зависит от выбора')
-    .replace('No immediate effect', 'Без мгновенного эффекта');
+    .replace('No immediate effect', 'Без мгновенного эффекта')
+    .replace(/\/mo/g, '/мес');
 }
 
 /** React hook for i18n. Re-renders on locale change. */
