@@ -465,7 +465,8 @@ function queueOfflineIntentWithFallback(
 
 function lockDefaultPersonalSelection(state: EngineMatchState, playerId: string): EngineMatchState {
   if (!state.personalCardSelectionPending?.[playerId]) return state;
-  const [activeCardId, reserveCardId] = state.personalCardOptionIds?.[playerId] ?? [];
+  const activeCardId = state.personalCardIds?.[playerId];
+  const reserveCardId = state.personalCardReserveIds?.[playerId];
   if (!activeCardId || !reserveCardId) return state;
   return resolveCommand(state, {
     type: 'select_personal_cards',

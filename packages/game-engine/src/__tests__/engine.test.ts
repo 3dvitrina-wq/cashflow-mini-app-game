@@ -333,9 +333,9 @@ describe('cards', () => {
   });
 
   it('has correct type distribution', () => {
-    expect(getCardsByType('opportunity')).toHaveLength(18);  // +3 linked follow-ups + real P2P pool
+    expect(getCardsByType('opportunity')).toHaveLength(19);  // +3 linked follow-ups + P2P pool + debt recovery
     expect(getCardsByType('market_pulse')).toHaveLength(9);
-    expect(getCardsByType('crisis')).toHaveLength(13);       // +4 linked follow-ups
+    expect(getCardsByType('crisis')).toHaveLength(12);       // forced events + linked consequences
     expect(getCardsByType('protection')).toHaveLength(9);
     expect(getCardsByType('staff')).toHaveLength(6);
     expect(getCardsByType('modern_earning')).toHaveLength(9);  // +1 linked follow-up

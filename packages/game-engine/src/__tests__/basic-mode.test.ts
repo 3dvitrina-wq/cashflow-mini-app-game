@@ -10,7 +10,7 @@ import {
   resolveAllIntents,
   resolveCommand,
 } from '../engine';
-import { CARDS } from '../cards';
+import { CARDS, getCard } from '../cards';
 import { applyEffects } from '../effects';
 
 const PLAYERS = [
@@ -44,18 +44,57 @@ describe('BASIC private simultaneous cards', () => {
     let state = createMatch(78, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
     state = openIntentWindow(state);
     const options = state.personalCardOptionIds?.p1 ?? [];
+    const activeCardId = options.find((cardId) => getCard(cardId)?.type === 'crisis') ?? options[2]!;
+    const reserveCardId = options.find((cardId) => cardId !== activeCardId && getCard(cardId)?.type !== 'crisis')!;
 
     state = resolveCommand(state, {
       type: 'select_personal_cards',
       playerId: 'p1',
-      activeCardId: options[2]!,
-      reserveCardId: options[0]!,
+      activeCardId,
+      reserveCardId,
     }).state;
 
-    expect(state.personalCardIds?.p1).toBe(options[2]);
-    expect(state.personalCardReserveIds?.p1).toBe(options[0]);
+    expect(state.personalCardIds?.p1).toBe(activeCardId);
+    expect(state.personalCardReserveIds?.p1).toBe(reserveCardId);
     expect(state.personalCardSelectionPending?.p1).toBe(false);
-    expect(state.discardPile).toContain(options[1]);
+    expect(state.discardPile).toContain(options.find((cardId) => cardId !== activeCardId && cardId !== reserveCardId));
+  });
+
+  it('forces a dealt crisis to resolve now instead of allowing it to be burned or reserved', () => {
+    let state = createMatch(1, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+    let crisisPlayerId = state.players.find((player) =>
+      state.personalCardOptionIds?.[player.id]?.some((cardId) => getCard(cardId)?.type === 'crisis'))?.id;
+    for (let seed = 2; !crisisPlayerId && seed < 500; seed += 1) {
+      state = createMatch(seed, PLAYERS.slice(0, 2), { experienceMode: 'basic' });
+      crisisPlayerId = state.players.find((player) =>
+        state.personalCardOptionIds?.[player.id]?.some((cardId) => getCard(cardId)?.type === 'crisis'))?.id;
+    }
+
+    expect(crisisPlayerId).toBeTruthy();
+    const options = state.personalCardOptionIds?.[crisisPlayerId!] ?? [];
+    const crisisId = options.find((cardId) => getCard(cardId)?.type === 'crisis')!;
+    const ordinary = options.filter((cardId) => getCard(cardId)?.type !== 'crisis');
+    expect(options.filter((cardId) => getCard(cardId)?.type === 'crisis')).toHaveLength(1);
+    expect(state.personalCardIds?.[crisisPlayerId!]).toBe(crisisId);
+    expect(getCard(state.personalCardReserveIds?.[crisisPlayerId!] ?? '')?.type).not.toBe('crisis');
+
+    state = openIntentWindow(state);
+    const rejected = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: crisisPlayerId!,
+      activeCardId: ordinary[0]!,
+      reserveCardId: crisisId,
+    });
+    expect(rejected.events.some((event) => event.type === 'command_rejected')).toBe(true);
+
+    const accepted = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: crisisPlayerId!,
+      activeCardId: crisisId,
+      reserveCardId: ordinary[0]!,
+    });
+    expect(accepted.events.some((event) => event.type === 'command_rejected')).toBe(false);
+    expect(accepted.state.personalCardIds?.[crisisPlayerId!]).toBe(crisisId);
   });
 
   it('carries the reserved card into the next monthly hand', () => {
@@ -63,19 +102,22 @@ describe('BASIC private simultaneous cards', () => {
     state = openIntentWindow(state);
     const p1Options = state.personalCardOptionIds?.p1 ?? [];
     const p2Options = state.personalCardOptionIds?.p2 ?? [];
-    const reserved = p1Options[2]!;
+    const p1Active = state.personalCardIds?.p1 ?? p1Options[0]!;
+    const reserved = p1Options.find((cardId) => cardId !== p1Active && getCard(cardId)?.type !== 'crisis')!;
+    const p2Active = state.personalCardIds?.p2 ?? p2Options[0]!;
+    const p2Reserve = p2Options.find((cardId) => cardId !== p2Active && getCard(cardId)?.type !== 'crisis')!;
 
     state = resolveCommand(state, {
       type: 'select_personal_cards',
       playerId: 'p1',
-      activeCardId: p1Options[0]!,
+      activeCardId: p1Active,
       reserveCardId: reserved,
     }).state;
     state = resolveCommand(state, {
       type: 'select_personal_cards',
       playerId: 'p2',
-      activeCardId: p2Options[0]!,
-      reserveCardId: p2Options[1]!,
+      activeCardId: p2Active,
+      reserveCardId: p2Reserve,
     }).state;
     state = resolveCommand(state, { type: 'pass', playerId: 'p1' }).state;
     state = resolveCommand(state, { type: 'pass', playerId: 'p2' }).state;
@@ -83,6 +125,7 @@ describe('BASIC private simultaneous cards', () => {
     state = advanceRound(state).state;
 
     expect(state.personalCardOptionIds?.p1).toContain(reserved);
+    expect(state.personalCardCarriedIds?.p1).toBe(reserved);
     expect(state.personalCardOptionIds?.p1?.some((cardId) => !p1Options.includes(cardId))).toBe(true);
   });
 

@@ -340,6 +340,17 @@ button {
   border-color: rgba(91,215,224,.85);
   box-shadow: 0 0 0 2px rgba(91,215,224,.16), 0 14px 34px rgba(0,0,0,.32);
 }
+.personal-draft-card-forced {
+  border-color: rgba(232,75,42,.82);
+  box-shadow: 0 0 0 2px rgba(232,75,42,.15), 0 14px 34px rgba(0,0,0,.32);
+  cursor: default;
+}
+.personal-draft-card-forced .personal-draft-type,
+.personal-draft-card-forced .personal-draft-order { color: #FFB09D; }
+.personal-draft-card-forced .personal-draft-order {
+  border-color: rgba(232,75,42,.68);
+  background: rgba(232,75,42,.18);
+}
 .personal-draft-art { min-width: 0; min-height: 100%; }
 .personal-draft-copy {
   display: flex;
@@ -1342,6 +1353,17 @@ button {
   font-size: 10.5px;
   font-weight: 750;
   line-height: 1.22;
+}
+
+.card-reserve-line {
+  max-width: 100%;
+  overflow: hidden;
+  color: #83E8EF;
+  font-size: 8px;
+  font-weight: 850;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .card-event-signal-red { border-color: rgba(232,75,42,.42); }
@@ -2841,6 +2863,43 @@ button {
   filter: saturate(.7) brightness(.82);
 }
 
+.turn-tools-button {
+  position: relative;
+  display: grid;
+  width: 44px;
+  min-width: 44px;
+  min-height: 58px;
+  place-items: center;
+  border-radius: 15px;
+  border: 1px solid rgba(91,215,224,.30);
+  background: rgba(21,24,31,.92);
+  color: #83E8EF;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 9px 18px rgba(0,0,0,.32);
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+}
+
+.turn-tools-button > span {
+  position: absolute;
+  top: 7px;
+  right: 6px;
+  display: grid;
+  min-width: 14px;
+  height: 14px;
+  place-items: center;
+  border-radius: 999px;
+  background: #5BD7E0;
+  color: #071014;
+  font-size: 7px;
+  font-weight: 950;
+}
+
+.turn-tools-button:active,
+.turn-tools-button[aria-expanded="true"] {
+  border-color: rgba(91,215,224,.70);
+  background: rgba(22,48,52,.96);
+  transform: scale(.96);
+}
+
 .turn-confirm-button {
   min-height: 58px;
   display: flex;
@@ -3637,7 +3696,7 @@ button {
   }
 
   .turn-action-main {
-    gap: 7px;
+    gap: 8px;
   }
 
   .turn-action-selected,
@@ -3868,6 +3927,7 @@ button {
   }
 
   .turn-preview-button,
+  .turn-tools-button,
   .turn-confirm-button {
     min-height: 44px;
   }

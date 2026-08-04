@@ -377,6 +377,7 @@ export function createMatch(
     personalCardIds: {},
     personalCardOptionIds: {},
     personalCardReserveIds: {},
+    personalCardCarriedIds: {},
     personalCardSelectionPending: {},
     personalCardOffers: [],
     globalCardId: null,
@@ -440,6 +441,7 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
   const personal: Record<string, string | null> = {};
   const options: Record<string, string[]> = {};
   const reserves: Record<string, string | null> = {};
+  const carriedIds: Record<string, string | null> = {};
   const pending: Record<string, boolean> = {};
   const previousReserves = state.personalCardReserveIds ?? {};
   let cursor = startCursor;
@@ -449,19 +451,25 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       personal[player.id] = null;
       options[player.id] = [];
       reserves[player.id] = null;
+      carriedIds[player.id] = null;
       pending[player.id] = false;
       continue;
     }
 
     const hand: string[] = [];
     const carried = previousReserves[player.id];
+    carriedIds[player.id] = null;
     if (carried) {
       const carriedCard = getCard(carried);
       const stillEligible = carriedCard
+        && carriedCard.type !== 'crisis'
         && carriedCard.type !== 'market_pulse'
         && carriedCard.type !== 'social'
         && checkEligibility(state, player, carriedCard.eligibility);
-      if (stillEligible) hand.push(carried);
+      if (stillEligible) {
+        hand.push(carried);
+        carriedIds[player.id] = carried;
+      }
       else state.discardPile.push(carried);
     }
 
@@ -474,7 +482,10 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       if (hand.includes(candidateId)) continue;
       const candidate = getCard(candidateId);
       const allowedInBasic = candidate && candidate.type !== 'market_pulse' && candidate.type !== 'social';
-      if (allowedInBasic && checkEligibility(state, player, candidate.eligibility)) {
+      const alreadyHasCrisis = hand.some((cardId) => getCard(cardId)?.type === 'crisis');
+      if (allowedInBasic
+        && !(candidate.type === 'crisis' && alreadyHasCrisis)
+        && checkEligibility(state, player, candidate.eligibility)) {
         hand.push(candidateId);
       }
     }
@@ -483,19 +494,32 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
     // distinct known cards even if eligibility left fewer than three candidates.
     for (const fallbackId of state.deck) {
       if (hand.length >= 3) break;
-      if (!hand.includes(fallbackId) && getCard(fallbackId)) hand.push(fallbackId);
+      const fallback = getCard(fallbackId);
+      const alreadyHasCrisis = hand.some((cardId) => getCard(cardId)?.type === 'crisis');
+      if (!hand.includes(fallbackId) && fallback && !(fallback.type === 'crisis' && alreadyHasCrisis)) {
+        hand.push(fallbackId);
+      }
     }
 
-    const [activeCardId = null, reserveCardId = null] = hand;
+    // A crisis is an event, not an offer: it arrives automatically and cannot be
+    // hidden in reserve or burned by picking two nicer cards. The player still
+    // chooses how to respond on the crisis card itself.
+    const crisisCardId = hand.find((cardId) => getCard(cardId)?.type === 'crisis') ?? null;
+    const orderedHand = crisisCardId
+      ? [crisisCardId, ...hand.filter((cardId) => cardId !== crisisCardId)]
+      : hand;
+    const activeCardId = crisisCardId ?? orderedHand[0] ?? null;
+    const reserveCardId = orderedHand.find((cardId) => cardId !== activeCardId && getCard(cardId)?.type !== 'crisis') ?? null;
     personal[player.id] = activeCardId;
-    options[player.id] = hand.slice(0, 3);
+    options[player.id] = orderedHand.slice(0, 3);
     reserves[player.id] = reserveCardId;
-    pending[player.id] = !player.isBot && hand.length === 3;
+    pending[player.id] = !player.isBot && orderedHand.length === 3;
   }
 
   state.personalCardIds = personal;
   state.personalCardOptionIds = options;
   state.personalCardReserveIds = reserves;
+  state.personalCardCarriedIds = carriedIds;
   state.personalCardSelectionPending = pending;
   // Advance the weighted deck cursor after all private hands. Without this the
   // next month would reopen the same slice of the deck around the carried card.
@@ -649,6 +673,13 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (cmd.activeCardId === cmd.reserveCardId) return 'active and reserve cards must be different';
     if (!options.includes(cmd.activeCardId) || !options.includes(cmd.reserveCardId)) {
       return 'selected personal card is not in this hand';
+    }
+    const forcedCrisisId = options.find((cardId) => getCard(cardId)?.type === 'crisis');
+    if (forcedCrisisId && cmd.activeCardId !== forcedCrisisId) {
+      return 'crisis events must be resolved now';
+    }
+    if (getCard(cmd.reserveCardId)?.type === 'crisis') {
+      return 'crisis events cannot be reserved';
     }
     return null;
   }
@@ -1095,6 +1126,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       if (state.personalCardIds) state.personalCardIds[player.id] = null;
       if (state.personalCardOptionIds) state.personalCardOptionIds[player.id] = [];
       if (state.personalCardReserveIds) state.personalCardReserveIds[player.id] = null;
+      if (state.personalCardCarriedIds) state.personalCardCarriedIds[player.id] = null;
       if (state.personalCardSelectionPending) state.personalCardSelectionPending[player.id] = false;
       if (state.activeInterestWindow) {
         state.activeInterestWindow.eligiblePlayers = state.activeInterestWindow.eligiblePlayers

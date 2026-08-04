@@ -1288,7 +1288,7 @@ export const CARDS: CardDefinition[] = [
 
   {
     id: 'economy-recovery-restructure',
-    type: 'crisis',
+    type: 'opportunity',
     title: 'DEBT RESTRUCTURING',
     text: 'Negotiate with creditors to reduce payments. Reputation hit.',
     hostCue: 'When life gives you debt, make... a negotiation.',

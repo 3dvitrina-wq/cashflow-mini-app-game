@@ -527,6 +527,7 @@ export const MatchStateSchema = z.object({
   personalCardIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
   personalCardOptionIds: z.record(z.string(), z.array(CardIdSchema).max(3)).optional(),
   personalCardReserveIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
+  personalCardCarriedIds: z.record(z.string(), CardIdSchema.nullable()).optional(),
   personalCardSelectionPending: z.record(z.string(), z.boolean()).optional(),
   personalCardOffers: z.array(z.object({
     id: z.string(),

@@ -35,6 +35,10 @@ describe('client state card copy', () => {
     expect(Object.keys(p2State.personalCardIds ?? {})).toEqual(['p2']);
     expect(Object.keys(p1State.personalCardOptionIds ?? {})).toEqual(['p1']);
     expect(Object.keys(p2State.personalCardOptionIds ?? {})).toEqual(['p2']);
+    expect(Object.keys(p1State.personalCardReserveIds ?? {})).toEqual(['p1']);
+    expect(Object.keys(p2State.personalCardReserveIds ?? {})).toEqual(['p2']);
+    expect(Object.keys(p1State.personalCardCarriedIds ?? {})).toEqual(['p1']);
+    expect(Object.keys(p2State.personalCardCarriedIds ?? {})).toEqual(['p2']);
     expect(p1State.personalCardOptionIds?.p1).toHaveLength(3);
     expect(p2State.personalCardOptionIds?.p2).toHaveLength(3);
     expect(p1State.currentCardId).toBe(state.personalCardIds?.p1);

@@ -668,6 +668,12 @@ export const MainTurnTableScreen: React.FC = () => {
   const personalSelectionPending = !isProMode
     && Boolean(me?.id && engineMatch?.personalCardSelectionPending?.[me.id]);
   const personalCardOptionIds = me?.id ? engineMatch?.personalCardOptionIds?.[me.id] ?? [] : [];
+  const reserveCardId = me?.id ? engineMatch?.personalCardReserveIds?.[me.id] ?? null : null;
+  const returningCardId = me?.id ? engineMatch?.personalCardCarriedIds?.[me.id] ?? null : null;
+  const reserveCardCopy = useMemo(
+    () => reserveCardId ? getLocalizedCard(reserveCardId, locale) : null,
+    [locale, reserveCardId],
+  );
   const businessMarketOpen = Boolean(
     engineMatch
     && engineMatch.businessMarket.openedRound === engineMatch.round,
@@ -1278,13 +1284,33 @@ export const MainTurnTableScreen: React.FC = () => {
   ];
 
   if (personalSelectionPending && personalCardOptionIds.length === 3) {
-    return <PersonalCardPicker optionIds={personalCardOptionIds} onConfirm={selectPersonalCards} />;
+    return (
+      <PersonalCardPicker
+        optionIds={personalCardOptionIds}
+        returningCardId={returningCardId}
+        onConfirm={selectPersonalCards}
+      />
+    );
   }
 
   const activeCardSignal = cardSignal(card.type, locale === 'ru');
   const visibleConsequences = (card.choiceEffects?.[selectedChoiceIdx] ?? card.consequences).slice(0, 3);
   const cardCopyLength = `${card.title} ${card.text} ${visibleConsequences.join(' ')}`.length;
   const cardDensity = cardCopyLength > 360 ? 'long' : cardCopyLength > 250 ? 'medium' : 'regular';
+  const tableToolsTrigger = businessMarketOpen ? (
+    <button
+      className="turn-tools-button"
+      type="button"
+      aria-label={locale === 'ru'
+        ? 'Открыть общее меню: банк, персонал, питомцы и другие действия'
+        : 'Open general menu: bank, staff, pets and other actions'}
+      aria-expanded={fabExpanded}
+      onClick={toggleTableTools}
+    >
+      <IconPlusCircle size={20} />
+      <span aria-hidden="true">3</span>
+    </button>
+  ) : null;
 
   return (
     <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
@@ -1475,6 +1501,11 @@ export const MainTurnTableScreen: React.FC = () => {
                 <div className="card-scroll-area card-poster-content">
                   <div className={`card-event-signal card-event-signal-${activeCardSignal.tone} ${isProMode ? 'card-event-signal-shared' : 'card-event-signal-private'}`}>
                     <p>{activeCardSignal.label}</p>
+                    {!isProMode && reserveCardCopy && (
+                      <span className="card-reserve-line">
+                        {locale === 'ru' ? 'РЕЗЕРВ' : 'RESERVE'} · {reserveCardCopy.title} · {locale === 'ru' ? 'вернётся' : 'returns'}
+                      </span>
+                    )}
                   </div>
                   <div className="card-poster-kicker">
                     <span className="card-type-badge">
@@ -1958,6 +1989,7 @@ export const MainTurnTableScreen: React.FC = () => {
                   >
                     ?
                   </button>
+                  {tableToolsTrigger}
                   <button
                     className="turn-confirm-button"
                     onClick={() => selectedAffordable && queueAdvance(selectedChoiceIdx)}
@@ -1968,6 +2000,7 @@ export const MainTurnTableScreen: React.FC = () => {
                 </div>
               ) : (
                 <div className="turn-action-main">
+                  {tableToolsTrigger}
                   <button className="turn-confirm-button" onClick={() => nextRound()} disabled={isAdvancingTime}>
                     <span>{locale === 'ru' ? 'Продолжить' : 'Continue'}</span>
                   </button>

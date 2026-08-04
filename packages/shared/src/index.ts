@@ -616,6 +616,8 @@ export interface MatchState {
   personalCardOptionIds?: Record<PlayerId, CardId[]>;
   /** BASIC: the kept card that returns to next month's three-card hand. */
   personalCardReserveIds?: Record<PlayerId, CardId | null>;
+  /** BASIC: identifies which candidate actually arrived from last month's reserve. */
+  personalCardCarriedIds?: Record<PlayerId, CardId | null>;
   /** BASIC: true until the human names one card for now and one for later. */
   personalCardSelectionPending?: Record<PlayerId, boolean>;
   personalCardOffers?: PersonalCardOffer[];
