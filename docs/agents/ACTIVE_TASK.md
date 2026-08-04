@@ -144,6 +144,9 @@ night survival job. Do not “fix” this by removing losses.
   16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
   off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete
   six-socket, 15-round BASIC match with 54 commands and `SYNC 6/6`.
+- Release `984ecdb` is live on the canonical Pages host with the
+  `dyor-focus-BfNXIA0r.js` namespace; a warm-browser reload rendered the same
+  center-only market and stress UI verified locally.
 
 ## Next Step
 
