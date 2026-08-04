@@ -179,6 +179,10 @@ night survival job. Do not “fix” this by removing losses.
   `dyor-focus-DWv2DMzf.js` and `dyor-focus-index-yD5X_vWq.css`. The compressed
   month summary, first-contact-only ownership scene and rebuilt player profile
   were verified interactively at 402×874 before deployment.
+- Release `0045928` is live on the canonical Pages host with
+  `dyor-focus-Cu7w97oi.js` and `dyor-focus-index-Du1eP65v.css`. A production
+  402×874 replay opened the private three-card hand and showed the Russian
+  active/reserve/burn explanation from the canonical host.
 
 ## Next Step
 
