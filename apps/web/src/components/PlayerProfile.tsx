@@ -2,8 +2,19 @@ import React from 'react';
 import { BottomSheet } from './BottomSheet';
 import type { PlayerState } from '../store/types';
 import { useI18n } from '../i18n';
-import { resolveCharacterImage } from '../assets/characterRenderer';
+import { resolveAvatarImage } from '../assets/characterRenderer';
 import { REACTIONS } from '../assets/reactions';
+import {
+  IconBot,
+  IconBriefcase,
+  IconChart,
+  IconCoin,
+  IconHandshake,
+  IconShield,
+  IconStress,
+  IconTrust,
+} from '../assets/Icons';
+import { getProfession } from '../../../../packages/shared/src';
 import { stressPassiveIncomePenalty } from '../../../../packages/game-engine/src';
 
 interface PlayerProfileProps {
@@ -11,6 +22,7 @@ interface PlayerProfileProps {
   onClose: () => void;
   player: PlayerState | null;
   onProposeDeal?: (playerId: string) => void;
+  onOfferCard?: (playerId: string) => void;
   onSendReaction?: (playerId: string, label: string) => void;
 }
 
@@ -19,236 +31,140 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
   onClose,
   player,
   onProposeDeal,
+  onOfferCard,
   onSendReaction,
 }) => {
   const { t, locale } = useI18n();
   if (!player) return null;
 
-  const outfitLabel = t(`outfit.${player.outfit}`);
+  const profession = player.professionId ? getProfession(player.professionId) : undefined;
+  const professionLabel = profession
+    ? (locale === 'ru' ? profession.nameRu : profession.name)
+    : t(`outfit.${player.outfit}`);
+  const heroTitle = profession
+    ? (locale === 'ru' ? profession.heroTitleRu : profession.heroTitle)
+    : null;
+  const heroSummary = profession
+    ? (locale === 'ru' ? profession.heroPower.summaryRu : profession.heroPower.summary)
+    : null;
   const stressPenalty = Math.round(stressPassiveIncomePenalty(player.stress) * 100);
+  const netFlow = player.netCashflow ?? player.cashflowPerMonth;
+  const portrait = resolveAvatarImage(player.name, player.outfit, player.characterId);
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Профиль игрока">
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        {/* Avatar */}
-        <div
-          style={{
-            width: 120,
-            height: 120,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.06)',
-            border: '3px solid rgba(255, 255, 255, 0.1)',
-            overflow: 'hidden',
-            boxShadow: '0 8px 24px rgba(0, 0, 0, 0.4)',
-          }}
-        >
-          <img
-            src={resolveCharacterImage(player.name, player.outfit, player.mood, player.characterId)}
-            alt={player.name}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        </div>
-
-        {/* Name and outfit */}
-        <div style={{ textAlign: 'center' }}>
-          <h2 style={{ fontSize: 22, fontWeight: 900, margin: 0, color: '#F5F4ED' }}>
-            {player.name}
-          </h2>
-          <p style={{ fontSize: 12, fontWeight: 700, margin: '4px 0 0', color: '#7B5BD7' }}>
-            {outfitLabel} LVL 14
-          </p>
-        </div>
-
-        {/* Stats grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: 12,
-            width: '100%',
-          }}
-        >
-          <div
-            style={{
-              background: 'rgba(40, 199, 111, 0.08)',
-              borderRadius: 12,
-              padding: 12,
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>CASH</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#28C76F' }}>
-              ${player.cash.toLocaleString()}
-            </div>
+    <BottomSheet
+      isOpen={isOpen}
+      onClose={onClose}
+      title={player.isBot
+        ? (locale === 'ru' ? 'Профиль бота' : 'Bot profile')
+        : (locale === 'ru' ? 'Профиль игрока' : 'Player profile')}
+    >
+      <div className="player-profile-sheet">
+        <section className="player-profile-hero">
+          <div className="player-profile-portrait">
+            <img src={portrait} alt={player.name} draggable={false} />
+            <span className={`player-profile-kind ${player.isBot ? 'player-profile-kind-bot' : ''}`}>
+              {player.isBot && <IconBot size={15} />}
+              {player.isBot
+                ? (locale === 'ru' ? 'БОТ' : 'BOT')
+                : (locale === 'ru' ? 'ИГРОК' : 'PLAYER')}
+            </span>
           </div>
 
-          <div
-            style={{
-              background: 'rgba(91, 215, 224, 0.08)',
-              borderRadius: 12,
-              padding: 12,
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>CASHFLOW</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#5BD7E0' }}>
-              {player.cashflowPerMonth >= 0 ? '+' : '-'}${Math.abs(player.cashflowPerMonth).toLocaleString()}/мес
-            </div>
+          <div className="player-profile-identity">
+            <span className="player-profile-profession"><IconBriefcase size={15} />{professionLabel}</span>
+            <h3>{player.name}</h3>
+            {heroTitle && <strong>{heroTitle}</strong>}
+            {heroSummary && <p>{heroSummary}</p>}
           </div>
+        </section>
 
-          <div
-            style={{
-              background: 'rgba(232, 75, 42, 0.08)',
-              borderRadius: 12,
-              padding: 12,
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>СТРЕСС</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#E84B2A' }}>
-              {player.stress}/10
-            </div>
-            <div style={{ marginTop: 2, fontSize: 10, color: stressPenalty > 0 ? '#FF8B70' : '#7D7B6F' }}>
-              {stressPenalty > 0 ? `−${stressPenalty}% пассива` : 'без штрафа'}
-            </div>
+        <dl className="player-profile-metrics">
+          <div className="player-profile-metric player-profile-metric-cash">
+            <dt><IconCoin size={16} />{locale === 'ru' ? 'Деньги' : 'Cash'}</dt>
+            <dd>${player.cash.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</dd>
           </div>
-
-          <div
-            style={{
-              background: 'rgba(245, 197, 36, 0.08)',
-              borderRadius: 12,
-              padding: 12,
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: 11, color: '#7D7B6F', marginBottom: 4 }}>TRUST</div>
-            <div style={{ fontSize: 18, fontWeight: 900, color: '#F5C524' }}>
-              {player.trust}/10
-            </div>
+          <div className="player-profile-metric player-profile-metric-flow">
+            <dt><IconChart size={16} />{locale === 'ru' ? 'Поток' : 'Flow'}</dt>
+            <dd>{netFlow >= 0 ? '+' : '−'}${Math.abs(netFlow).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}<small>/{locale === 'ru' ? 'мес' : 'mo'}</small></dd>
           </div>
-        </div>
+          <div className="player-profile-metric player-profile-metric-stress">
+            <dt><IconStress size={16} />{locale === 'ru' ? 'Стресс' : 'Stress'}</dt>
+            <dd>{player.stress}/10</dd>
+            <small>{stressPenalty > 0
+              ? (locale === 'ru' ? `−${stressPenalty}% пассивного дохода` : `−${stressPenalty}% passive income`)
+              : (locale === 'ru' ? 'Доход без штрафа' : 'No income penalty')}</small>
+          </div>
+          <div className="player-profile-metric player-profile-metric-trust">
+            <dt><IconTrust size={16} />{locale === 'ru' ? 'Доверие' : 'Trust'}</dt>
+            <dd>{player.trust}/10</dd>
+          </div>
+        </dl>
 
-        {/* Businesses */}
-        {player.businesses.length > 0 && (
-          <div style={{ width: '100%' }}>
-            <h3
-              style={{
-                fontSize: 13,
-                fontWeight: 900,
-                margin: '0 0 8px',
-                color: '#F5F4ED',
-                textTransform: 'uppercase',
-              }}
-            >
-              🏢 Бизнесы ({player.businesses.length}/{player.businessSlots})
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {player.businesses.map((biz, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(123, 91, 215, 0.12)',
-                    border: '1px solid rgba(123, 91, 215, 0.3)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#F5F4ED',
-                  }}
-                >
-                  {biz}
+        {(player.businesses.length > 0 || player.protections.length > 0) && (
+          <section className="player-profile-inventory">
+            {player.businesses.length > 0 && (
+              <div>
+                <h3><IconBriefcase size={16} />{locale === 'ru' ? 'Бизнесы' : 'Businesses'} <span>{player.businesses.length}/{player.businessSlots}</span></h3>
+                <div className="player-profile-chips">
+                  {player.businesses.map((business) => <span key={business}>{business}</span>)}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
+            )}
+            {player.protections.length > 0 && (
+              <div>
+                <h3><IconShield size={16} />{locale === 'ru' ? 'Защита' : 'Protection'}</h3>
+                <div className="player-profile-chips player-profile-chips-protection">
+                  {player.protections.map((protection) => <span key={protection}>{protection}</span>)}
+                </div>
+              </div>
+            )}
+          </section>
         )}
 
-        {/* Protections */}
-        {player.protections.length > 0 && (
-          <div style={{ width: '100%' }}>
-            <h3
-              style={{
-                fontSize: 13,
-                fontWeight: 900,
-                margin: '0 0 8px',
-                color: '#F5F4ED',
-                textTransform: 'uppercase',
-              }}
-            >
-              🛡️ Защиты
-            </h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {player.protections.map((prot, i) => (
-                <div
-                  key={i}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 8,
-                    background: 'rgba(40, 199, 111, 0.12)',
-                    border: '1px solid rgba(40, 199, 111, 0.3)',
-                    fontSize: 12,
-                    fontWeight: 600,
-                    color: '#F5F4ED',
-                  }}
-                >
-                  {prot}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Reactions are real actions during the interactive tutorial step too. */}
         {onSendReaction && (
-          <div style={{ width: '100%' }}>
-            <div style={{ marginBottom: 8, color: '#A39F92', fontSize: 11, fontWeight: 900, letterSpacing: '0.05em' }}>
-              {locale === 'ru' ? 'ОТПРАВИТЬ РЕАКЦИЮ' : 'SEND A REACTION'}
+          <section className="player-profile-reactions">
+            <div>
+              <strong>{locale === 'ru' ? 'БЫСТРАЯ РЕАКЦИЯ' : 'QUICK REACTION'}</strong>
+              <span>{locale === 'ru' ? 'Она появится над портретом за столом' : 'It appears above their portrait at the table'}</span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+            <div className="player-profile-reaction-grid">
               {[REACTIONS[0], REACTIONS[2], REACTIONS[3], REACTIONS[5]].map((reaction) => (
                 <button
                   key={reaction.label}
                   type="button"
                   onClick={() => onSendReaction(player.id, reaction.label)}
                   aria-label={`${locale === 'ru' ? 'Отправить реакцию' : 'Send reaction'} ${reaction.label}`}
-                  style={{
-                    display: 'grid',
-                    minHeight: 56,
-                    placeItems: 'center',
-                    borderRadius: 12,
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    background: 'rgba(255, 255, 255, 0.06)',
-                  }}
                 >
-                  <img src={reaction.image} alt="" draggable={false} style={{ width: 38, height: 38, objectFit: 'contain' }} />
+                  <img src={reaction.image} alt="" draggable={false} />
                 </button>
               ))}
             </div>
-          </div>
+          </section>
         )}
 
-        {/* PRO-only structured deal action */}
-        <div style={{ display: 'flex', gap: 12, width: '100%', marginTop: 8 }}>
+        <section className="player-profile-deal-zone">
           {onProposeDeal && (
-            <button
-              type="button"
-              onClick={() => onProposeDeal(player.id)}
-              style={{
-                flex: 1,
-                padding: '14px',
-                borderRadius: 12,
-                background: 'linear-gradient(180deg, #8C6BE8, #5E3FB8)',
-                color: '#fff',
-                fontSize: 14,
-                fontWeight: 900,
-                textTransform: 'uppercase',
-                boxShadow: '0 4px 12px rgba(123, 91, 215, 0.3)',
-              }}
-            >
-              🤝 Сделка
+            <button type="button" className="player-profile-primary-action" onClick={() => onProposeDeal(player.id)}>
+              <IconHandshake size={21} />
+              <span>{locale === 'ru' ? 'Предложить сделку' : 'Propose a deal'}</span>
             </button>
           )}
-        </div>
+          {onOfferCard && (
+            <button type="button" className="player-profile-primary-action" onClick={() => onOfferCard(player.id)}>
+              <IconHandshake size={21} />
+              <span>{locale === 'ru' ? 'Предложить эту карту' : 'Offer this card'}</span>
+            </button>
+          )}
+          {!onProposeDeal && !onOfferCard && (
+            <p className="player-profile-deal-note">
+              <IconHandshake size={19} />
+              <span>{locale === 'ru'
+                ? 'В BASIC игроку можно предложить только вашу текущую личную возможность. Кнопка появится, когда карта допускает передачу.'
+                : 'In BASIC you can offer only your current private opportunity. The action appears when that card can be transferred.'}</span>
+            </p>
+          )}
+        </section>
       </div>
     </BottomSheet>
   );

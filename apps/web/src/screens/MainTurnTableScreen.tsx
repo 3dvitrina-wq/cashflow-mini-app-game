@@ -44,7 +44,7 @@ type HostMoment = {
 };
 
 type RoundTransition = {
-  phase: 'closing' | 'night' | 'market' | 'opening';
+  phase: 'waiting' | 'summary';
   fromRound: number;
   fromMonth: number;
   fromYear: number;
@@ -58,6 +58,10 @@ type SettlementLedgerLine = {
   expense?: number;
   detail?: string;
 };
+
+// Survives route/sheet remounts during one app session so returning from Bank,
+// Settings or Futures does not replay the ownership lesson for the same match.
+const shownOwnershipIntros = new Set<string>();
 
 // The host is a guest, not a narrator: it only has something to say when a market
 // event, a stress check, or a risky deal is imminent. Most rounds → null (silent).
@@ -437,6 +441,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [reactionsOpen, setReactionsOpen] = useState(false);
   const [isConfirmPreviewOpen, setIsConfirmPreviewOpen] = useState(false);
   const [cardRevealPhase, setCardRevealPhase] = useState<'ownership' | 'dealing' | 'ready'>('ownership');
+  const hasShownOwnershipIntro = useRef(false);
   const swipeStart = useRef<{ x: number; y: number; t: number } | null>(null);
   const swipedRef = useRef(false);
   const [isAdvancingTime, setIsAdvancingTime] = useState(false);
@@ -445,6 +450,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [selectedChoiceIdx, setSelectedChoiceIdx] = useState(0);
   const [isPersonalOfferPickerOpen, setIsPersonalOfferPickerOpen] = useState(false);
   const [personalOfferPrice, setPersonalOfferPrice] = useState(0);
+  const [preferredPersonalOfferTargetId, setPreferredPersonalOfferTargetId] = useState<string | null>(null);
   // Phase 3
   const [isOfferBuilderOpen, setIsOfferBuilderOpen] = useState(false);
   const [showDealConfirm, setShowDealConfirm] = useState(false);
@@ -471,7 +477,10 @@ export const MainTurnTableScreen: React.FC = () => {
   });
   useModalLayer({
     isOpen: isPersonalOfferPickerOpen,
-    onClose: () => setIsPersonalOfferPickerOpen(false),
+    onClose: () => {
+      setIsPersonalOfferPickerOpen(false);
+      setPreferredPersonalOfferTargetId(null);
+    },
     containerRef: personalOfferPickerRef,
     initialFocusRef: personalOfferCloseRef,
   });
@@ -671,14 +680,25 @@ export const MainTurnTableScreen: React.FC = () => {
       setCardRevealPhase('ready');
       return;
     }
-    setCardRevealPhase('ownership');
-    const ownershipTimer = window.setTimeout(() => setCardRevealPhase('dealing'), 1800);
-    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), 3700);
+    // Ownership is a first-contact explanation, not a trailer before every card.
+    // The tutorial already teaches it, while the persistent signal on the card
+    // keeps the scope explicit on every later round.
+    const ownershipIntroKey = `${engineMatch?.seed ?? 'local'}:${me?.id ?? 'player'}`;
+    const showOwnershipIntro = !hasShownOwnershipIntro.current
+      && !shownOwnershipIntros.has(ownershipIntroKey)
+      && !isTutorialActive;
+    hasShownOwnershipIntro.current = true;
+    shownOwnershipIntros.add(ownershipIntroKey);
+    setCardRevealPhase(showOwnershipIntro ? 'ownership' : 'dealing');
+    const ownershipTimer = showOwnershipIntro
+      ? window.setTimeout(() => setCardRevealPhase('dealing'), 1100)
+      : 0;
+    const revealTimer = window.setTimeout(() => setCardRevealPhase('ready'), showOwnershipIntro ? 1600 : 520);
     return () => {
-      window.clearTimeout(ownershipTimer);
+      if (ownershipTimer) window.clearTimeout(ownershipTimer);
       window.clearTimeout(revealTimer);
     };
-  }, [card?.id, match.round, canActNow, isAdvancingTime]);
+  }, [card?.id, match.round, canActNow, engineMatch?.seed, isAdvancingTime, isTutorialActive, me?.id]);
 
   useEffect(() => {
     if (!card || !canActNow || isTutorialActive || isRoomTutorialPaused) return;
@@ -825,17 +845,15 @@ export const MainTurnTableScreen: React.FC = () => {
       net: match.lastSettlement,
     };
   }, [engineMatch, localPlayerId, locale, match.lastSettlement]);
-  const settlementHoldMs = Math.min(
-    6000,
-    Math.max(4400, 1600 + (settlementLedger?.lines.length ?? 0) * 480),
-  );
-  const settlementRevealStartMs = 300;
-  const settlementRevealStepMs = Math.max(
-    300,
-    Math.floor((settlementHoldMs - 1000) / Math.max(1, (settlementLedger?.lines.length ?? 0) + 1)),
+  const monthSummaryHoldMs = Math.min(
+    4400,
+    Math.max(3400, 2600 + (settlementLedger?.lines.length ?? 0) * 140 + (globalCard ? 320 : 0)),
   );
   const visibleTimelineLabel = localizedTimelineLabel(match.calendarYear, match.calendarMonth, locale);
   const compactTimelineLabel = localizedTimelineShortLabel(match.calendarYear, match.calendarMonth, locale);
+  const completedTimelineLabel = roundTransition
+    ? localizedTimelineLabel(roundTransition.fromYear, roundTransition.fromMonth, locale)
+    : visibleTimelineLabel;
   const stressPenaltyPercent = Math.round(stressPassiveIncomePenalty(me?.stress ?? 0) * 100);
   const isTutorialSuspended = Boolean(
     isProfileOpen
@@ -871,6 +889,9 @@ export const MainTurnTableScreen: React.FC = () => {
           offer.status === 'pending'
           && (offer.fromPlayerId === player.id || offer.toPlayerId === player.id)))
     : [];
+  const orderedPersonalOfferTargets = preferredPersonalOfferTargetId
+    ? [...personalOfferTargets].sort((a, b) => Number(b.id === preferredPersonalOfferTargetId) - Number(a.id === preferredPersonalOfferTargetId))
+    : personalOfferTargets;
   const canOfferPersonalCard = !isProMode
     && (card?.type === 'opportunity' || card?.type === 'modern_earning')
     && !hasSubmittedSharedIntent
@@ -881,7 +902,9 @@ export const MainTurnTableScreen: React.FC = () => {
     : isProMode && interestWindow?.status === 'open'
     ? (locale === 'ru' ? 'Окно сделки открыто' : 'Deal interest open')
     : isAdvancingTime
-    ? (locale === 'ru' ? 'Месяц считается' : 'Resolving month')
+    ? roundTransition?.phase === 'summary'
+      ? (locale === 'ru' ? 'Итоги месяца' : 'Month summary')
+      : (locale === 'ru' ? 'Решение принято · ждём стол' : 'Decision locked · waiting for table')
     : hasSubmittedSharedIntent
     ? (locale === 'ru' ? 'Ждём остальных' : 'Waiting for others')
     : canActNow
@@ -964,7 +987,7 @@ export const MainTurnTableScreen: React.FC = () => {
       transitionTimers.current = [];
       setIsAdvancingTime(true);
       setRoundTransition({
-        phase: 'closing',
+        phase: 'waiting',
         fromRound: match.round,
         fromMonth: match.calendarMonth,
         fromYear: match.calendarYear,
@@ -987,19 +1010,15 @@ export const MainTurnTableScreen: React.FC = () => {
         }
         submitIntent(choiceIdx);
       }, 180));
-      transitionTimers.current.push(window.setTimeout(() => {
-        setRoundTransition((current) => current ? { ...current, phase: 'night' } : current);
-        playSound('whoosh');
-      }, 360));
     },
     [isAdvancingTime, isMultiplayer, locale, match.calendarMonth, match.calendarYear, match.round, networkStatus, submitIntent]
   );
 
-  // Keep the night ledger on-screen long enough to connect decisions to money.
-  // In multiplayer it waits for the authoritative next round instead of showing
-  // the previous settlement or revealing the next card on a guessed timer.
+  // Wait silently on the table for the authoritative next round, then show one
+  // explicit month summary. This replaces the old closing/night/market/opening
+  // trailer with a single causal report.
   useEffect(() => {
-    if (!roundTransition || roundTransition.phase !== 'night') return;
+    if (!roundTransition || roundTransition.phase !== 'waiting') return;
     if (match.round <= roundTransition.fromRound) {
       const stalledTimer = window.setTimeout(() => {
         setRoundTransition(null);
@@ -1016,32 +1035,17 @@ export const MainTurnTableScreen: React.FC = () => {
 
     playSound(match.lastSettlement >= 0 ? 'coin' : 'spend');
     hapticImpact(match.lastSettlement >= 0 ? 'light' : 'medium');
-    const openingTimer = window.setTimeout(() => {
-      setRoundTransition((current) => current
-        ? { ...current, phase: !isProMode && globalCard ? 'market' : 'opening' }
-        : current);
-    }, settlementHoldMs);
-    return () => window.clearTimeout(openingTimer);
-  }, [globalCard?.id, isMultiplayer, isProMode, locale, match.lastSettlement, match.round, roundTransition, settlementHoldMs]);
+    setRoundTransition((current) => current ? { ...current, phase: 'summary' } : current);
+  }, [isMultiplayer, locale, match.lastSettlement, match.round, roundTransition]);
 
   useEffect(() => {
-    if (!roundTransition || roundTransition.phase !== 'market') return;
-    playSound('deal');
-    hapticImpact('soft');
-    const marketTimer = window.setTimeout(() => {
-      setRoundTransition((current) => current ? { ...current, phase: 'opening' } : current);
-    }, 2200);
-    return () => window.clearTimeout(marketTimer);
-  }, [roundTransition]);
-
-  useEffect(() => {
-    if (!roundTransition || roundTransition.phase !== 'opening') return;
+    if (!roundTransition || roundTransition.phase !== 'summary') return;
     const finishTimer = window.setTimeout(() => {
       setRoundTransition(null);
       setIsAdvancingTime(false);
-    }, 1800);
+    }, monthSummaryHoldMs);
     return () => window.clearTimeout(finishTimer);
-  }, [roundTransition]);
+  }, [monthSummaryHoldMs, roundTransition]);
 
   const handleReaction = (reaction: string) => {
     if (!me?.id) return;
@@ -1079,6 +1083,12 @@ export const MainTurnTableScreen: React.FC = () => {
     setIsProfileOpen(false);
     setCollabPartnerId(playerId);
     setIsOfferBuilderOpen(true);
+  };
+
+  const handleOfferCardToPlayer = (playerId: string) => {
+    setIsProfileOpen(false);
+    setPreferredPersonalOfferTargetId(playerId);
+    setIsPersonalOfferPickerOpen(true);
   };
 
   const handleSendReaction = (playerId: string, label: string) => {
@@ -1253,87 +1263,53 @@ export const MainTurnTableScreen: React.FC = () => {
   return (
     <div className={`game-phone-shell ${canActNow ? 'turn-card-active' : ''} turn-reveal-${cardRevealPhase}`}>
       <div className="game-bg-noise" />
-      {isAdvancingTime && roundTransition && (
-        <div className={`time-advance-overlay time-advance-${roundTransition.phase}`} aria-live="assertive">
-          <div
-            key={`${roundTransition.phase}-${roundTransition.phase === 'night' && match.round > roundTransition.fromRound ? 'settled' : 'waiting'}`}
-            className={`time-advance-card${roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? ' time-advance-card-ledger' : ''}${roundTransition.phase === 'market' ? ' time-advance-card-market' : ''}`}
-          >
-            <span className="time-advance-kicker">
-              {roundTransition.phase === 'closing'
-                ? (locale === 'ru' ? 'РЕШЕНИЕ ЗАФИКСИРОВАНО' : 'DECISION LOCKED')
-                : roundTransition.phase === 'night'
-                  ? match.round > roundTransition.fromRound
-                    ? (locale === 'ru' ? 'ДЕНЬГИ ЗА МЕСЯЦ' : 'THIS MONTH IN MONEY')
-                    : (locale === 'ru' ? 'НОЧЬ · СВОДИМ БАЛАНС' : 'NIGHT · BALANCING BOOKS')
-                  : roundTransition.phase === 'market'
-                    ? (locale === 'ru' ? 'ОБЩИЙ РЫНОК · ДЛЯ ВСЕХ' : 'SHARED MARKET · EVERYONE')
-                  : match.round > roundTransition.fromRound
-                    ? (locale === 'ru' ? 'НОВЫЙ МЕСЯЦ' : 'NEW MONTH')
-                    : (locale === 'ru' ? 'ЖДЁМ СТОЛ' : 'WAITING FOR TABLE')}
-            </span>
-            {roundTransition.phase === 'night' && match.round > roundTransition.fromRound && settlementLedger ? (
-              <div className="settlement-ledger" aria-label={locale === 'ru' ? 'Расчёт денег за месяц' : 'Monthly money breakdown'}>
-                <div className="settlement-ledger-lines">
-                  {settlementLedger.lines.map((line, index) => (
-                    <div
-                      key={line.id}
-                      className="settlement-ledger-line"
-                      style={{ animationDelay: `${settlementRevealStartMs + index * settlementRevealStepMs}ms` }}
-                    >
-                      <span aria-hidden="true">{line.icon}</span>
-                      <b>{line.label}</b>
-                      <em>
-                        {line.income ? <span className="settlement-ledger-income">+${line.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
-                        {line.expense ? <span className="settlement-ledger-expense">−${line.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
-                        {line.detail ? <span className="settlement-ledger-effect">{line.detail}</span> : null}
-                      </em>
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className="settlement-ledger-totals"
-                  style={{ animationDelay: `${settlementRevealStartMs + settlementLedger.lines.length * settlementRevealStepMs}ms` }}
-                >
-                  <span>{locale === 'ru' ? 'Пришло' : 'In'} <b className="settlement-ledger-income">+${settlementLedger.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
-                  <span>{locale === 'ru' ? 'Ушло' : 'Out'} <b className="settlement-ledger-expense">−${settlementLedger.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
-                </div>
-                <div
-                  className={`settlement-ledger-net ${settlementLedger.net >= 0 ? 'settlement-ledger-net-positive' : 'settlement-ledger-net-negative'}`}
-                  style={{ animationDelay: `${settlementRevealStartMs + (settlementLedger.lines.length + 1) * settlementRevealStepMs}ms` }}
-                >
-                  <span>{locale === 'ru' ? 'ИТОГ ЗА РАУНД' : 'ROUND TOTAL'}</span>
-                  <strong>{settlementLedger.net >= 0 ? '+' : '−'}${Math.abs(settlementLedger.net).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</strong>
-                </div>
+      {isAdvancingTime && roundTransition?.phase === 'summary' && settlementLedger && (
+        <div className="time-advance-overlay time-advance-summary" aria-live="assertive">
+          <section className="time-advance-card time-advance-card-ledger" aria-label={locale === 'ru' ? 'Итоги завершённого месяца' : 'Completed month summary'}>
+            <header className="month-summary-header">
+              <span className="time-advance-kicker">{locale === 'ru' ? 'ИТОГИ МЕСЯЦА' : 'MONTH SUMMARY'}</span>
+              <strong>{completedTimelineLabel}</strong>
+              <p>{locale === 'ru' ? 'Что принесло и забрало деньги' : 'What brought money in and took it out'}</p>
+            </header>
+
+            <div className="settlement-ledger" aria-label={locale === 'ru' ? 'Расчёт денег за месяц' : 'Monthly money breakdown'}>
+              <div className="settlement-ledger-lines">
+                {settlementLedger.lines.map((line) => (
+                  <div key={line.id} className="settlement-ledger-line">
+                    <span aria-hidden="true">{line.icon}</span>
+                    <b>{line.label}</b>
+                    <em>
+                      {line.income ? <span className="settlement-ledger-income">+${line.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
+                      {line.expense ? <span className="settlement-ledger-expense">−${line.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
+                      {line.detail ? <span className="settlement-ledger-effect">{line.detail}</span> : null}
+                    </em>
+                  </div>
+                ))}
               </div>
-            ) : roundTransition.phase === 'market' && globalCard ? (
-              <div className="market-pulse-reveal" data-tour="market" aria-label={locale === 'ru' ? 'Общее событие рынка' : 'Shared market event'}>
-                <span>{locale === 'ru' ? 'РЫНОК МЕНЯЕТ УСЛОВИЯ' : 'MARKET CONDITIONS CHANGED'}</span>
+              <div className="settlement-ledger-totals">
+                <span>{locale === 'ru' ? 'Пришло' : 'In'} <b className="settlement-ledger-income">+${settlementLedger.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
+                <span>{locale === 'ru' ? 'Ушло' : 'Out'} <b className="settlement-ledger-expense">−${settlementLedger.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</b></span>
+              </div>
+              <div className={`settlement-ledger-net ${settlementLedger.net >= 0 ? 'settlement-ledger-net-positive' : 'settlement-ledger-net-negative'}`}>
+                <span>{locale === 'ru' ? 'РЕЗУЛЬТАТ МЕСЯЦА' : 'MONTH RESULT'}</span>
+                <strong>{settlementLedger.net >= 0 ? '+' : '−'}${Math.abs(settlementLedger.net).toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</strong>
+              </div>
+            </div>
+
+            {globalCard && (
+              <div className="month-summary-market" data-tour="market">
+                <span>{locale === 'ru' ? 'УСЛОВИЯ НОВОГО МЕСЯЦА · ДЛЯ ВСЕХ' : 'NEW MONTH CONDITIONS · EVERYONE'}</span>
                 <strong>{globalCard.title}</strong>
                 <p>{globalCard.consequences.slice(0, 2).join(' · ')}</p>
-                <small>{locale === 'ru' ? 'Одинаково применяется ко всему столу' : 'Applies once to the whole table'}</small>
               </div>
-            ) : (
-              <>
-                <strong className="time-advance-date">
-                  {roundTransition.phase === 'closing'
-                    ? (locale === 'ru' ? `Раунд ${roundTransition.fromRound} закрывается` : `Round ${roundTransition.fromRound} is closing`)
-                    : roundTransition.phase === 'night'
-                      ? localizedTimelineLabel(roundTransition.fromYear, roundTransition.fromMonth, locale)
-                      : match.round > roundTransition.fromRound
-                        ? visibleTimelineLabel
-                        : (locale === 'ru' ? 'Ваш выбор принят' : 'Your choice is locked')}
-                </strong>
-                <span className="time-advance-caption">
-                  {roundTransition.phase === 'night'
-                    ? (locale === 'ru' ? 'Стол считает последствия' : 'The table is resolving consequences')
-                    : roundTransition.phase === 'opening' && match.round > roundTransition.fromRound
-                      ? `${locale === 'ru' ? 'Раунд' : 'Round'} ${match.round}/${match.maxRounds} · ${locale === 'ru' ? 'новая карта уже в пути' : 'a new card is on its way'}`
-                      : (locale === 'ru' ? 'Стол считает последствия' : 'The table is resolving consequences')}
-                </span>
-              </>
             )}
-          </div>
+
+            <footer className="month-summary-next">
+              <span>{locale === 'ru' ? 'ДАЛЬШЕ' : 'NEXT'}</span>
+              <strong>{visibleTimelineLabel}</strong>
+              <small>{locale === 'ru' ? `Раунд ${match.round}/${match.maxRounds}` : `Round ${match.round}/${match.maxRounds}`}</small>
+            </footer>
+          </section>
         </div>
       )}
 
@@ -1721,7 +1697,10 @@ export const MainTurnTableScreen: React.FC = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 7 }}>
                     <button
                       type="button"
-                      onClick={() => setIsPersonalOfferPickerOpen((open) => !open)}
+                      onClick={() => {
+                        setPreferredPersonalOfferTargetId(null);
+                        setIsPersonalOfferPickerOpen((open) => !open);
+                      }}
                       style={{
                         minHeight: 44,
                         borderRadius: 11,
@@ -1752,7 +1731,10 @@ export const MainTurnTableScreen: React.FC = () => {
                           <button
                             ref={personalOfferCloseRef}
                             type="button"
-                            onClick={() => setIsPersonalOfferPickerOpen(false)}
+                            onClick={() => {
+                              setIsPersonalOfferPickerOpen(false);
+                              setPreferredPersonalOfferTargetId(null);
+                            }}
                             aria-label={locale === 'ru' ? 'Закрыть продажу карты' : 'Close card sale'}
                             style={{ width: 44, height: 44, borderRadius: 12, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.06)', color: '#F5F4ED', fontSize: 22 }}
                           >
@@ -1793,7 +1775,7 @@ export const MainTurnTableScreen: React.FC = () => {
                           {locale === 'ru' ? 'ОДНОМУ ИГРОКУ' : 'DIRECT OFFER'}
                         </span>
                         <div style={{ display: 'flex', gap: 7, overflowX: 'auto', paddingBottom: 2 }}>
-                          {personalOfferTargets.map((player) => (
+                          {orderedPersonalOfferTargets.map((player) => (
                           <button
                             key={player.id}
                             type="button"
@@ -1801,6 +1783,7 @@ export const MainTurnTableScreen: React.FC = () => {
                               const outcome = offerPersonalCard({ audience: 'direct', targetPlayerId: player.id, askingPrice: personalOfferPrice });
                               if (outcome !== 'failed') {
                                 setIsPersonalOfferPickerOpen(false);
+                                setPreferredPersonalOfferTargetId(null);
                                 showToast(
                                   outcome === 'accepted'
                                     ? (locale === 'ru' ? `${player.name} купил право за $${personalOfferPrice.toLocaleString()}` : `${player.name} bought it for $${personalOfferPrice.toLocaleString()}`)
@@ -1815,7 +1798,8 @@ export const MainTurnTableScreen: React.FC = () => {
                             }}
                             style={{
                               flex: '0 0 auto', minWidth: 74, minHeight: 48, borderRadius: 12,
-                              border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.05)',
+                              border: player.id === preferredPersonalOfferTargetId ? '1px solid rgba(91,215,224,.65)' : '1px solid rgba(255,255,255,0.12)',
+                              background: player.id === preferredPersonalOfferTargetId ? 'rgba(91,215,224,.14)' : 'rgba(255,255,255,0.05)',
                               color: '#F5F4ED', fontSize: 10, fontWeight: 800, padding: '5px 8px',
                             }}
                           >
@@ -1829,6 +1813,7 @@ export const MainTurnTableScreen: React.FC = () => {
                             const outcome = offerPersonalCard({ audience: 'table', askingPrice: personalOfferPrice });
                             if (outcome !== 'failed') {
                               setIsPersonalOfferPickerOpen(false);
+                              setPreferredPersonalOfferTargetId(null);
                               showToast(
                                 outcome === 'accepted'
                                   ? (locale === 'ru' ? `Кто-то за столом уже купил право за $${personalOfferPrice.toLocaleString()}` : `Someone at the table bought it for $${personalOfferPrice.toLocaleString()}`)
@@ -2250,6 +2235,9 @@ export const MainTurnTableScreen: React.FC = () => {
         onClose={() => setIsProfileOpen(false)}
         player={selectedPlayer}
         onProposeDeal={isProMode ? handleProposeDeal : undefined}
+        onOfferCard={!isProMode && selectedPlayer && personalOfferTargets.some((player) => player.id === selectedPlayer.id)
+          ? handleOfferCardToPlayer
+          : undefined}
         onSendReaction={handleSendReaction}
       />
 

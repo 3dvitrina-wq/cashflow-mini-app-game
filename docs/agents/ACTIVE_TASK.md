@@ -62,9 +62,11 @@ night survival job. Do not “fix” this by removing losses.
   the card/market UI instead of masquerading as disappearing notifications.
 - The active-turn mobile layout gives the private card the visual stage, keeps
   the compact money HUD and decisions visible, and never scrolls card copy inside
-  the phone viewport. Ownership, meaning and actions are temporally staged and
-  reduced-motion safe: a dealt card first says who owns it, then reveals the
-  event signal and copy, so scope and consequence never compete in one banner.
+  the phone viewport. Ownership is a first-contact lesson, not a trailer before
+  every round: the standalone `ВАША КАРТА` scene runs at most once per match/app
+  session (and yields to the tutorial), while every actual card keeps a persistent
+  private/shared scope signal. Later cards use one soft 520ms reveal and remain
+  immediately skippable and reduced-motion safe.
 - Multiple BASIC cards listed by different owners stay separate from the global
   market. Recipients see one bounded `Стол возможностей` tray with owner, asking
   price, round expiry and a `1/N` pager. A player may buy one listed card per
@@ -84,17 +86,12 @@ night survival job. Do not “fix” this by removing losses.
 - Choice submission now stages decision lock, night/settlement and new-month
   reveal before the next card becomes actionable. A delayed multiplayer snapshot
   cannot briefly display the previous month's settlement as the new result.
-  The night ledger reveals each income/cost source, asset upkeep, one-off round
-  impact, total inflow, total outflow and the reconciled wallet delta in sequence.
-  The table stays spatially fixed during this transition: only the centered
-  ledger animates. Information-bearing motion now follows a reading timeline
-  instead of firing all copy before a decorative progress bar: ledger lines,
-  totals and net are distributed across a 4.4–6 second window; the shared market
-  reveals context, title, effect and scope across 2.2 seconds; the new-month
-  label gets 1.8 seconds. The private-card deal takes 3.7 seconds from ownership
-  to consequences, and table reactions remain visible for 2.4 seconds. Buttons,
-  drawers and other functional feedback stay fast because their content does
-  not disappear before the player can read it.
+  The former closing/night/ledger/market/opening chain is now one centered,
+  mostly static `ИТОГИ МЕСЯЦА` report lasting 3.4–4.4 seconds. It explicitly names
+  the completed month/year, income and expense sources, result, shared conditions
+  for the new month and the next month/round. While multiplayer waits for the
+  authoritative result, the existing table stays visible with disabled actions
+  and a `Решение принято · ждём стол` status instead of another full-screen scene.
 - Daily reward is claim-once and explicitly closable. Settings exposes only
   working controls: volume, original procedural music, action sounds, haptics,
   host and language.
@@ -143,6 +140,12 @@ night survival job. Do not “fix” this by removing losses.
 - Asset recurring income/upkeep has one ledger representation; duplicate passive
   effects were removed.
 - PRO-only partnership choices are visibly gated in BASIC.
+- Other-player profiles now use their generated profile bust rather than a
+  cropped mood frame, name the real profession and hero power, remove the fake
+  level, and fit finances/reactions/actions in one 402×874 sheet. Online bots
+  carry matching character and profession ids. PRO exposes the structured deal
+  builder; BASIC exposes the real direct action for offering the current private
+  opportunity to that selected player, or explains why no action is available.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
 - Verification: engine 168/168; server 11/11; web/server typecheck; production
