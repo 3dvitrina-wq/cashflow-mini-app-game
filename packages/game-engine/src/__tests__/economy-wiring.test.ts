@@ -1,6 +1,6 @@
 // Wave A wiring: hire cost+bonus, bot deal evaluation, bot outgoing invites.
 import { describe, it, expect } from 'vitest';
-import { createMatch, resolveCommand, advanceRound, openIntentWindow, resolveAllIntents, allIntentsSubmitted, monthlyCashflow, canAffordChoice } from '../engine';
+import { createMatch, resolveCommand, advanceRound, openIntentWindow, resolveAllIntents, allIntentsSubmitted, monthlyCashflow, canAffordChoice, scoreBreakdown } from '../engine';
 import { openFuturesPosition } from '../futures';
 import { botIntent, evaluateDeal, maybeProposeDeal } from '../bot';
 import { stateHash } from '../hash';
@@ -172,6 +172,28 @@ describe('bank credit (take_loan)', () => {
     expect(after.liabilities.some((l) => l.id === loanId)).toBe(false); // load lifted
   });
 
+  it('reports zero bank debt after the only Bank loan is repaid', () => {
+    let state = createMatch(7, [...PLAYERS]);
+    const p1 = state.players.find((p) => p.id === 'p1')!;
+    p1.liabilities.push({
+      id: 'student-obligation',
+      kind: 'loan',
+      principal: 2400,
+      interestRate: 0.04,
+      remainingPayments: 12,
+      creditor: 'University',
+    });
+
+    state = resolveCommand(state, { type: 'take_loan', playerId: 'p1', amount: 1000 }).state;
+    const bankLoan = state.players.find((p) => p.id === 'p1')!.liabilities.find((l) => l.creditor === 'Bank')!;
+    state = resolveCommand(state, { type: 'repay_loan', playerId: 'p1', loanId: bankLoan.id }).state;
+    const after = state.players.find((p) => p.id === 'p1')!;
+
+    expect(after.liabilities.some((l) => l.creditor === 'Bank')).toBe(false);
+    expect(after.debt).toBe(0);
+    expect(scoreBreakdown(after, state.macro).bankDebt).toBe(0);
+  });
+
   it('profession loan_buffer raises the visible cap', () => {
     const match = createMatch(7, [
       { id: 'p1', name: 'Alex', outfit: 'hustler', isBot: false, professionId: 'investment_banker' },
@@ -182,6 +204,75 @@ describe('bank credit (take_loan)', () => {
     const boostedAttempt = Math.round(baseCap * 1.2);
     const r = resolveCommand(match, { type: 'take_loan', playerId: 'p1', amount: boostedAttempt });
     expect(r.events.some((e) => e.type === 'command_rejected')).toBe(false);
+  });
+});
+
+describe('pet economy', () => {
+  it('preserves exact pet identity and applies an owned dog stress effect every settlement', () => {
+    let state = createMatch(7, [...PLAYERS]);
+    state = resolveCommand(state, {
+      type: 'buy_pet',
+      playerId: 'p1',
+      petId: 'pet-dog',
+    }).state;
+    const owned = state.players.find((p) => p.id === 'p1')!;
+    expect(owned.pet).toMatchObject({ id: 'pet-dog', kind: 'dog', state: 'happy' });
+
+    owned.stress = 8;
+    owned.activeIncome = 0;
+    owned.passiveIncome = 0;
+    owned.expenses = 0;
+    owned.assets = [];
+    owned.liabilities = [];
+
+    const settled = advanceRound(state);
+    const after = settled.state.players.find((p) => p.id === 'p1')!;
+    expect(after.stress).toBe(6);
+    expect(settled.events).toContainEqual(expect.objectContaining({
+      type: 'effect',
+      playerId: 'p1',
+      effectType: 'stress.delta',
+      amount: -2,
+      message: 'pet-dog monthly effect',
+    }));
+  });
+
+  it('enforces one-pet ownership instead of replacing the authoritative pet', () => {
+    let state = createMatch(7, [...PLAYERS]);
+    state = resolveCommand(state, {
+      type: 'buy_pet', playerId: 'p1', petId: 'pet-dog',
+    }).state;
+    const second = resolveCommand(state, {
+      type: 'buy_pet', playerId: 'p1', petId: 'pet-cat',
+    });
+
+    expect(second.events.some((event) => event.type === 'command_rejected')).toBe(true);
+    expect(second.state.players.find((p) => p.id === 'p1')!.pet).toMatchObject({ id: 'pet-dog' });
+  });
+
+  it('reconciles a hamster monthly income bonus with cashflow and the event ledger', () => {
+    const state = createMatch(7, [...PLAYERS]);
+    const p1 = state.players.find((p) => p.id === 'p1')!;
+    p1.activeIncome = 0;
+    p1.passiveIncome = 0;
+    p1.expenses = 0;
+    p1.assets = [];
+    p1.liabilities = [];
+
+    const bought = resolveCommand(state, { type: 'buy_pet', playerId: 'p1', petId: 'pet-hamster' }).state;
+    const before = bought.players.find((p) => p.id === 'p1')!;
+    expect(monthlyCashflow(bought, before)).toMatchObject({ income: 50, expense: 40, net: 10 });
+
+    const settled = advanceRound(bought);
+    const after = settled.state.players.find((p) => p.id === 'p1')!;
+    expect(after.cash - before.cash).toBe(10);
+    expect(settled.events).toContainEqual(expect.objectContaining({
+      type: 'effect',
+      playerId: 'p1',
+      effectType: 'passive.add',
+      amount: 50,
+      message: 'pet-hamster monthly effect',
+    }));
   });
 });
 
@@ -233,15 +324,11 @@ describe('profession powers + recovery actions', () => {
 
   it('sell_asset converts value back to cash and frees a slot', () => {
     let match = createMatch(7, [...PLAYERS]);
+    match.businessMarket.offerIds = ['micro-coffee'];
     match = resolveCommand(match, {
       type: 'buy_asset',
       playerId: 'p1',
-      name: 'Coffee',
-      price: 1000,
-      income: 200,
-      kind: 'business',
-      upkeep: 10,
-      slotsUsed: 1,
+      assetId: 'micro-coffee',
     }).state;
     const p1 = match.players.find((p) => p.id === 'p1')!;
     const assetId = p1.assets[0].id;
@@ -256,15 +343,11 @@ describe('profession powers + recovery actions', () => {
 
   it('sell_asset honors selected sale price but caps it at resale value', () => {
     let match = createMatch(7, [...PLAYERS]);
+    match.businessMarket.offerIds = ['micro-coffee'];
     match = resolveCommand(match, {
       type: 'buy_asset',
       playerId: 'p1',
-      name: 'Coffee',
-      price: 1000,
-      income: 200,
-      kind: 'business',
-      upkeep: 10,
-      slotsUsed: 1,
+      assetId: 'micro-coffee',
     }).state;
 
     const p1 = match.players.find((p) => p.id === 'p1')!;
@@ -279,15 +362,11 @@ describe('profession powers + recovery actions', () => {
 
   it('transfer_asset moves a business to another player and frees the source slot', () => {
     let match = createMatch(7, [...PLAYERS]);
+    match.businessMarket.offerIds = ['micro-kiosk'];
     match = resolveCommand(match, {
       type: 'buy_asset',
       playerId: 'p1',
-      name: 'Kiosk',
-      price: 1200,
-      income: 250,
-      kind: 'business',
-      upkeep: 20,
-      slotsUsed: 1,
+      assetId: 'micro-kiosk',
     }).state;
     const ownerBefore = match.players.find((p) => p.id === 'p1')!;
     const targetBefore = match.players.find((p) => p.id === 'p2')!;
@@ -305,15 +384,11 @@ describe('profession powers + recovery actions', () => {
 
   it('share_asset creates a revenue-sharing contract without moving the business', () => {
     let match = createMatch(7, [...PLAYERS]);
+    match.businessMarket.offerIds = ['micro-studio'];
     match = resolveCommand(match, {
       type: 'buy_asset',
       playerId: 'p1',
-      name: 'Studio',
-      price: 3000,
-      income: 600,
-      kind: 'business',
-      upkeep: 50,
-      slotsUsed: 1,
+      assetId: 'micro-studio',
     }).state;
     const ownerBefore = match.players.find((p) => p.id === 'p1')!;
     const partnerBefore = match.players.find((p) => p.id === 'p2')!;

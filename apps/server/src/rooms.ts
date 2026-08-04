@@ -248,6 +248,36 @@ export function markDisconnected(code: string, playerId: string): void {
   }
 }
 
+/**
+ * Explicitly leave a room without changing the engine player's competition
+ * status. Waiting members are removed; a live seat remains and is permanently
+ * bot-controlled so the deterministic match can continue without a ghost turn.
+ * Clearing the resume token makes this distinct from a transient disconnect.
+ */
+export function leaveRoom(code: string, playerId: string): Room | null {
+  const room = rooms.get(code);
+  if (!room) return null;
+  const memberIndex = room.members.findIndex((member) => member.playerId === playerId);
+  if (memberIndex < 0) return null;
+
+  room.tutorialPausedPlayerIds.delete(playerId);
+  if (room.status === 'waiting') {
+    room.members.splice(memberIndex, 1);
+    if (room.members.length === 0) {
+      clearTurnTimer(room);
+      rooms.delete(code);
+    }
+    return room;
+  }
+
+  const member = room.members[memberIndex];
+  member.connected = false;
+  member.botControlled = room.status === 'playing';
+  member.resumeToken = undefined;
+  member.ws = null;
+  return room;
+}
+
 /** Returns true if the current active player is a bot or bot-controlled human. */
 export function isBotCurrentTurn(room: Room): boolean {
   if (!room.engineState) return false;

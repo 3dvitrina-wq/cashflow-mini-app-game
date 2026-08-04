@@ -10,6 +10,9 @@ import {
   setSoundVolume as persistSoundVolume,
 } from '../lib/sound';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { showToast } from '../components/Toast';
+import { ConfirmDialog } from '../components/ConfirmDialog';
+import { useStore } from '../store';
 
 const HOST_KEY = 'dyor_host_enabled';
 const HAPTICS_KEY = 'dyor_haptics_enabled';
@@ -20,6 +23,9 @@ interface SettingsScreenProps {
 
 export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const { locale, setLocale, t } = useI18n();
+  const engineMatch = useStore((state) => state.engineMatch);
+  const surrenderMatch = useStore((state) => state.surrenderMatch);
+  const leaveMatch = useStore((state) => state.leaveMatch);
   const [soundVolume, setSoundVolume] = useState(() => Math.round(getSoundVolume() * 100));
   const [haptics, setHaptics] = useState(() => (typeof window !== 'undefined' ? window.localStorage.getItem(HAPTICS_KEY) !== '0' : true));
   const [sound, setSound] = useState(isSoundEnabled());
@@ -29,6 +35,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const [volatility, setVolatility] = useState<'calm' | 'normal' | 'wild'>('normal');
   const [turnTimer, setTurnTimer] = useState<45 | 90 | 180>(90);
   const [commMode, setCommMode] = useState<'reactions' | 'chat'>('reactions');
+  const [pendingMatchAction, setPendingMatchAction] = useState<'surrender' | 'leave' | null>(null);
 
   // Initialize locale on mount
   useEffect(() => {
@@ -38,6 +45,21 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
   const handleLanguageChange = (newLocale: Locale) => {
     setLocale(newLocale);
     // No reload — useI18n hook triggers re-render via state update
+  };
+
+  const hasActiveMatch = engineMatch !== null;
+
+  const confirmMatchAction = () => {
+    const succeeded = pendingMatchAction === 'surrender' ? surrenderMatch() : leaveMatch();
+    if (!succeeded) {
+      showToast(
+        pendingMatchAction === 'surrender'
+          ? (locale === 'ru' ? 'Не удалось отправить сдачу' : 'Could not surrender')
+          : (locale === 'ru' ? 'Не удалось выйти из игры' : 'Could not leave the game'),
+        'error',
+      );
+    }
+    setPendingMatchAction(null);
   };
 
   return (
@@ -252,6 +274,75 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           </div>
         </div>
 
+        {hasActiveMatch && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, order: -1 }}>
+            <button
+              onClick={onClose}
+              style={{
+                width: '100%',
+                minHeight: 50,
+                padding: '14px 16px',
+                borderRadius: 12,
+                background: 'rgba(40, 199, 111, 0.12)',
+                border: '1px solid rgba(40, 199, 111, 0.32)',
+                fontSize: 14,
+                fontWeight: 800,
+                color: '#39D884',
+              }}
+            >
+              ↩ {locale === 'ru' ? 'Вернуться в игру' : 'Return to match'}
+            </button>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 10, paddingTop: 16, borderTop: '1px solid rgba(232, 75, 42, 0.22)' }}>
+              <span style={{ color: '#A39F92', fontSize: 11, fontWeight: 900, letterSpacing: '0.06em' }}>
+                {locale === 'ru' ? 'ДЕЙСТВИЯ С МАТЧЕМ' : 'MATCH ACTIONS'}
+              </span>
+              <button
+                onClick={() => setPendingMatchAction('surrender')}
+                style={{
+                  width: '100%',
+                  minHeight: 50,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(232, 75, 42, 0.12)',
+                  border: '1px solid rgba(232, 75, 42, 0.3)',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: '#E84B2A',
+                }}
+              >
+                ⚠️ {locale === 'ru' ? 'Сдаться' : 'Surrender'}
+              </button>
+              <div style={{ color: '#8E8A7D', fontSize: 11, lineHeight: 1.35 }}>
+                {locale === 'ru'
+                  ? 'Ваш игрок выбывает официально, результат фиксируется в итогах.'
+                  : 'Your player is authoritatively eliminated and recorded in the recap.'}
+              </div>
+              <button
+                onClick={() => setPendingMatchAction('leave')}
+                style={{
+                  width: '100%',
+                  minHeight: 50,
+                  padding: '14px 16px',
+                  borderRadius: 12,
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  border: '1px solid rgba(255,255,255,.12)',
+                  fontSize: 14,
+                  fontWeight: 800,
+                  color: '#F5F4ED',
+                }}
+              >
+                🚪 {locale === 'ru' ? 'Выйти из игры' : 'Leave game'}
+              </button>
+              <div style={{ color: '#8E8A7D', fontSize: 11, lineHeight: 1.35 }}>
+                {locale === 'ru'
+                  ? 'Вы покидаете комнату без сдачи; в сети освободившееся место продолжит бот.'
+                  : 'You leave the room without surrendering; online, a bot continues the seat.'}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* These legacy controls are intentionally not exposed until they are wired
             to authoritative room settings. A smaller truthful menu is preferable
             to choices that appear to work but do not affect the match. */}
@@ -439,42 +530,31 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({ onClose }) => {
           </div>
         </div>
 
-        {/* Destructive match actions stay visibly separate from ordinary settings. */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid rgba(232, 75, 42, 0.22)' }}>
-          <span style={{ color: '#A39F92', fontSize: 11, fontWeight: 900, letterSpacing: '0.06em' }}>
-            {locale === 'ru' ? 'ОПАСНЫЕ ДЕЙСТВИЯ' : 'DESTRUCTIVE ACTIONS'}
-          </span>
-          <button
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: 12,
-              background: 'rgba(255, 255, 255, 0.06)',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#F5F4ED',
-            }}
-          >
-            🚪 {locale === 'ru' ? 'Выйти из матча' : 'Leave Match'}
-          </button>
-          <button
-            style={{
-              width: '100%',
-              padding: '16px',
-              borderRadius: 12,
-              background: 'rgba(232, 75, 42, 0.12)',
-              border: '1px solid rgba(232, 75, 42, 0.3)',
-              fontSize: 14,
-              fontWeight: 700,
-              color: '#E84B2A',
-            }}
-          >
-            ⚠️ {locale === 'ru' ? 'Сдаться' : 'Surrender'}
-          </button>
-        </div>
         </div>
       </div>
       </main>
+      <ConfirmDialog
+        isOpen={pendingMatchAction !== null}
+        title={pendingMatchAction === 'surrender'
+          ? (locale === 'ru' ? 'Сдаться?' : 'Surrender?')
+          : (locale === 'ru' ? 'Выйти из игры?' : 'Leave the game?')}
+        description={pendingMatchAction === 'surrender'
+          ? (locale === 'ru'
+            ? 'Ваш игрок будет исключён из матча, а результат останется в итогах.'
+            : 'Your player will be eliminated and the result will remain in the recap.')
+          : (locale === 'ru'
+            ? 'Это не сдача: вы покинете комнату, а в сетевом матче место продолжит бот.'
+            : 'This is not a surrender: you leave the room and a bot continues your online seat.')}
+        confirmLabel={pendingMatchAction === 'surrender'
+          ? (locale === 'ru' ? 'Да, сдаться' : 'Yes, surrender')
+          : (locale === 'ru' ? 'Да, выйти' : 'Yes, leave')}
+        tone="danger"
+        facts={pendingMatchAction === 'surrender'
+          ? [{ label: locale === 'ru' ? 'Статус' : 'Status', value: locale === 'ru' ? 'Игрок выбывает' : 'Player eliminated', tone: 'negative' }]
+          : [{ label: locale === 'ru' ? 'Статус' : 'Status', value: locale === 'ru' ? 'Без сдачи' : 'No surrender', tone: 'neutral' }]}
+        onCancel={() => setPendingMatchAction(null)}
+        onConfirm={confirmMatchAction}
+      />
     </div>
   );
 };

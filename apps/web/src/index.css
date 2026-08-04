@@ -709,6 +709,31 @@ button {
   z-index: 2;
 }
 
+.player-table-pet {
+  position: absolute;
+  right: 0;
+  bottom: 12px;
+  z-index: 6;
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 1px solid rgba(245,197,36,.38);
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 35%, rgba(245,197,36,.18), rgba(8,10,16,.92) 68%);
+  box-shadow: 0 6px 12px rgba(0,0,0,.42);
+  pointer-events: none;
+  animation: tablePetArrive 220ms var(--ease-out-strong) both;
+}
+
+.player-table-pet img {
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 3px 4px rgba(0,0,0,.52));
+}
+
 .player-portrait-info {
   position: absolute;
   left: 5px;
@@ -1619,6 +1644,66 @@ button {
   pointer-events: none;
   filter: drop-shadow(0 12px 18px rgba(0,0,0,.58));
   transform: translateX(-50%);
+}
+
+.you-table-pet {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  z-index: 34;
+  display: grid;
+  width: 70px;
+  height: 76px;
+  align-content: end;
+  justify-items: center;
+  pointer-events: none;
+  animation: tablePetArrive 220ms var(--ease-out-strong) both;
+}
+
+.you-table-pet::before {
+  position: absolute;
+  right: 5px;
+  bottom: 13px;
+  left: 5px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(ellipse, rgba(245,197,36,.25), rgba(0,0,0,.34) 62%, transparent 72%);
+  content: "";
+}
+
+.you-table-pet img {
+  position: relative;
+  z-index: 1;
+  width: 61px;
+  height: 64px;
+  object-fit: contain;
+  object-position: center bottom;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.54));
+}
+
+.you-table-pet small {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  overflow: hidden;
+  border: 1px solid rgba(245,197,36,.30);
+  border-radius: 999px;
+  background: rgba(8,10,16,.88);
+  color: #F5C524;
+  padding: 3px 4px;
+  font-size: 7.5px;
+  font-weight: 950;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@keyframes tablePetArrive {
+  from { opacity: 0; transform: translateY(8px) scale(.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
 /* ── Waiting-for-turn panel (online, non-active player) ───────────────────── */
@@ -8078,6 +8163,12 @@ button {
 
 .settlement-ledger-expense {
   color: #FF8069 !important;
+}
+
+.settlement-ledger-effect {
+  color: #5BD7E0;
+  font-size: 10px;
+  font-weight: 900;
 }
 
 .settlement-ledger-totals {

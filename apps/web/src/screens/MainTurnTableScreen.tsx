@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { REACTIONS, BOT_REACTION_LABELS } from '../assets/reactions';
 import { resolveGameplayCardArtwork } from '../assets/cardArtwork';
 import { resolveCharacterImage } from '../assets/characterRenderer';
+import { PET_ITEMS, type PetCatalogItem } from '../assets/petCatalog';
 import { useStore } from '../store';
 import { wsClient } from '../lib/wsClient';
 import type { PlayerState, CharacterMood } from '../store/types';
@@ -27,7 +28,7 @@ import { useModalLayer } from '../hooks/useModalLayer';
 import { playSound } from '../lib/sound';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
-import { monthlyCashflow } from '../../../../packages/game-engine/src';
+import { monthlyCashflow, petIncomePerRound } from '../../../../packages/game-engine/src';
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 
 type HostMoment = {
@@ -47,6 +48,7 @@ type SettlementLedgerLine = {
   label: string;
   income?: number;
   expense?: number;
+  detail?: string;
 };
 
 // The host is a guest, not a narrator: it only has something to say when a market
@@ -114,6 +116,12 @@ const RING_COLORS: Record<CharacterMood, string> = {
 
 const MIN_HUD_BUSINESS_SLOTS = 3;
 const MAX_HUD_BUSINESS_SLOTS = 5;
+
+function resolveTablePet(
+  pet: { id: string } | null | undefined,
+): PetCatalogItem | undefined {
+  return pet ? PET_ITEMS.find((item) => item.id === pet.id) : undefined;
+}
 
 function compactMoney(value: number): string {
   if (value >= 1000) {
@@ -212,9 +220,10 @@ const PlayerReactionBadge: React.FC<{ reaction?: FloatingReaction }> = ({ reacti
 
 const PlayerTile: React.FC<{
   player: PlayerState;
+  pet?: PetCatalogItem;
   reaction?: FloatingReaction;
   onTap?: (player: PlayerState) => void;
-}> = ({ player, reaction, onTap }) => {
+}> = ({ player, pet, reaction, onTap }) => {
   const ringColor = RING_COLORS[player.mood] || '#7D7B6F';
   const ringFill = Math.max(20, 100 - player.stress * 8);
   const displayedCashflow = player.netCashflow ?? player.cashflowPerMonth;
@@ -277,6 +286,11 @@ const PlayerTile: React.FC<{
           </div>
         </div>
         {badge}
+        {pet && (
+          <span className="player-table-pet" title={`${pet.name} · ${pet.effect}`} aria-hidden="true">
+            <img src={pet.image} alt="" draggable={false} />
+          </span>
+        )}
       </div>
       <span className="player-name-block">{player.name}</span>
     </button>
@@ -598,6 +612,11 @@ export const MainTurnTableScreen: React.FC = () => {
       })
     : null;
   const me = (isMultiplayer && localPlayerId ? match.players.find((p) => p.id === localPlayerId) : null) || match.players.find((p) => p.id === 'you') || match.players.find((p) => !p.isBot) || match.players[0];
+  const enginePlayersById = useMemo(
+    () => new Map((engineMatch?.players ?? []).map((player) => [player.id, player])),
+    [engineMatch?.players],
+  );
+  const tablePet = resolveTablePet(enginePlayersById.get(me.id)?.pet);
   const activePlayer = match.players.find((p) => p.isActive) ?? me;
   const submittedIntentPlayerIds = new Set(
     engineMatch?.submittedIntentPlayerIds
@@ -676,7 +695,8 @@ export const MainTurnTableScreen: React.FC = () => {
     const flow = monthlyCashflow(engineMatch, player);
     const assetIncome = player.assets.reduce((sum, asset) => sum + asset.incomePerRound, 0);
     const assetUpkeep = player.assets.reduce((sum, asset) => sum + asset.upkeepPerRound, 0);
-    const workIncome = Math.max(0, flow.income - player.passiveIncome - assetIncome);
+    const petIncome = petIncomePerRound(player);
+    const workIncome = Math.max(0, flow.income - player.passiveIncome - assetIncome - petIncome);
     const otherRecurringExpense = Math.max(0, flow.expense - assetUpkeep);
     const recurringLines: SettlementLedgerLine[] = [];
 
@@ -685,6 +705,16 @@ export const MainTurnTableScreen: React.FC = () => {
     }
     if (player.passiveIncome > 0) {
       recurringLines.push({ id: 'passive', icon: '🌱', label: locale === 'ru' ? 'Пассивный доход' : 'Passive income', income: player.passiveIncome });
+    }
+    const pet = resolveTablePet(player.pet);
+    if (pet) {
+      recurringLines.push({
+        id: `pet-${pet.id}`,
+        icon: '🐾',
+        label: pet.name,
+        income: petIncome > 0 ? petIncome : undefined,
+        detail: petIncome > 0 ? undefined : pet.effect,
+      });
     }
 
     const assetsWithFlow = player.assets.filter((asset) => asset.incomePerRound > 0 || asset.upkeepPerRound > 0);
@@ -1173,6 +1203,7 @@ export const MainTurnTableScreen: React.FC = () => {
                       <em>
                         {line.income ? <span className="settlement-ledger-income">+${line.income.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
                         {line.expense ? <span className="settlement-ledger-expense">−${line.expense.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US')}</span> : null}
+                        {line.detail ? <span className="settlement-ledger-effect">{line.detail}</span> : null}
                       </em>
                     </div>
                   ))}
@@ -1261,7 +1292,13 @@ export const MainTurnTableScreen: React.FC = () => {
       <section className="relative z-20 shrink-0" data-tour="players">
         <div className="player-rail">
           {match.players.filter((p) => p.id !== me.id).slice(0, 5).map((p) => (
-            <PlayerTile key={p.id} player={p} reaction={playerReactions[p.id]} onTap={handlePlayerTap} />
+            <PlayerTile
+              key={p.id}
+              player={p}
+              pet={resolveTablePet(enginePlayersById.get(p.id)?.pet)}
+              reaction={playerReactions[p.id]}
+              onTap={handlePlayerTap}
+            />
           ))}
         </div>
       </section>
@@ -1447,6 +1484,17 @@ export const MainTurnTableScreen: React.FC = () => {
                     className="you-avatar-img"
                     draggable={false}
                   />
+                  {tablePet && (
+                    <span
+                      className="you-table-pet"
+                      data-testid="table-pet-companion"
+                      title={`${tablePet.name} · ${tablePet.effect}`}
+                      aria-label={`${tablePet.name}: ${tablePet.effect}`}
+                    >
+                      <img src={tablePet.image} alt="" draggable={false} />
+                      <small>{tablePet.effect}</small>
+                    </span>
+                  )}
                 </div>
 
                 <div className="you-hud-side">

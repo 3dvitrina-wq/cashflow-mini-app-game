@@ -8,6 +8,7 @@ import {
   getRoom,
   getAllRooms,
   joinRoom,
+  leaveRoom,
   reconnectPlayer,
   startRoom,
   applyCommand,
@@ -324,6 +325,32 @@ async function main() {
           type: 'room_update',
           members: room.members.map(lobbyMember),
         });
+        return;
+      }
+
+      // ── explicit room leave (not a surrender) ─────────────────────────────
+      if (msg.type === 'leave_room' && roomCode && playerId) {
+        const leavingCode = roomCode;
+        const leavingPlayerId = playerId;
+        const room = leaveRoom(leavingCode, leavingPlayerId);
+        roomCode = null;
+        playerId = null;
+        ws.send(JSON.stringify({ type: 'left_room', roomCode: leavingCode }));
+        if (room) {
+          clearTurnTimer(room);
+          broadcast(room, {
+            type: 'room_update',
+            members: room.members.map(lobbyMember),
+          });
+          broadcast(room, {
+            type: 'player_left',
+            playerId: leavingPlayerId,
+            botControlled: room.status === 'playing',
+          });
+          if (room.status === 'playing' && room.tutorialPausedPlayerIds.size === 0) {
+            drainBotTurns(leavingCode);
+          }
+        }
         return;
       }
 

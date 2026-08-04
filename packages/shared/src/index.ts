@@ -5,7 +5,12 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export * from './i18n';
+export * from './businesses';
+export * from './pets';
 export * from './professions';
+
+import type { BusinessAssetId } from './businesses';
+import type { PetId, PetKind } from './pets';
 
 // ─── Primitives ─────────────────────────────────────────────────────────────
 
@@ -34,7 +39,6 @@ export type AvatarState =
   | 'comeback'
   | 'chaos';
 
-export type PetKind = 'cat' | 'dog' | 'hamster' | 'parrot' | 'none';
 export type PetState = 'happy' | 'neutral' | 'sad' | 'excited';
 
 export type RoomMode = 'calm' | 'normal' | 'rollercoaster' | 'chaos';
@@ -439,7 +443,7 @@ export interface PlayerState {
   partnerRef: PlayerId | null;
 
   // Pet
-  pet: { kind: PetKind; state: PetState } | null;
+  pet: { id: PetId; kind: PetKind; state: PetState } | null;
 
   // Profession (Phase 3 — optional, backward-compatible)
   professionId?: string;
@@ -486,8 +490,9 @@ export type Command =
   | { type: 'open_futures_position'; playerId: PlayerId; tokenSymbol: string; direction: FuturesDirection; leverage: number; amount: number }
   | { type: 'buy_protection'; playerId: PlayerId; protectionId: string }
   | { type: 'hire_staff'; playerId: PlayerId; staffId: string; salary?: number; bonus?: { slots?: number; income?: number } }
-  | { type: 'buy_asset'; playerId: PlayerId; name: string; price: number; income: number; kind?: string; upkeep?: number; slotsUsed?: number }
-  | { type: 'buy_pet'; playerId: PlayerId; petId: string; price: number; upkeep: number; passiveBonus?: number; stressBonus?: number }
+  | { type: 'buy_asset'; playerId: PlayerId; assetId: BusinessAssetId }
+  | { type: 'buy_pet'; playerId: PlayerId; petId: string }
+  | { type: 'surrender'; playerId: PlayerId }
   | { type: 'file_bankruptcy'; playerId: PlayerId }
   | { type: 'request_help'; playerId: PlayerId; targetPlayerId?: PlayerId }
   | { type: 'rent_room'; playerId: PlayerId }
@@ -608,6 +613,12 @@ export interface MatchState {
   // Market
   ticker: string[];
   marketPrices: Record<string, number>;
+  /** Shared, consumable business offers. Open only when openedRound === round. */
+  businessMarket: {
+    openedRound: number;
+    nextOpenRound: number;
+    offerIds: BusinessAssetId[];
+  };
 
   // Events
   eventLog: GameEvent[];

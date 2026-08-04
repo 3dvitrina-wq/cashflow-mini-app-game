@@ -4,12 +4,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { z } from 'zod';
+import { BUSINESS_ASSET_IDS } from './businesses';
+import { PET_IDS } from './pets';
 
 // ─── Primitives ─────────────────────────────────────────────────────────────
 
 export const SeedSchema = z.number().int();
 export const PlayerIdSchema = z.string().min(1);
 export const CardIdSchema = z.string().min(1);
+export const BusinessAssetIdSchema = z.enum(BUSINESS_ASSET_IDS);
 
 // ─── Enums ──────────────────────────────────────────────────────────────────
 
@@ -21,7 +24,8 @@ export const AvatarStateSchema = z.enum([
   'nomad', 'comeback', 'chaos',
 ]);
 
-export const PetKindSchema = z.enum(['cat', 'dog', 'hamster', 'parrot', 'none']);
+export const PetIdSchema = z.enum(PET_IDS);
+export const PetKindSchema = z.enum(['dog', 'cat', 'gecko', 'fish', 'parrot', 'hamster', 'rabbit', 'turtle', 'none']);
 export const PetStateSchema = z.enum(['happy', 'neutral', 'sad', 'excited']);
 
 export const RoomModeSchema = z.enum(['calm', 'normal', 'rollercoaster', 'chaos']);
@@ -321,7 +325,7 @@ export const PlayerStateSchema = z.object({
   migrationStatus: MigrationStatusSchema,
   kidsCount: z.number().min(0),
   partnerRef: PlayerIdSchema.nullable(),
-  pet: z.object({ kind: PetKindSchema, state: PetStateSchema }).nullable(),
+  pet: z.object({ id: PetIdSchema, kind: PetKindSchema, state: PetStateSchema }).nullable(),
   // Phase 3: Profession (optional, backward-compatible — existing tests unchanged)
   professionId: z.string().optional(),
   taxBand: z.enum(['a', 'b', 'c', 'd']).optional(),
@@ -400,22 +404,14 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('buy_asset'),
     playerId: PlayerIdSchema,
-    name: z.string(),
-    price: z.number().positive(),
-    income: z.number(),
-    kind: z.string().optional(),
-    upkeep: z.number().nonnegative().optional(),
-    slotsUsed: z.number().int().min(0).optional(),
+    assetId: BusinessAssetIdSchema,
   }),
   z.object({
     type: z.literal('buy_pet'),
     playerId: PlayerIdSchema,
     petId: z.string(),
-    price: z.number().positive(),
-    upkeep: z.number().nonnegative(),
-    passiveBonus: z.number().optional(),
-    stressBonus: z.number().optional(),
   }),
+  z.object({ type: z.literal('surrender'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('file_bankruptcy'), playerId: PlayerIdSchema }),
   z.object({ type: z.literal('request_help'), playerId: PlayerIdSchema, targetPlayerId: PlayerIdSchema.optional() }),
   z.object({ type: z.literal('rent_room'), playerId: PlayerIdSchema }),
@@ -542,6 +538,11 @@ export const MatchStateSchema = z.object({
   timeline: TimelineCursorSchema,
   ticker: z.array(z.string()),
   marketPrices: z.record(z.string(), z.number()),
+  businessMarket: z.object({
+    openedRound: z.number().int().min(1),
+    nextOpenRound: z.number().int().min(2),
+    offerIds: z.array(BusinessAssetIdSchema).max(3),
+  }),
   eventLog: z.array(GameEventSchema),
   version: z.number().int().min(1),
   // Phase 3: active interest window (optional for backward-compat with serialized states)

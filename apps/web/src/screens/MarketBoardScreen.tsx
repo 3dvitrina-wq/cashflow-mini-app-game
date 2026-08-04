@@ -1,7 +1,13 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { BottomSheet } from '../components/BottomSheet';
 import { showToast } from '../components/Toast';
 import { useStore } from '../store';
+import {
+  getBusinessAssetDefinition,
+  type BusinessAssetDefinition,
+  type BusinessAssetId,
+  type BusinessCategory,
+} from '../../../../packages/shared/src/businesses';
 import assetOffice from '../assets/generated/market-v2/asset-office-v2.webp';
 import assetCoffee from '../assets/generated/market-v2/asset-coffee-v2.webp';
 import assetLogistics from '../assets/generated/market-v2/asset-logistics-v2.webp';
@@ -16,184 +22,67 @@ interface MarketBoardScreenProps {
   onClose: () => void;
 }
 
-type RiskLevel = 'low' | 'medium' | 'high';
-type AssetCategory = 'Все' | 'Недвижимость' | 'Бизнес' | 'Транспорт' | 'Технологии' | 'Крипто';
+const CATEGORY_LABELS: Record<BusinessCategory, string> = {
+  real_estate: 'Недвижимость',
+  business: 'Бизнес',
+  transport: 'Транспорт',
+  technology: 'Технологии',
+  crypto: 'Крипто',
+};
 
-interface AssetCard {
-  id: string;
-  name: string;
-  displayName?: string;
-  image: string;
-  price: number;
-  income: number;
-  upkeep: number;
-  risk: RiskLevel;
-  category: Exclude<AssetCategory, 'Все'>;
-  blurb: string;
-}
+const ASSET_IMAGES: Record<BusinessAssetId, string> = {
+  'micro-coffee': assetCoffee,
+  'micro-kiosk': assetCoffee,
+  'micro-studio': assetAiStartup,
+  office: assetOffice,
+  coffee: assetCoffee,
+  logistics: assetLogistics,
+  storage: assetStorage,
+  'ai-startup': assetAiStartup,
+  nft: assetNft,
+  laundromat: assetLaundromat,
+  'crypto-mining': assetCryptoMining,
+};
 
-const ASSETS: AssetCard[] = [
-  {
-    id: 'micro-coffee',
-    name: 'Coffee',
-    displayName: 'Кофейная стойка',
-    image: assetCoffee,
-    price: 1000,
-    income: 200,
-    upkeep: 10,
-    risk: 'low',
-    category: 'Бизнес',
-    blurb: 'Маленький поток сейчас или большой актив когда-нибудь потом.',
-  },
-  {
-    id: 'micro-kiosk',
-    name: 'Kiosk',
-    displayName: 'Киоск у метро',
-    image: assetCoffee,
-    price: 1200,
-    income: 250,
-    upkeep: 20,
-    risk: 'low',
-    category: 'Бизнес',
-    blurb: 'Никакого единорога. Только люди, сдача и ежемесячный плюс.',
-  },
-  {
-    id: 'micro-studio',
-    name: 'Studio',
-    displayName: 'Микростудия',
-    image: assetAiStartup,
-    price: 3000,
-    income: 600,
-    upkeep: 50,
-    risk: 'medium',
-    category: 'Технологии',
-    blurb: 'Дорогой шаг для старта, зато поток уже чувствуется.',
-  },
-  {
-    id: 'office',
-    name: 'Офисное здание',
-    image: assetOffice,
-    price: 24000,
-    income: 2100,
-    upkeep: 0,
-    risk: 'low',
-    category: 'Недвижимость',
-    blurb: 'Стабильная аренда и минимум драмы.',
-  },
-  {
-    id: 'coffee',
-    name: 'Кофейня',
-    image: assetCoffee,
-    price: 8500,
-    income: 980,
-    upkeep: 0,
-    risk: 'low',
-    category: 'Бизнес',
-    blurb: 'Скромный кэшфлоу, зато люди всегда хотят кофе.',
-  },
-  {
-    id: 'logistics',
-    name: 'Логистика',
-    image: assetLogistics,
-    price: 18000,
-    income: 1350,
-    upkeep: 0,
-    risk: 'medium',
-    category: 'Транспорт',
-    blurb: 'Растёт на спросе, но любит хаос цепочек.',
-  },
-  {
-    id: 'storage',
-    name: 'Складские юниты',
-    image: assetStorage,
-    price: 12000,
-    income: 1100,
-    upkeep: 0,
-    risk: 'low',
-    category: 'Недвижимость',
-    blurb: 'Скучно выглядит, зато сдаётся без понтов.',
-  },
-  {
-    id: 'ai-startup',
-    name: 'AI Стартап',
-    image: assetAiStartup,
-    price: 15000,
-    income: 1800,
-    upkeep: 0,
-    risk: 'high',
-    category: 'Технологии',
-    blurb: 'Взлетит быстро. Или испарится с runway.',
-  },
-  {
-    id: 'nft',
-    name: 'NFT Галерея',
-    image: assetNft,
-    price: 10000,
-    income: 1200,
-    upkeep: 0,
-    risk: 'high',
-    category: 'Крипто',
-    blurb: 'Ярко выглядит, но рынок любит издеваться.',
-  },
-  {
-    id: 'laundromat',
-    name: 'Прачечная',
-    image: assetLaundromat,
-    price: 9000,
-    income: 950,
-    upkeep: 0,
-    risk: 'low',
-    category: 'Бизнес',
-    blurb: 'Неброский актив для взрослых денег.',
-  },
-  {
-    id: 'crypto-mining',
-    name: 'Крипто-майнинг',
-    image: assetCryptoMining,
-    price: 20000,
-    income: 2200,
-    upkeep: 0,
-    risk: 'high',
-    category: 'Крипто',
-    blurb: 'Шумит, жрёт электричество и любит боль.',
-  },
-];
-
-const CATEGORY_ORDER: AssetCategory[] = ['Все', 'Недвижимость', 'Бизнес', 'Транспорт', 'Технологии', 'Крипто'];
-
-const CATEGORY_BACKDROPS: Record<Exclude<AssetCategory, 'Все'>, string> = {
-  'Недвижимость': 'radial-gradient(circle at 50% 8%, rgba(245,197,36,.18), transparent 44%), linear-gradient(180deg, rgba(29,37,47,.96), rgba(15,18,24,.98))',
-  'Бизнес': 'radial-gradient(circle at 50% 8%, rgba(245,140,36,.18), transparent 44%), linear-gradient(180deg, rgba(37,29,24,.96), rgba(16,16,18,.98))',
-  'Транспорт': 'radial-gradient(circle at 50% 8%, rgba(91,215,224,.18), transparent 44%), linear-gradient(180deg, rgba(22,35,42,.96), rgba(15,18,24,.98))',
-  'Технологии': 'radial-gradient(circle at 50% 8%, rgba(123,91,215,.18), transparent 44%), linear-gradient(180deg, rgba(27,24,40,.96), rgba(15,16,24,.98))',
-  'Крипто': 'radial-gradient(circle at 50% 8%, rgba(91,215,224,.14), transparent 44%), linear-gradient(180deg, rgba(21,26,40,.96), rgba(15,15,24,.98))',
+const CATEGORY_BACKDROPS: Record<BusinessCategory, string> = {
+  real_estate: 'radial-gradient(circle at 50% 8%, rgba(245,197,36,.18), transparent 44%), linear-gradient(180deg, rgba(29,37,47,.96), rgba(15,18,24,.98))',
+  business: 'radial-gradient(circle at 50% 8%, rgba(245,140,36,.18), transparent 44%), linear-gradient(180deg, rgba(37,29,24,.96), rgba(16,16,18,.98))',
+  transport: 'radial-gradient(circle at 50% 8%, rgba(91,215,224,.18), transparent 44%), linear-gradient(180deg, rgba(22,35,42,.96), rgba(15,18,24,.98))',
+  technology: 'radial-gradient(circle at 50% 8%, rgba(123,91,215,.18), transparent 44%), linear-gradient(180deg, rgba(27,24,40,.96), rgba(15,16,24,.98))',
+  crypto: 'radial-gradient(circle at 50% 8%, rgba(91,215,224,.14), transparent 44%), linear-gradient(180deg, rgba(21,26,40,.96), rgba(15,15,24,.98))',
 };
 
 export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, onClose }) => {
   const buyAsset = useStore((s) => s.buyAsset);
   const engineMatch = useStore((s) => s.engineMatch);
   const localPlayerId = useStore((s) => s.localPlayerId);
-  const [activeCategory, setActiveCategory] = useState<AssetCategory>('Все');
   const me = (localPlayerId ? engineMatch?.players.find((player) => player.id === localPlayerId) : null)
     ?? engineMatch?.players.find((player) => !player.isBot)
     ?? engineMatch?.players[0]
     ?? null;
 
-  const filteredAssets = useMemo(
-    () => (activeCategory === 'Все' ? ASSETS : ASSETS.filter((asset) => asset.category === activeCategory)),
-    [activeCategory]
+  const businessMarket = engineMatch?.businessMarket;
+  const marketOpen = !!businessMarket && businessMarket.openedRound === engineMatch?.round;
+  const offeredAssets = useMemo(
+    () => (businessMarket?.offerIds ?? [])
+      .map((assetId) => getBusinessAssetDefinition(assetId))
+      .filter((asset): asset is BusinessAssetDefinition => Boolean(asset)),
+    [businessMarket?.offerIds],
   );
-
-  const handleBuy = (asset: AssetCard) => {
-    const ok = buyAsset(asset.name, asset.price, asset.income, 'business', asset.upkeep, 1);
+  const handleBuy = (asset: BusinessAssetDefinition) => {
+    const ok = buyAsset(asset.id);
     if (!ok) {
       showToast(
-        me && me.businessSlotsUsed >= me.businessSlotsMax ? 'Нет свободного бизнес-слота' : 'Недостаточно наличных',
+        !marketOpen
+          ? `Рынок закрыт до раунда ${businessMarket?.nextOpenRound ?? '—'}`
+          : me && me.businessSlotsUsed + asset.slotsUsed > me.businessSlotsMax
+            ? 'Нет свободного бизнес-слота'
+            : 'Недостаточно наличных или предложение уже забрали',
         'error',
       );
       return;
     }
-    showToast(`${asset.displayName ?? asset.name} куплен за $${asset.price.toLocaleString()} · поток актива +$${asset.income - asset.upkeep}/мес`, 'success');
+    showToast(`${asset.displayName} куплен за $${asset.price.toLocaleString()} · поток актива +$${asset.incomePerRound - asset.upkeepPerRound}/мес`, 'success');
     onClose();
   };
 
@@ -216,47 +105,50 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
             Собирай скучные денежные машинки, а не красивые проблемы
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
-            Сравни цену и реальный ежемесячный поток. Риск появится здесь только тогда, когда начнёт честно влиять на результат.
+            Раз в два раунда стол получает три общих предложения. Сравни чистый поток, цену и занятые слоты — купленный бизнес достанется только одному игроку.
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
-          {CATEGORY_ORDER.map((cat) => {
-            const active = cat === activeCategory;
-            return (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                style={{
-                  minHeight: 44,
-                  padding: '8px 14px',
-                  borderRadius: 20,
-                  background: active ? 'rgba(245, 197, 36, 0.16)' : 'rgba(255, 255, 255, 0.04)',
-                  border: `1px solid ${active ? 'rgba(245, 197, 36, 0.4)' : 'rgba(255, 255, 255, 0.08)'}`,
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: active ? '#F5C524' : '#8E8A7D',
-                  whiteSpace: 'nowrap',
-                  transition: 'all .18s ease',
-                }}
-              >
-                {cat}
-              </button>
-            );
-          })}
-        </div>
+        {!marketOpen && (
+          <div
+            role="status"
+            style={{
+              padding: 18,
+              borderRadius: 16,
+              background: 'rgba(245, 197, 36, 0.08)',
+              border: '1px solid rgba(245, 197, 36, 0.24)',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ color: '#F5C524', fontSize: 12, fontWeight: 900, letterSpacing: '.06em' }}>
+              РЫНОК ЗАКРЫТ
+            </div>
+            <div style={{ color: '#F5F4ED', fontSize: 18, fontWeight: 900, marginTop: 5 }}>
+              Следующие предложения — в раунде {businessMarket?.nextOpenRound ?? '—'}
+            </div>
+            <div style={{ color: '#9A978C', fontSize: 12, marginTop: 5 }}>
+              Рынок работает в раундах 1, 3, 5 и далее.
+            </div>
+          </div>
+        )}
+
+        {marketOpen && offeredAssets.length === 0 && (
+          <div role="status" style={{ padding: 18, borderRadius: 16, background: 'rgba(255,255,255,.04)', textAlign: 'center', color: '#B8B6A9' }}>
+            Все предложения этого раунда уже разобраны. Новый рынок откроется в раунде {businessMarket?.nextOpenRound}.
+          </div>
+        )}
 
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            display: marketOpen ? 'grid' : 'none',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(148px, 1fr))',
             gap: 12,
           }}
         >
-          {filteredAssets.map((asset) => {
+          {offeredAssets.map((asset) => {
             const hasCash = (me?.cash ?? 0) >= asset.price;
-            const hasSlot = !me || me.businessSlotsUsed < me.businessSlotsMax;
-            const canBuy = hasCash && hasSlot;
+            const hasSlot = !me || me.businessSlotsUsed + asset.slotsUsed <= me.businessSlotsMax;
+            const canBuy = marketOpen && hasCash && hasSlot;
             return (
               <div
                 key={asset.id}
@@ -292,8 +184,8 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                     }}
                   />
                   <img
-                    src={asset.image}
-                    alt={asset.displayName ?? asset.name}
+                    src={ASSET_IMAGES[asset.id]}
+                    alt={asset.displayName}
                     style={{
                       width: '100%',
                       height: '100%',
@@ -309,13 +201,13 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                 <div style={{ padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div>
                     <div style={{ fontSize: 10, color: '#7D7B6F', textTransform: 'uppercase', letterSpacing: '.04em', marginBottom: 3 }}>
-                      {asset.category}
+                      {CATEGORY_LABELS[asset.category]}
                     </div>
                     <div style={{ fontSize: 14, fontWeight: 900, color: '#F5F4ED', lineHeight: 1.08 }}>
-                      {asset.displayName ?? asset.name}
+                      {asset.displayName}
                     </div>
                     <div style={{ fontSize: 11, color: '#9A978C', lineHeight: 1.28, marginTop: 4 }}>
-                      {asset.blurb}
+                      Займёт {asset.slotsUsed} {asset.slotsUsed === 1 ? 'бизнес-слот' : 'бизнес-слота'}
                     </div>
                   </div>
 
@@ -346,10 +238,10 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                     >
                       <div style={{ fontSize: 10, color: '#7D7B6F' }}>Поток актива</div>
                       <div style={{ fontSize: 15, fontWeight: 900, color: '#39D884' }}>
-                        +${(asset.income - asset.upkeep).toLocaleString()}
+                        +${(asset.incomePerRound - asset.upkeepPerRound).toLocaleString()}
                       </div>
                       <div style={{ fontSize: 8, color: '#7D7B6F', marginTop: 2 }}>
-                        +${asset.income.toLocaleString()} −${asset.upkeep.toLocaleString()}
+                        +${asset.incomePerRound.toLocaleString()} −${asset.upkeepPerRound.toLocaleString()}
                       </div>
                     </div>
                   </div>
@@ -391,7 +283,7 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
             lineHeight: 1.35,
           }}
         >
-          💡 Совет: скучные активы вроде прачечной, склада и кофейни часто переживают хайп лучше, чем модные стартапы.
+          Предложения общие для стола: купленный актив исчезает из текущего набора. Через два раунда появится новая тройка из полного каталога.
         </div>
       </div>
     </BottomSheet>

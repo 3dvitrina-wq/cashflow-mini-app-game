@@ -4,6 +4,7 @@ import { showToast } from '../components/Toast';
 import { useStore } from '../store';
 import bankLoanKiosk from '../assets/generated/bank/bank-loan-kiosk.webp';
 import { getProfession } from '../../../../packages/shared/src';
+import { isBankCreditor } from '../../../../packages/game-engine/src';
 
 interface BankScreenProps {
   isOpen: boolean;
@@ -33,7 +34,7 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
   const loanCapMultiplier = profession?.heroPower.type === 'loan_buffer' ? 1 + profession.heroPower.value : 1;
   const cap = Math.max(0, Math.round(cashflow * 10 * loanCapMultiplier));
   const depositBoost = profession?.heroPower.type === 'deposit_yield_boost' ? profession.heroPower.value : 0;
-  const bankLoans = (enginePlayer?.liabilities ?? []).filter((l) => l.creditor === 'Bank');
+  const bankLoans = (enginePlayer?.liabilities ?? []).filter((liability) => isBankCreditor(liability.creditor));
   const deposits = enginePlayer?.deposits ?? [];
 
   const nextMonthlyInterest = useMemo(() => Math.round(amount * 0.1), [amount]);

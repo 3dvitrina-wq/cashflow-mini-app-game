@@ -46,7 +46,9 @@ night survival job. Do not “fix” this by removing losses.
   bot cascade stay frozen until all first-run humans finish or skip.
 - Tutorial player portraits are interactive and open the real profile/reactions.
 - Telegram content safe area protects the top HUD; settings has an explicit return
-  to the match and destructive actions are visually separate.
+  to the match. The first settings block now exposes separate confirmed
+  `Сдаться` and `Выйти из игры` actions: surrender records elimination and opens
+  recap, while leave returns to lobby and hands a live online seat to a bot.
 - WebSocket sessions reconnect with a stable resume token, restore the server
   snapshot and display transport status instead of silently dropping messages.
 - Multiplayer economy and deal actions now report transport failure instead of
@@ -83,12 +85,22 @@ night survival job. Do not “fix” this by removing losses.
   host and language.
 - Generated character emotion sets now load from their real `.webp` files. Bots
   react when a card lands instead of almost exclusively in the last seven seconds.
-- The default fast match is 15 rounds. The early market includes three canonical
-  $1K–$3K assets, while fake risk labels, labor auctions and pet synergies remain
-  hidden until they have authoritative mechanics.
-- The early market now sends the exact canonical upkeep contract. Coffee, kiosk
-  and studio purchases reach the engine, appear in the asset ledger and show
-  asset income minus upkeep instead of a decorative income-only number.
+- The default fast match is 15 rounds. The business market is a shared event,
+  not a permanent shop: three consumable offers appear in rounds 1, 3, 5 and so
+  on. Every window includes one reachable, one middle and one ambitious asset;
+  all eleven rendered businesses rotate through four open windows. Buying one
+  removes it for the whole table, and off-round/off-offer purchases are rejected
+  by the engine.
+- Business price, income, upkeep, slots and availability now come from one shared
+  authoritative catalog. The web sends only `assetId`; it no longer authors its
+  own financial payload or exposes decorative risk claims.
+- Bank recap debt now includes only live Bank liabilities. Paying the displayed
+  Bank loan in full yields zero bank debt even when another profession/university
+  obligation remains.
+- Pets now preserve exact identity in server snapshots and have canonical
+  engine-owned price, upkeep and effects. Their stress/trust/income effects recur
+  at settlement, appear as a named ledger line, and the owned pet is visible as
+  a compact companion beside the player's table portrait.
 - Sale, gift/transfer and revenue-share actions open one shared review dialog.
   It names the asset/recipient, shows cash and monthly-flow consequences, places
   focus on Cancel and keeps the underlying Telegram-safe sheet open on Escape.
@@ -97,25 +109,24 @@ night survival job. Do not “fix” this by removing losses.
 - PRO-only partnership choices are visibly gated in BASIC.
 - `tools/network-lab/` starts six independent WebSocket profiles in BASIC or
   PRO and compares only the public portion of recipient-specific snapshots.
-- Verification: engine 150/150; server 6/6; web/server typecheck; production
+- Verification: engine 159/159; server 10/10; sim 57/57; web/server typecheck; production
   build; interactive 10-step browser walkthrough at 402×874; Network Lab and
   reconnect smoke; 25-card mobile geometry run; iPhone
-  16 Pro, 375×812 and landscape browser inspection; a complete six-socket,
-  15-round BASIC match with 54 commands and `SYNC 6/6`.
+  16 Pro, 375×812 and landscape browser inspection; market purchase/consumption,
+  off-round closure, surrender/recap and leave/lobby flows at 402×874; a complete
+  six-socket, 15-round BASIC match with 54 commands and `SYNC 6/6`.
 
 ## Next Step
 
-1. Run production reconnect smoke, a short six-seat room check and the complete
-   sheet audit after deployment.
+1. Run production reconnect smoke and a short six-seat check of shared market
+   consumption plus leave-to-bot handoff after deployment.
 2. Play a human-facing 15-round BASIC match and record where decisions feel flat,
    funny, socially useful or confusing.
-3. Add authoritative surrender/leave commands before exposing destructive
-   settings controls; do not restore the old dead buttons.
-4. Complete the server-authoritative deal lifecycle: sent, viewed, countered,
+3. Complete the server-authoritative deal lifecycle: sent, viewed, countered,
    accepted, rejected and settled.
-5. Restore market risk only after macro/upkeep exposure exists in the engine;
+4. Restore market risk only after macro/upkeep exposure exists in the engine;
    do not reintroduce decorative promises.
-6. Repair futures as a ledger task before balancing outcomes: unify opening and
+5. Repair futures as a ledger task before balancing outcomes: unify opening and
    liquidation rules, make losses monotonic, charge flow/funding against all-in
    margin, return server acknowledgements/net P&L, hide predictable RNG state and
    replace the decorative chart with authoritative price history.

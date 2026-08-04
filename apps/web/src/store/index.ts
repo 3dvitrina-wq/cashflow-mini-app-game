@@ -28,6 +28,7 @@ import {
 import { getLocalizedCard } from '../../../../packages/game-engine/src/i18n';
 import type {
   CardDefinition,
+  BusinessAssetId,
   Command,
   DraftClaim,
   Effect,
@@ -38,7 +39,7 @@ import type {
   PendingDeal,
   PlayerState as EnginePlayerState,
 } from '../../../../packages/shared/src';
-import { getProfession } from '../../../../packages/shared/src';
+import { getBusinessAssetDefinition, getProfession } from '../../../../packages/shared/src';
 import { Screen, MatchState, PlayerState, CardData, CARDS, Outfit, TabName, CardType } from './types';
 import { resolveGeneratedCharacterId } from '../assets/generatedCharacterCatalog';
 import { loadPlayerData } from './persistence';
@@ -92,8 +93,10 @@ interface AppState {
   // Engine-connected economy actions
   hireStaff: (staffId: string, salary: number, bonus?: { slots?: number; income?: number }) => boolean;
   openFutures: (tokenSymbol: string, direction: FuturesDirection, leverage: number, amount: number) => boolean;
-  buyPet: (petId: string, price: number, upkeep: number, bonus?: { passive?: number; stress?: number }) => boolean;
-  buyAsset: (name: string, price: number, income: number, kind?: string, upkeep?: number, slotsUsed?: number) => boolean;
+  buyPet: (petId: string) => boolean;
+  buyAsset: (assetId: BusinessAssetId) => boolean;
+  surrenderMatch: () => boolean;
+  leaveMatch: () => boolean;
   sellAsset: (assetId: string, salePrice?: number) => boolean;
   transferAsset: (assetId: string, targetPlayerId: string) => boolean;
   shareAsset: (assetId: string, targetPlayerId: string, partnerShare: number, enforcement?: 'word' | 'iou' | 'written' | 'lawyer') => boolean;
@@ -690,22 +693,17 @@ export const useStore = create<AppState>((set, get) => ({
     return !rejected;
   },
 
-  // Pet purchase spends the live match cash; upkeep + bonus are mirrored into the
-  // match economy (recurring expense + passive/stress). Returns false if the human
-  // cannot afford it. Direct clone-edit, same pattern as addReputation.
-  buyPet: (petId, price, upkeep, bonus) => {
+  // Pet identity, price, upkeep and effects are engine-owned. The client sends
+  // only the catalog id and waits for the authoritative state update.
+  buyPet: (petId) => {
     const st = get();
     if (!st.engineMatch) return false;
     const me = getLocalPlayer(st);
-    if (!me || me.cash < price) return false;
+    if (!me || me.pet) return false;
     const cmd: Command = {
       type: 'buy_pet',
       playerId: me.id,
       petId,
-      price,
-      upkeep,
-      passiveBonus: bonus?.passive,
-      stressBonus: bonus?.stress,
     };
     if (st.isMultiplayer) {
       if (!wsClient.send({ type: 'command', command: cmd })) return false;
@@ -722,20 +720,24 @@ export const useStore = create<AppState>((set, get) => ({
     return !rejected;
   },
 
-  buyAsset: (name, price, income, kind, upkeep, slotsUsed) => {
+  buyAsset: (assetId) => {
     const st = get();
     if (!st.engineMatch) return false;
     const me = getLocalPlayer(st);
-    if (!me || me.cash < price) return false;
+    const asset = getBusinessAssetDefinition(assetId);
+    const market = st.engineMatch.businessMarket;
+    if (
+      !me
+      || !asset
+      || market.openedRound !== st.engineMatch.round
+      || !market.offerIds.includes(assetId)
+      || me.cash < asset.price
+      || me.businessSlotsUsed + asset.slotsUsed > me.businessSlotsMax
+    ) return false;
     const cmd: Command = {
       type: 'buy_asset',
       playerId: me.id,
-      name,
-      price,
-      income,
-      kind,
-      upkeep,
-      slotsUsed,
+      assetId,
     };
     if (st.isMultiplayer) {
       return wsClient.send({ type: 'command', command: cmd });
@@ -744,6 +746,64 @@ export const useStore = create<AppState>((set, get) => ({
     const rejected = result.events.some((e) => e.type === 'command_rejected');
     set({ engineMatch: result.state, match: toUiMatch(result.state, st.negotiatingPlayerIds) });
     return !rejected;
+  },
+
+  surrenderMatch: () => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    const me = getLocalPlayer(st);
+    if (!me?.alive) return false;
+    const command: Command = { type: 'surrender', playerId: me.id };
+    if (st.isMultiplayer && !wsClient.send({ type: 'command', command })) return false;
+
+    // The same pure engine transition is applied locally so Settings can close
+    // immediately even though the table websocket listener is unmounted on this route.
+    // In multiplayer the server independently validates and broadcasts this command.
+    const result = resolveCommand(st.engineMatch, command);
+    if (result.events.some((event) => event.type === 'command_rejected')) return false;
+    set({
+      engineMatch: result.state,
+      match: toUiMatch(result.state, st.negotiatingPlayerIds),
+      screen: 'recap',
+    });
+    return true;
+  },
+
+  leaveMatch: () => {
+    const st = get();
+    if (!st.engineMatch) return false;
+    if (st.isMultiplayer) {
+      // Best effort: a live socket sends the explicit permanent leave. If the
+      // transport already died, local exit must still work; the server's existing
+      // disconnect path has already handed that seat to a bot.
+      wsClient.leaveRoom();
+      wsClient.disconnect();
+    }
+    // `?autostart=1` is a quick-play entrance, not permission to create another
+    // match immediately after the player explicitly exits.
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has('autostart')) {
+        url.searchParams.delete('autostart');
+        window.history.replaceState(window.history.state, '', url);
+      }
+    }
+    set({
+      screen: 'lobby',
+      rulesReturnScreen: 'lobby',
+      settingsReturnScreen: 'lobby',
+      activeTab: 'table',
+      match: createInitialMatch(),
+      engineMatch: null,
+      isMultiplayer: false,
+      localPlayerId: null,
+      interestWindow: null,
+      negotiatingPlayerIds: [],
+      incomingDeal: null,
+      lastDealOutcome: null,
+      matchPetIds: [],
+    });
+    return true;
   },
 
   sellAsset: (assetId, salePrice) => {

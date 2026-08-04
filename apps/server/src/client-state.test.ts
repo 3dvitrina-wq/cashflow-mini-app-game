@@ -79,4 +79,19 @@ describe('client state card copy', () => {
     expect(toClientState(state, 'p2')?.personalCardOffers).toHaveLength(1);
     expect(toClientState(state, 'p3')?.personalCardOffers).toHaveLength(0);
   });
+
+  it('preserves exact authoritative pet identity in recipient snapshots', () => {
+    let state = createMatch(61, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+    ]);
+    state = resolveCommand(state, { type: 'buy_pet', playerId: 'p1', petId: 'pet-fish' }).state;
+
+    const snapshot = toClientState(state, 'p1')!;
+    expect(snapshot.players.find((player) => player.id === 'p1')?.pet).toEqual({
+      id: 'pet-fish',
+      kind: 'fish',
+      state: 'happy',
+    });
+  });
 });

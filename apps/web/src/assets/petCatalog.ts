@@ -16,6 +16,12 @@ import rabbitPanic from './generated/pets-v2/rabbit/states/rabbit_panic.webp';
 import turtleGroomed from './generated/pets-v2/turtle/states/turtle_groomed.webp';
 import turtleCostume from './generated/pets-v2/turtle/states/turtle_costume.webp';
 import turtleGlasses from './generated/pets-v2/turtle/states/turtle_glasses.webp';
+import { getPetEconomyDefinition, type PetId } from '../../../../packages/shared/src/pets';
+
+function economy(petId: PetId) {
+  const pet = getPetEconomyDefinition(petId)!;
+  return { price: pet.price, effect: pet.effectLabelRu, upkeep: pet.upkeepPerRound };
+}
 
 export interface PetCatalogItem {
   id: string;
@@ -38,9 +44,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Барбос',
     image: dogCostume,
     variants: [dogCostume, dogScruffy],
-    price: 500,
-    effect: 'Стресс -2/ход',
-    upkeep: 100,
+    ...economy('pet-dog'),
     personality: 'Верный',
     isNew: false,
     rarity: 'common',
@@ -50,9 +54,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Мурка',
     image: catGlasses,
     variants: [catGlasses, catPanic],
-    price: 400,
-    effect: 'Стресс -1/ход',
-    upkeep: 50,
+    ...economy('pet-cat'),
     personality: 'Ленивая',
     isNew: true,
     rarity: 'common',
@@ -62,9 +64,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Гекко',
     image: geckoGroomed,
     variants: [geckoGroomed, geckoGlasses],
-    price: 800,
-    effect: 'Trust +1',
-    upkeep: 80,
+    ...economy('pet-gecko'),
     personality: 'Экзотичный',
     isNew: true,
     rarity: 'rare',
@@ -76,9 +76,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Рыбка',
     image: fishPanic,
     variants: [fishPanic, fishCostume],
-    price: 200,
-    effect: 'Дзен',
-    upkeep: 20,
+    ...economy('pet-fish'),
     personality: 'Медитативная',
     isNew: false,
     rarity: 'common',
@@ -88,9 +86,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Попка',
     image: parrotCostume,
     variants: [parrotCostume, parrotPanic],
-    price: 600,
-    effect: '+5% контент',
-    upkeep: 70,
+    ...economy('pet-parrot'),
     personality: 'Болтливый',
     isNew: true,
     rarity: 'rare',
@@ -100,9 +96,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Хома',
     image: hamsterPanic,
     variants: [hamsterPanic, hamsterCostume],
-    price: 300,
-    effect: '+$50/ход',
-    upkeep: 40,
+    ...economy('pet-hamster'),
     personality: 'Трудолюбивый',
     isNew: false,
     rarity: 'common',
@@ -112,9 +106,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Кролик',
     image: rabbitGroomed,
     variants: [rabbitGroomed, rabbitCostume, rabbitPanic],
-    price: 450,
-    effect: 'Удача +1',
-    upkeep: 60,
+    ...economy('pet-rabbit'),
     personality: 'Пушистый',
     isNew: true,
     rarity: 'rare',
@@ -124,9 +116,7 @@ export const PET_ITEMS: PetCatalogItem[] = [
     name: 'Черепаха',
     image: turtleGroomed,
     variants: [turtleGroomed, turtleCostume, turtleGlasses],
-    price: 350,
-    effect: 'Долгосрочный доход',
-    upkeep: 30,
+    ...economy('pet-turtle'),
     personality: 'Мудрая',
     isNew: true,
     rarity: 'common',

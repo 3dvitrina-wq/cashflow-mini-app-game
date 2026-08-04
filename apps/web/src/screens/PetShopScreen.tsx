@@ -9,17 +9,6 @@ interface PetShopScreenProps {
   onClose: () => void;
 }
 
-// Hybrid economy: purchase is paid in meta-coins, but each pet mirrors its upkeep
-// (recurring expense) and gameplay bonus into the live match engine.
-const PET_ENGINE_BONUS: Record<string, { passive?: number; stress?: number }> = {
-  'pet-dog': { stress: -2 },
-  'pet-cat': { stress: -1 },
-  'pet-gecko': {},
-  'pet-fish': { stress: -1 },
-  'pet-parrot': { passive: 100 },
-  'pet-hamster': { passive: 50 },
-};
-
 const RARITY_CONFIG = {
   common: { label: 'Обычный', color: '#7D7B6F', bg: 'rgba(125, 123, 111, 0.1)', border: 'rgba(125, 123, 111, 0.3)' },
   rare: { label: 'Редкий', color: '#5BD7E0', bg: 'rgba(91, 215, 224, 0.1)', border: 'rgba(91, 215, 224, 0.3)' },
@@ -30,9 +19,6 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
   const buyPet = useStore((s) => s.buyPet);
   const engineMatch = useStore((s) => s.engineMatch);
   const localPlayerId = useStore((s) => s.localPlayerId);
-  // Ownership is per-match (resets each session) — pets are an in-game purchase, not a
-  // persistent collection. You must buy them again every new game.
-  const ownedIds = useStore((s) => s.matchPetIds);
   const [showArrival, setShowArrival] = useState(false);
 
   useEffect(() => {
@@ -47,13 +33,17 @@ export const PetShopScreen: React.FC<PetShopScreenProps> = ({ isOpen, onClose })
     ?? engineMatch?.players.find((player) => !player.isBot)
     ?? engineMatch?.players[0]
     ?? null;
-  const ownedPetId = ownedIds[ownedIds.length - 1];
+  const ownedPetId = me?.pet?.id;
   const myPets = ownedPetId ? PET_ITEMS.filter((pet) => pet.id === ownedPetId) : [];
   const availablePets = me?.pet ? [] : PET_ITEMS;
 
   const handleBuy = (pet: PetCatalogItem) => {
     // Spend live match cash (deducts visible balance); blocks if not enough.
-    const ok = buyPet(pet.id, pet.price, pet.upkeep, PET_ENGINE_BONUS[pet.id]);
+    if (!me || me.cash < pet.price) {
+      showToast('Недостаточно наличных', 'error');
+      return;
+    }
+    const ok = buyPet(pet.id);
     if (!ok) {
       showToast('Недостаточно наличных', 'error');
       return;

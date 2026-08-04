@@ -152,6 +152,25 @@ export const wsClient = {
     scheduleReconnect(true);
   },
 
+  /** Send the explicit non-surrender room exit, then permanently close transport. */
+  leaveRoom(): boolean {
+    if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+    const current = socket;
+    current.send(JSON.stringify({ type: 'leave_room' }));
+    manualClose = true;
+    clearReconnectTimer();
+    socket = null;
+    socketUrl = null;
+    connected = false;
+    lastJoinMessage = null;
+    openQueue.length = 0;
+    setStatus('disconnected');
+    // A WebSocket closing handshake is sent after already-queued messages, so the
+    // leave_room record reaches the server before this transport is released.
+    current.close(1000, 'left room');
+    return true;
+  },
+
   disconnect() {
     manualClose = true;
     clearReconnectTimer();

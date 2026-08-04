@@ -26,18 +26,11 @@ const CANONICAL_CODER = {
 } as const;
 
 const CANONICAL_STORAGE_ASSET = {
-  name: 'Storage Pod',
-  price: 3_000,
-  income: 400,
-  kind: 'storage_pod',
-  upkeep: 150,
-  slotsUsed: 1,
+  assetId: 'storage',
 } as const;
 
 const CANONICAL_MULTI_SLOT_ASSET = {
-  ...CANONICAL_STORAGE_ASSET,
-  name: 'Storage Warehouse',
-  slotsUsed: 3,
+  assetId: 'office',
 } as const;
 
 function player(state: MatchState, id: string) {
@@ -113,10 +106,11 @@ describe('client economy payload is not authoritative', () => {
     expect(JSON.stringify(result.state.players)).toBe(playersBefore);
   });
 
-  it('rejects asset numbers that differ from the canonical market card', () => {
+  it('resolves an offered asset id to canonical numbers and rejects unavailable ids', () => {
     const legal = createMatch(102, [...BASE_PLAYERS]);
     player(legal, 'p1').cash = 30_000;
     player(legal, 'p1').businessSlotsMax = 10;
+    legal.businessMarket.offerIds = ['storage'];
     const accepted = resolveCommand(legal, {
       type: 'buy_asset',
       playerId: 'p1',
@@ -124,22 +118,24 @@ describe('client economy payload is not authoritative', () => {
     });
     expect(rejected(accepted.events)).toBe(false);
     expect(player(accepted.state, 'p1').assets).toHaveLength(1);
-    expect(player(accepted.state, 'p1').businessSlotsUsed).toBe(1);
+    expect(player(accepted.state, 'p1').businessSlotsUsed).toBe(2);
+    expect(player(accepted.state, 'p1').assets[0]).toMatchObject({
+      name: 'Складские юниты',
+      value: 12_000,
+      incomePerRound: 1_100,
+      upkeepPerRound: 250,
+    });
 
     const invalid = createMatch(102, [...BASE_PLAYERS]);
     player(invalid, 'p1').cash = 30_000;
     player(invalid, 'p1').businessSlotsMax = 10;
+    invalid.businessMarket.offerIds = ['micro-coffee'];
     const before = player(invalid, 'p1');
 
     const result = resolveCommand(invalid, {
       type: 'buy_asset',
       playerId: 'p1',
-      name: CANONICAL_STORAGE_ASSET.name,
-      price: 1,
-      income: 999_999,
-      kind: CANONICAL_STORAGE_ASSET.kind,
-      upkeep: CANONICAL_STORAGE_ASSET.upkeep,
-      slotsUsed: CANONICAL_STORAGE_ASSET.slotsUsed,
+      assetId: CANONICAL_STORAGE_ASSET.assetId,
     });
     const after = player(result.state, 'p1');
 
@@ -185,12 +181,12 @@ describe('multi-slot asset bookkeeping', () => {
     const owner = player(state, 'p1');
     owner.cash = 30_000;
     owner.businessSlotsMax = 10;
+    state.businessMarket.offerIds = ['office'];
 
     const result = resolveCommand(state, {
       type: 'buy_asset',
       playerId: 'p1',
       ...CANONICAL_MULTI_SLOT_ASSET,
-      slotsUsed,
     });
 
     expect(rejected(result.events)).toBe(false);
@@ -269,6 +265,7 @@ describe('player-to-player asset sales', () => {
     const state = createMatch(107, [...BASE_PLAYERS]);
     player(state, 'p1').cash = 30_000;
     player(state, 'p1').businessSlotsMax = 10;
+    state.businessMarket.offerIds = ['office'];
     const bought = resolveCommand(state, {
       type: 'buy_asset',
       playerId: 'p1',
@@ -342,7 +339,7 @@ describe('player-to-player asset sales', () => {
     const buyerAfter = player(accepted.state, 'p2');
 
     expect(rejected(accepted.events)).toBe(false);
-    expect(sellerAfter.cash).toBe(47_000);
+    expect(sellerAfter.cash).toBe(sellerBefore.cash + 20_000);
     expect(buyerAfter.cash).toBe(10_000);
     expect(sellerAfter.assets).toEqual(sellerBefore.assets.filter((asset) => asset.id !== assetId));
     expect(buyerAfter.assets).toEqual([...buyerBefore.assets, assetBefore]);
@@ -358,6 +355,7 @@ describe('asset income cannot be promised more than once', () => {
     let state = createMatch(106, [...BASE_PLAYERS]);
     player(state, 'p1').cash = 30_000;
     player(state, 'p1').businessSlotsMax = 10;
+    state.businessMarket.offerIds = ['storage'];
     const bought = resolveCommand(state, {
       type: 'buy_asset',
       playerId: 'p1',

@@ -6,6 +6,7 @@
 
 import type {
   AvatarState,
+  BusinessAssetId,
   Command,
   CommandResult,
   Effect,
@@ -21,12 +22,16 @@ import type {
   TokenSymbol,
 } from '../../shared/src/index';
 import {
+  BUSINESS_MARKET_CADENCE_ROUNDS,
+  BUSINESS_MARKET_OFFER_COUNT,
   DEFAULT_EPOCH,
   DEFAULT_MACRO,
   DEFAULT_TIMER,
   FICTIONAL_TOKENS,
   TAX_BAND_MULTIPLIER,
+  getPetEconomyDefinition,
   getProfession,
+  isBusinessMarketRound,
 } from '../../shared/src/index';
 import { CARD_IDS, getCard, getCardsByType, getWeightedCardIds } from './cards';
 import { checkEligibility } from './conditions';
@@ -51,12 +56,8 @@ function clone<T>(v: T): T {
   return JSON.parse(JSON.stringify(v)) as T;
 }
 
-function petKindFromId(petId: string): 'cat' | 'dog' | 'hamster' | 'parrot' | 'none' {
-  if (petId.includes('dog')) return 'dog';
-  if (petId.includes('cat')) return 'cat';
-  if (petId.includes('hamster')) return 'hamster';
-  if (petId.includes('parrot')) return 'parrot';
-  return 'none';
+export function isBankCreditor(creditor: string): boolean {
+  return creditor.trim().toLowerCase() === 'bank';
 }
 
 function getProfessionDefinition(player: PlayerState) {
@@ -97,6 +98,46 @@ function hasTakenSurvivalJob(player: PlayerState): boolean {
   return player.skillTags.some((tag) => tag.startsWith('survival_job:'));
 }
 
+export function petIncomePerRound(player: PlayerState): number {
+  if (!player.pet) return 0;
+  const pet = getPetEconomyDefinition(player.pet.id);
+  if (!pet) return 0;
+  const contentIncome = player.assets
+    .filter((asset) => asset.tags.includes('content') || asset.synergyKeys.includes('content_creation'))
+    .reduce((sum, asset) => sum + asset.incomePerRound, 0);
+  return Math.round((pet.incomePerRound ?? 0) + contentIncome * (pet.contentIncomeMultiplier ?? 0));
+}
+
+function applyPetSettlementEffects(player: PlayerState): GameEvent[] {
+  if (!player.pet) return [];
+  const pet = getPetEconomyDefinition(player.pet.id);
+  if (!pet) return [];
+  const events: GameEvent[] = [];
+  const message = `${pet.id} monthly effect`;
+
+  if ((pet.stressDeltaPerRound ?? 0) !== 0) {
+    const before = player.stress;
+    player.stress = Math.max(0, Math.min(10, player.stress + (pet.stressDeltaPerRound ?? 0)));
+    events.push({
+      type: 'effect', playerId: player.id, effectType: 'stress.delta',
+      amount: player.stress - before, message,
+    });
+  }
+  if ((pet.trustDeltaPerRound ?? 0) !== 0) {
+    const before = player.trust;
+    player.trust = Math.max(0, Math.min(10, player.trust + (pet.trustDeltaPerRound ?? 0)));
+    events.push({
+      type: 'effect', playerId: player.id, effectType: 'trust.delta',
+      amount: player.trust - before, message,
+    });
+  }
+  const income = petIncomePerRound(player);
+  if (income !== 0) {
+    events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: income, message });
+  }
+  return events;
+}
+
 function assetSlotsUsed(asset: PlayerState['assets'][number]): number {
   return asset.slotsUsed ?? 1;
 }
@@ -135,6 +176,39 @@ const TICKER_POOL = [
   'VOLT +15% · New AI regulation proposed · Crypto ETF approved',
   'DRIFT -12% · Inflation fears return · Laundromat IPO filed',
 ];
+
+const BUSINESS_MARKET_TIERS: readonly (readonly BusinessAssetId[])[] = [
+  ['micro-coffee', 'micro-kiosk', 'micro-studio'],
+  ['coffee', 'laundromat', 'nft', 'storage'],
+  ['ai-startup', 'logistics', 'crypto-mining', 'office'],
+];
+
+/**
+ * One reachable, one mid-size and one ambitious business per market window.
+ * Each tier is shuffled by the match seed and rotates independently, preserving
+ * surprise without creating an early market where every offer is unaffordable.
+ * Four open windows surface all eleven catalog entries.
+ */
+export function businessMarketOfferIds(seed: Seed, openedRound: number): BusinessAssetId[] {
+  if (!isBusinessMarketRound(openedRound)) return [];
+  const windowIndex = Math.floor((openedRound - 1) / BUSINESS_MARKET_CADENCE_ROUNDS);
+  return BUSINESS_MARKET_TIERS.slice(0, BUSINESS_MARKET_OFFER_COUNT).map((tier, tierIndex) => {
+    const cycle = shuffle(tier, seed ^ 0x4d41524b ^ ((tierIndex + 1) * 0x9e3779b9));
+    return cycle[windowIndex % cycle.length];
+  });
+}
+
+export function isBusinessMarketOpen(state: MatchState): boolean {
+  return state.businessMarket.openedRound === state.round && isBusinessMarketRound(state.round);
+}
+
+function businessMarketForRound(seed: Seed, openedRound: number): MatchState['businessMarket'] {
+  return {
+    openedRound,
+    nextOpenRound: openedRound + BUSINESS_MARKET_CADENCE_ROUNDS,
+    offerIds: businessMarketOfferIds(seed, openedRound),
+  };
+}
 
 // ─── Player Creation ────────────────────────────────────────────────────────
 
@@ -315,6 +389,7 @@ export function createMatch(
 
     ticker: [TICKER_POOL[0]],
     marketPrices,
+    businessMarket: businessMarketForRound(seed, 1),
 
     eventLog: [],
     version: 1,
@@ -597,6 +672,13 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     return null;
   }
 
+  if (cmd.type === 'surrender') {
+    const player = state.players.find((candidate) => candidate.id === cmd.playerId);
+    if (!player) return 'unknown player';
+    if (!player.alive) return 'player is already eliminated';
+    return null;
+  }
+
   // Self-economy side-actions: a player manages their own finances regardless of
   // whose card turn it is (not turn-gated). Spend their own cash only.
   if (
@@ -631,14 +713,25 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
       if (staff.salary > player.cash) return 'insufficient cash to hire';
     }
     if (cmd.type === 'buy_asset') {
-      const asset = getCanonicalAssetPurchase(cmd);
-      if (!asset) return 'asset payload does not match canonical registry';
+      const asset = getCanonicalAssetPurchase(cmd.assetId);
+      if (!asset) return 'unknown business asset';
+      if (!isBusinessMarketOpen(state)) {
+        return `business market is closed until round ${state.businessMarket.nextOpenRound}`;
+      }
+      if (!state.businessMarket.offerIds.includes(asset.id)) {
+        return 'business asset is not available in the current market';
+      }
       if (asset.price > player.cash) return 'insufficient cash to buy asset';
       if (player.businessSlotsUsed + asset.slotsUsed > player.businessSlotsMax) {
         return 'no free business slots';
       }
     }
-    if (cmd.type === 'buy_pet' && cmd.price > player.cash) return 'insufficient cash to buy pet';
+    if (cmd.type === 'buy_pet') {
+      const pet = getPetEconomyDefinition(cmd.petId);
+      if (!pet) return 'unknown pet';
+      if (player.pet) return 'player already owns a pet';
+      if (pet.price > player.cash) return 'insufficient cash to buy pet';
+    }
     if (cmd.type === 'sell_asset' && !player.assets.some((asset) => asset.id === cmd.assetId)) return 'asset not found';
     if (cmd.type === 'transfer_asset') {
       const target = state.players.find((p) => p.id === cmd.targetPlayerId);
@@ -895,6 +988,42 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       break;
     }
 
+    case 'surrender': {
+      const playerIndex = state.players.findIndex((player) => player.id === cmd.playerId);
+      const player = state.players[playerIndex];
+      if (!player) break;
+      player.alive = false;
+      player.isActive = false;
+      player.recapTags = player.recapTags.includes('surrendered')
+        ? player.recapTags
+        : [...player.recapTags, 'surrendered'];
+      state.pendingIntents[player.id] = null;
+      if (state.personalCardIds) state.personalCardIds[player.id] = null;
+      if (state.activeInterestWindow) {
+        state.activeInterestWindow.eligiblePlayers = state.activeInterestWindow.eligiblePlayers
+          .filter((id) => id !== player.id);
+        state.activeInterestWindow.interestedPlayers = state.activeInterestWindow.interestedPlayers
+          .filter((id) => id !== player.id);
+        state.activeInterestWindow.selectedPlayers = state.activeInterestWindow.selectedPlayers
+          .filter((id) => id !== player.id);
+      }
+
+      const remaining = state.players.filter((candidate) => candidate.alive);
+      if (remaining.length <= 1) {
+        state.phase = 'finished';
+        const survivor = remaining[0];
+        if (survivor) survivor.isActive = true;
+        events.push({ type: 'finished', round: state.round, message: `${player.name} surrendered` });
+      } else if (playerIndex === state.activePlayerIndex) {
+        let nextIndex = (playerIndex + 1) % state.players.length;
+        while (!state.players[nextIndex].alive) nextIndex = (nextIndex + 1) % state.players.length;
+        state.activePlayerIndex = nextIndex;
+        state.players[nextIndex].isActive = true;
+      }
+      events.push({ type: 'audit', playerId: player.id, message: 'player surrendered' });
+      break;
+    }
+
     case 'open_futures_position': {
       const player = state.players.find((p) => p.id === cmd.playerId);
       if (player) {
@@ -946,7 +1075,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
 
     case 'buy_asset': {
       const player = state.players.find((p) => p.id === cmd.playerId);
-      const assetConfig = getCanonicalAssetPurchase(cmd);
+      const assetConfig = getCanonicalAssetPurchase(cmd.assetId);
       if (!player || !assetConfig) break;
       player.cash -= assetConfig.price;
       player.assets.push({
@@ -955,44 +1084,41 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         name: assetConfig.name,
         tags: [...assetConfig.tags],
         synergyKeys: [...assetConfig.synergyKeys],
-        incomePerRound: assetConfig.income,
-        upkeepPerRound: assetConfig.upkeep,
+        incomePerRound: assetConfig.incomePerRound,
+        upkeepPerRound: assetConfig.upkeepPerRound,
         value: assetConfig.price,
         acquiredRound: state.round,
         slotsUsed: assetConfig.slotsUsed,
       });
       player.businessSlotsUsed += assetConfig.slotsUsed;
+      state.businessMarket.offerIds = state.businessMarket.offerIds.filter((id) => id !== assetConfig.id);
       if (!player.businesses.includes(assetConfig.name)) player.businesses.push(assetConfig.name);
       events.push({ type: 'money', playerId: player.id, amount: -assetConfig.price, message: `bought ${assetConfig.name}` });
       events.push({ type: 'effect', playerId: player.id, effectType: 'asset.add', amount: assetConfig.price, message: assetConfig.name });
-      if (assetConfig.income !== 0) {
-        events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: assetConfig.income, message: `${assetConfig.name} monthly payout` });
+      if (assetConfig.incomePerRound !== 0) {
+        events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: assetConfig.incomePerRound, message: `${assetConfig.name} monthly payout` });
       }
       break;
     }
 
     case 'buy_pet': {
       const player = state.players.find((p) => p.id === cmd.playerId);
-      if (!player) break;
-      if (player.cash < cmd.price) {
-        events.push({ type: 'command_rejected', playerId: player.id, message: 'insufficient cash to buy pet' });
-        break;
+      const pet = getPetEconomyDefinition(cmd.petId);
+      if (!player || !pet) break;
+      player.cash -= pet.price;
+      player.pet = { id: pet.id, kind: pet.kind, state: 'happy' };
+      if (pet.upkeepPerRound > 0) {
+        player.expenses = Math.max(0, player.expenses + pet.upkeepPerRound);
+        events.push({ type: 'effect', playerId: player.id, effectType: 'expense.add', amount: pet.upkeepPerRound, message: `${pet.id} upkeep` });
       }
-      player.cash -= cmd.price;
-      player.pet = { kind: petKindFromId(cmd.petId), state: 'happy' };
-      if (cmd.upkeep > 0) {
-        player.expenses = Math.max(0, player.expenses + cmd.upkeep);
-        events.push({ type: 'effect', playerId: player.id, effectType: 'expense.add', amount: cmd.upkeep, message: `${cmd.petId} upkeep` });
+      if ((pet.focusBonusOnPurchase ?? 0) !== 0) {
+        player.focusTokens += pet.focusBonusOnPurchase ?? 0;
+        events.push({
+          type: 'effect', playerId: player.id, effectType: 'selection.by_focus_tokens',
+          amount: pet.focusBonusOnPurchase, message: `${pet.id} focus bonus`,
+        });
       }
-      if ((cmd.passiveBonus ?? 0) !== 0) {
-        player.passiveIncome = Math.max(0, player.passiveIncome + (cmd.passiveBonus ?? 0));
-        events.push({ type: 'effect', playerId: player.id, effectType: 'passive.add', amount: cmd.passiveBonus ?? 0, message: `${cmd.petId} bonus` });
-      }
-      if ((cmd.stressBonus ?? 0) !== 0) {
-        player.stress = Math.max(0, Math.min(10, player.stress + (cmd.stressBonus ?? 0)));
-        events.push({ type: 'effect', playerId: player.id, effectType: 'stress.delta', amount: cmd.stressBonus ?? 0, message: `${cmd.petId} mood bonus` });
-      }
-      events.push({ type: 'money', playerId: player.id, amount: -cmd.price, message: `bought ${cmd.petId}` });
+      events.push({ type: 'money', playerId: player.id, amount: -pet.price, message: `bought ${pet.id}` });
       break;
     }
 
@@ -1254,7 +1380,7 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         // Borrow cash now (interest-only at 10%/round until the principal is repaid
         // manually via repay_loan). Total bank debt capped at 10× monthly cashflow.
         const existingBankLoans = player.liabilities
-          .filter((l) => l.creditor === 'Bank')
+          .filter((liability) => isBankCreditor(liability.creditor))
           .reduce((s, l) => s + l.principal, 0);
         const maxLoan = Math.max(2000, monthlyCashflow(state, player).income * 10 * loanCapMultiplier(player));
         if (cmd.amount <= 0) {
@@ -1282,7 +1408,9 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
     case 'repay_loan': {
       const player = state.players.find((p) => p.id === cmd.playerId);
       if (player) {
-        const idx = player.liabilities.findIndex((l) => l.id === cmd.loanId && l.creditor === 'Bank');
+        const idx = player.liabilities.findIndex(
+          (liability) => liability.id === cmd.loanId && isBankCreditor(liability.creditor),
+        );
         const loan = idx >= 0 ? player.liabilities[idx] : undefined;
         if (!loan) {
           events.push({ type: 'command_rejected', playerId: player.id, message: 'loan not found' });
@@ -1550,7 +1678,7 @@ export function passiveCashflow(
   const totalTax = computeTax(player, macro);
   const activeTax = computeTaxForIncome(player, macro, effectiveActiveIncome(player));
   const passiveTax = Math.max(0, totalTax - activeTax);
-  const income = player.passiveIncome + assetIncome;
+  const income = player.passiveIncome + assetIncome + petIncomePerRound(player);
   const expense = player.expenses + assetUpkeep + loanPayments + passiveTax;
   return { income, expense, net: income - expense };
 }
@@ -1578,6 +1706,11 @@ export function advanceRound(prev: MatchState): CommandResult {
     // covering salary/passive/assets/loan-interest/tax together.
     const { net } = monthlyCashflow(state, p);
     p.cash = roundMoney(Math.max(0, p.cash + net));
+
+    // Owned match pets apply their declared authoritative benefit every month.
+    // Income bonuses are already included in monthlyCashflow above; this emits the
+    // auditable source line and applies non-cash state deltas.
+    events.push(...applyPetSettlementEffects(p));
 
     // Age out amortising liabilities (profession debts expire; bank loans run until repaid).
     for (const liab of p.liabilities) {
@@ -1697,6 +1830,9 @@ export function advanceRound(prev: MatchState): CommandResult {
 
   // ─── Advance to next round ────────────────────────────────────────────
   state.round += 1;
+  if (isBusinessMarketRound(state.round)) {
+    state.businessMarket = businessMarketForRound(state.seed, state.round);
+  }
 
   // Rotate active player
   const n = state.players.length;
@@ -1901,7 +2037,12 @@ export function scoreBreakdown(
   const cash = Math.round(player.cash);
   const assetValue = Math.round(player.assets.reduce((s, a) => s + a.value, 0));
   const bankDebt = Math.round(
-    player.liabilities.reduce((s, l) => (l.remainingPayments > 0 ? s + l.principal : s), 0),
+    player.liabilities.reduce(
+      (s, liability) => (isBankCreditor(liability.creditor) && liability.remainingPayments > 0
+        ? s + liability.principal
+        : s),
+      0,
+    ),
   );
 
   const bonuses: ScoreBonus[] = [];
