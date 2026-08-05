@@ -29,6 +29,8 @@ import { dismissToast, showToast } from '../components/Toast';
 import { hapticImpact } from '../hooks/useHaptics';
 import { useModalLayer } from '../hooks/useModalLayer';
 import { playSound } from '../lib/sound';
+import { liabilityNameRu } from '../lib/liabilities';
+import { staffKindIcon } from '../lib/staffDisplay';
 import { TutorialOverlay, isFirstRunTourPending } from '../components/TutorialOverlay';
 import { useI18n } from '../i18n';
 import {
@@ -303,6 +305,11 @@ const PlayerTile: React.FC<{
           </div>
         </div>
         {badge}
+        {(player.hiredStaffIds?.length ?? 0) > 0 && (
+          <span className="player-team-badge" title={`Команда: ${player.hiredStaffIds?.length}`}>
+            👥 {player.hiredStaffIds?.length}
+          </span>
+        )}
         {pet && (
           <span className="player-table-pet" title={`${pet.name} · ${pet.effect}`} aria-hidden="true">
             <img src={pet.image} alt="" draggable={false} />
@@ -472,6 +479,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const [showDealConfirm, setShowDealConfirm] = useState(false);
   const [cashflowSheet, setCashflowSheet] = useState<'income' | 'expense' | 'freedom' | null>(null);
   const [incomingOfferIndex, setIncomingOfferIndex] = useState(0);
+  const [isIncomingOfferExpanded, setIsIncomingOfferExpanded] = useState(false);
   const [dismissedTableOfferIds, setDismissedTableOfferIds] = useState<Set<string>>(() => new Set());
   const reactionsDialogRef = useRef<HTMLDivElement>(null);
   const firstReactionRef = useRef<HTMLButtonElement>(null);
@@ -668,6 +676,9 @@ export const MainTurnTableScreen: React.FC = () => {
     () => (engineMe ? financialFreedomStatus(engineMe, engineMatch?.macro) : null),
     [engineMatch?.macro, engineMe],
   );
+  const activeLiabilities = (engineMe?.liabilities ?? []).filter((liability) => liability.remainingPayments > 0);
+  const liabilityPrincipal = activeLiabilities.reduce((sum, liability) => sum + liability.principal, 0);
+  const hiredStaffIds = engineMe?.hiredStaffIds ?? [];
   const tablePet = resolveTablePet(engineMe?.pet);
   const activePlayer = match.players.find((p) => p.isActive) ?? me;
   const submittedIntentPlayerIds = new Set(
@@ -779,6 +790,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const incomingOfferKey = incomingPersonalOffers.map((offer) => offer.id).join('|');
   useEffect(() => {
     setIncomingOfferIndex((current) => Math.max(0, Math.min(current, incomingPersonalOffers.length - 1)));
+    setIsIncomingOfferExpanded(false);
   }, [incomingOfferKey, incomingPersonalOffers.length]);
   useEffect(() => {
     setDismissedTableOfferIds(new Set());
@@ -801,7 +813,13 @@ export const MainTurnTableScreen: React.FC = () => {
     const synergyIncomeAfterStress = Math.round(synergy.income * passiveRate);
     const recurringIncomeAfterStress = Math.round((player.passiveIncome + assetIncome + synergy.income) * passiveRate);
     const workIncome = Math.max(0, flow.income - recurringIncomeAfterStress - petIncome);
-    const otherRecurringExpense = Math.max(0, flow.expense - assetUpkeep);
+    const liabilityExpense = player.liabilities.reduce(
+      (sum, liability) => liability.remainingPayments > 0
+        ? sum + Math.round(liability.principal * liability.interestRate)
+        : sum,
+      0,
+    );
+    const otherRecurringExpense = Math.max(0, flow.expense - assetUpkeep - liabilityExpense);
     const recurringLines: SettlementLedgerLine[] = [];
 
     if (workIncome > 0) {
@@ -810,15 +828,16 @@ export const MainTurnTableScreen: React.FC = () => {
     if (player.passiveIncome > 0) {
       recurringLines.push({ id: 'passive', icon: '🌱', label: locale === 'ru' ? 'Пассивный доход' : 'Passive income', income: player.passiveIncome });
     }
-    if (synergy.income > 0 || synergy.expenseReduction > 0) {
+    if (synergy.active.length > 0) {
       recurringLines.push({
         id: 'synergy',
         icon: '🔗',
         label: locale === 'ru' ? 'Связки решений' : 'Decision synergies',
         income: synergyIncomeAfterStress > 0 ? synergyIncomeAfterStress : undefined,
-        detail: synergy.expenseReduction > 0
-          ? (locale === 'ru' ? `расходы −$${synergy.expenseReduction}` : `expenses −$${synergy.expenseReduction}`)
-          : `${synergy.active.length}×`,
+        detail: synergy.active
+          .slice(0, 2)
+          .map((item) => locale === 'ru' ? (item.descriptionRu ?? item.description) : item.description)
+          .join(' · '),
       });
     }
     const pet = resolveTablePet(player.pet);
@@ -828,7 +847,7 @@ export const MainTurnTableScreen: React.FC = () => {
         icon: '🐾',
         label: pet.name,
         income: petIncome > 0 ? petIncome : undefined,
-        detail: petIncome > 0 ? undefined : pet.effect,
+        detail: pet.effect,
       });
     }
 
@@ -873,11 +892,22 @@ export const MainTurnTableScreen: React.FC = () => {
           : undefined,
       });
     }
+    for (const liability of player.liabilities.filter((item) => item.remainingPayments > 0)) {
+      recurringLines.push({
+        id: `liability-${liability.id}`,
+        icon: '🏦',
+        label: liabilityNameRu(liability.creditor),
+        expense: Math.round(liability.principal * liability.interestRate),
+        detail: locale === 'ru'
+          ? `остаток $${liability.principal.toLocaleString('ru-RU')}`
+          : `$${liability.principal.toLocaleString('en-US')} remaining`,
+      });
+    }
     if (otherRecurringExpense > 0) {
       recurringLines.push({
         id: 'recurring-expense',
         icon: '🧾',
-        label: locale === 'ru' ? 'Жизнь, команда, кредиты и налог' : 'Life, staff, debt and tax',
+        label: locale === 'ru' ? 'Жизнь, команда и налог' : 'Life, staff and tax',
         expense: otherRecurringExpense,
       });
     }
@@ -1246,7 +1276,7 @@ export const MainTurnTableScreen: React.FC = () => {
   const choicePreviews = useMemo(
     () => visibleChoices.map((_, i) => previewChoice(i)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [card.id, match.round, previewChoice]
+    [card.id, engineMatch, match.round, previewChoice]
   );
   const selectedPreview = choicePreviews[selectedChoiceIdx] ?? null;
   const opportunityReferencePrice = Math.max(
@@ -1267,7 +1297,7 @@ export const MainTurnTableScreen: React.FC = () => {
       return card.choices.map((_, i) => flags[i] ?? true);
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [card.id, match.round, me?.cash, affordableChoices]
+    [card.id, engineMatch, match.round, me?.cash, affordableChoices]
   );
   const selectedAffordable = affordable[selectedChoiceIdx] ?? true;
 
@@ -1292,21 +1322,32 @@ export const MainTurnTableScreen: React.FC = () => {
     onClick: () => void;
   }> = [
     ...(businessMarketOpen ? [marketToolItem] : []),
+    { icon: <IconBankVault size={18} />, label: locale === 'ru' ? 'Банк' : 'Bank', tone: 'gold', onClick: () => { setIsBankOpen(true); setFabExpanded(false); } },
     {
-      icon: <IconMenu size={18} />,
-      label: locale === 'ru' ? 'Правила' : 'Rules',
-      tone: 'paper',
-      onClick: () => {
-        openRules('main');
-        setFabExpanded(false);
-      },
+      icon: <IconShop size={18} />,
+      label: locale === 'ru'
+        ? `Бизнес · ${engineMe?.businessSlotsUsed ?? 0}/${engineMe?.businessSlotsMax ?? me.businessSlots}`
+        : `Business · ${engineMe?.businessSlotsUsed ?? 0}/${engineMe?.businessSlotsMax ?? me.businessSlots}`,
+      tone: 'green',
+      onClick: () => { setIsBusinessSlotsOpen(true); setFabExpanded(false); },
     },
+    ...(!businessMarketOpen ? [marketToolItem] : []),
+    { icon: <IconLaborHelmet size={18} />, label: locale === 'ru' ? 'Команда' : 'Team', tone: 'orange', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
+    { icon: <IconPawBadge size={17} />, label: locale === 'ru' ? 'Питомцы' : 'Pets', tone: 'cyan', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
     ...(isProMode ? [{
       icon: <IconHandshake size={18} />,
       label: locale === 'ru' ? 'Сделка' : 'Deal',
       tone: 'violet',
       onClick: () => {
         setIsOfferBuilderOpen(true);
+        setFabExpanded(false);
+      },
+    }, {
+      icon: <IconChaosMask size={18} />,
+      label: locale === 'ru' ? 'Хаос' : 'Chaos',
+      tone: 'red',
+      onClick: () => {
+        setScreen('futures');
         setFabExpanded(false);
       },
     }] : []),
@@ -1325,20 +1366,16 @@ export const MainTurnTableScreen: React.FC = () => {
         setFabExpanded(false);
       },
     },
-    ...(isProMode ? [{
-      icon: <IconChaosMask size={18} />,
-      label: locale === 'ru' ? 'Хаос' : 'Chaos',
-      tone: 'red',
+    { icon: <IconNewsSheet size={17} />, label: locale === 'ru' ? 'События' : 'Events', tone: 'paper', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
+    {
+      icon: <IconMenu size={18} />,
+      label: locale === 'ru' ? 'Правила' : 'Rules',
+      tone: 'paper',
       onClick: () => {
-        setScreen('futures');
+        openRules('main');
         setFabExpanded(false);
       },
-    }] : []),
-    { icon: <IconBankVault size={18} />, label: locale === 'ru' ? 'Банк' : 'Bank', tone: 'gold', onClick: () => { setIsBankOpen(true); setFabExpanded(false); } },
-    ...(!businessMarketOpen ? [marketToolItem] : []),
-    { icon: <IconLaborHelmet size={18} />, label: locale === 'ru' ? 'Труд' : 'Labor', tone: 'orange', onClick: () => { setIsLaborOpen(true); setFabExpanded(false); } },
-    { icon: <IconPawBadge size={17} />, label: locale === 'ru' ? 'Питомцы' : 'Pets', tone: 'cyan', onClick: () => { setIsPetsOpen(true); setFabExpanded(false); } },
-    { icon: <IconNewsSheet size={17} />, label: locale === 'ru' ? 'События' : 'Events', tone: 'paper', onClick: () => { setIsEventLogOpen(true); setFabExpanded(false); } },
+    },
     { icon: <IconGiftBurst size={17} />, label: locale === 'ru' ? 'Бонус' : 'Bonus', tone: 'gold', onClick: () => { setIsDailyOpen(true); setFabExpanded(false); } },
     { icon: <IconCogSpark size={17} />, label: locale === 'ru' ? 'Настройки' : 'Settings', tone: 'slate', onClick: () => { openSettings('main'); setFabExpanded(false); } },
   ];
@@ -1360,7 +1397,7 @@ export const MainTurnTableScreen: React.FC = () => {
     );
   }
 
-  if (personalSelectionPending && personalCardOptionIds.length === 3) {
+  if (personalSelectionPending && personalCardOptionIds.length === 3 && !isAdvancingTime && !roundTransition) {
     return (
       <PersonalCardPicker
         optionIds={personalCardOptionIds}
@@ -1671,6 +1708,15 @@ export const MainTurnTableScreen: React.FC = () => {
                     className="you-avatar-img"
                     draggable={false}
                   />
+                  {hiredStaffIds.length > 0 && (
+                    <span
+                      className="you-team-chip"
+                      aria-label={locale === 'ru' ? `В команде ${hiredStaffIds.length}` : `${hiredStaffIds.length} on the team`}
+                      title={locale === 'ru' ? `Команда: ${hiredStaffIds.length}` : `Team: ${hiredStaffIds.length}`}
+                    >
+                      👥 {hiredStaffIds.length}
+                    </span>
+                  )}
                   {tablePet && (
                     <span
                       className="you-table-pet"
@@ -1735,10 +1781,25 @@ export const MainTurnTableScreen: React.FC = () => {
                       <em>{locale === 'ru' ? 'Стресс' : 'Stress'}</em>
                       <strong>{me.stress}/10{stressPenaltyPercent > 0 ? ` · −${stressPenaltyPercent}%` : ''}</strong>
                     </span>
-                    <span>
-                      <IconDebt size={12} />
-                      <em>{locale === 'ru' ? 'Долг' : 'Debt'}</em>
-                      <strong>{me.debt}/10</strong>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={(event) => { event.stopPropagation(); setIsBankOpen(true); }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          event.stopPropagation();
+                          setIsBankOpen(true);
+                        }
+                      }}
+                      aria-label={locale === 'ru'
+                        ? `Банк: ${activeLiabilities.length} обязательств на ${liabilityPrincipal} долларов`
+                        : `Bank: ${activeLiabilities.length} liabilities totalling ${liabilityPrincipal} dollars`}
+                    >
+                      <IconBankVault size={12} />
+                      <em>{locale === 'ru' ? 'Банк' : 'Bank'}</em>
+                      <strong>{liabilityPrincipal > 0 ? `$${moneyShort(liabilityPrincipal)}` : '$0'}</strong>
                     </span>
                     <span
                       className={`you-freedom-goal${freedom?.achieved ? ' you-freedom-goal-done' : ''}`}
@@ -1779,7 +1840,7 @@ export const MainTurnTableScreen: React.FC = () => {
                       <div className="mini-panel-icons">
                         {/* A slot is an empty place; a kiosk (ларёк) appears only once it's filled. */}
                         {(() => {
-                          const totalSlots = Math.max(me.businessSlots, me.businesses.length);
+                          const totalSlots = Math.max(me.businessSlots, me.businessSlotsUsed ?? me.businesses.length);
                           const visibleSlots = Math.min(
                             MAX_HUD_BUSINESS_SLOTS,
                             Math.max(MIN_HUD_BUSINESS_SLOTS, totalSlots),
@@ -1789,7 +1850,7 @@ export const MainTurnTableScreen: React.FC = () => {
                           return (
                             <>
                               {Array.from({ length: visibleSlots }).map((_, i) =>
-                                i < me.businesses.length
+                                i < (me.businessSlotsUsed ?? me.businesses.length)
                                   ? <IconShop key={i} size={13} />
                                   : <span key={i} className="empty-slot" title={locale === 'ru' ? 'Пустой слот' : 'Empty slot'} />
                               )}
@@ -1820,6 +1881,26 @@ export const MainTurnTableScreen: React.FC = () => {
                           </span>
                         ) : (
                           <span className="empty-slot" title={locale === 'ru' ? 'Нет защит' : 'No protections'} />
+                        )}
+                      </div>
+                    </button>
+                    <button
+                      className="you-hud-tile"
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setIsLaborOpen(true);
+                      }}
+                    >
+                      <span className="mini-panel-label">{locale === 'ru' ? 'КОМАНДА' : 'TEAM'}</span>
+                      <div className="mini-panel-icons" aria-label={locale === 'ru' ? `Нанято: ${hiredStaffIds.length}` : `Hired: ${hiredStaffIds.length}`}>
+                        {hiredStaffIds.length > 0 ? (
+                          <>
+                            {hiredStaffIds.slice(0, 2).map((staffId) => <span key={staffId}>{staffKindIcon(staffId)}</span>)}
+                            {hiredStaffIds.length > 2 && <span className="mini-slot-overflow">+{hiredStaffIds.length - 2}</span>}
+                          </>
+                        ) : (
+                          <span className="empty-slot" title={locale === 'ru' ? 'Никто не нанят' : 'Nobody hired'} />
                         )}
                       </div>
                     </button>
@@ -1907,7 +1988,9 @@ export const MainTurnTableScreen: React.FC = () => {
                             max={1_000_000}
                             step={100}
                             inputMode="numeric"
-                            value={personalOfferPrice}
+                            value={personalOfferPrice === 0 ? '' : personalOfferPrice}
+                            placeholder="0"
+                            onFocus={(event) => event.currentTarget.select()}
                             onChange={(event) => setPersonalOfferPrice(Math.max(0, Math.min(1_000_000, Math.round(Number(event.target.value) || 0))))}
                             style={{ flex: 1, minWidth: 0, minHeight: 44, borderRadius: 10, border: '1px solid rgba(255,255,255,.15)', background: '#11151D', color: '#F5F4ED', padding: '0 12px', fontSize: 16, fontWeight: 900 }}
                           />
@@ -2156,6 +2239,21 @@ export const MainTurnTableScreen: React.FC = () => {
         const canPay = (me?.cash ?? 0) >= activeIncomingPersonalOffer.askingPrice;
         const offerCount = incomingPersonalOffers.length;
         const hasOfferQueue = offerCount > 1;
+        if (!isIncomingOfferExpanded) {
+          return (
+            <button
+              type="button"
+              className="personal-offer-chip"
+              onClick={() => setIsIncomingOfferExpanded(true)}
+              aria-label={locale === 'ru' ? 'Открыть предложение игрока' : 'Open player offer'}
+            >
+              <span>{from?.name ?? (locale === 'ru' ? 'Игрок' : 'Player')}</span>
+              <strong>{incomingPersonalCard?.title ?? (locale === 'ru' ? 'Возможность' : 'Opportunity')}</strong>
+              <b>${activeIncomingPersonalOffer.askingPrice.toLocaleString()}</b>
+              {hasOfferQueue && <i>+{offerCount - 1}</i>}
+            </button>
+          );
+        }
         return (
           <div
             className="negot-banner-wrapper personal-offer-tray"
@@ -2197,6 +2295,14 @@ export const MainTurnTableScreen: React.FC = () => {
                     </button>
                   </div>
                 )}
+                <button
+                  type="button"
+                  className="personal-offer-tray__collapse"
+                  onClick={() => setIsIncomingOfferExpanded(false)}
+                  aria-label={locale === 'ru' ? 'Свернуть предложение' : 'Collapse offer'}
+                >
+                  ↓
+                </button>
               </div>
               <div className="personal-offer-tray__title">
                 {incomingPersonalCard?.title ?? (locale === 'ru' ? 'Личная возможность' : 'Private opportunity')}
@@ -2417,7 +2523,12 @@ export const MainTurnTableScreen: React.FC = () => {
       />
 
       {/* Market Board Bottom Sheet */}
-      <MarketBoardScreen isOpen={isMarketOpen} onClose={() => setIsMarketOpen(false)} />
+      <MarketBoardScreen
+        isOpen={isMarketOpen}
+        onClose={() => setIsMarketOpen(false)}
+        onOpenBank={() => { setIsMarketOpen(false); setIsBankOpen(true); }}
+        onOpenBusinessSlots={() => { setIsMarketOpen(false); setIsBusinessSlotsOpen(true); }}
+      />
 
       {/* Labor Market Bottom Sheet */}
       <LaborMarketScreen isOpen={isLaborOpen} onClose={() => setIsLaborOpen(false)} />

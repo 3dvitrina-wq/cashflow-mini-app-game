@@ -30,27 +30,27 @@ export interface PetEconomyDefinition {
 export const PET_ECONOMY: readonly PetEconomyDefinition[] = [
   {
     id: 'pet-dog', kind: 'dog', price: 500, upkeepPerRound: 100,
-    effectLabelRu: 'Стресс −2/ход', effectLabelEn: 'Stress −2/round', stressDeltaPerRound: -2,
+    effectLabelRu: 'Стресс −2 каждый месяц', effectLabelEn: 'Stress −2 each month', stressDeltaPerRound: -2,
   },
   {
     id: 'pet-cat', kind: 'cat', price: 400, upkeepPerRound: 50,
-    effectLabelRu: 'Стресс −1/ход', effectLabelEn: 'Stress −1/round', stressDeltaPerRound: -1,
+    effectLabelRu: 'Стресс −1 каждый месяц', effectLabelEn: 'Stress −1 each month', stressDeltaPerRound: -1,
   },
   {
     id: 'pet-gecko', kind: 'gecko', price: 800, upkeepPerRound: 80,
-    effectLabelRu: 'Trust +1/ход', effectLabelEn: 'Trust +1/round', trustDeltaPerRound: 1,
+    effectLabelRu: 'Доверие +1 каждый месяц', effectLabelEn: 'Trust +1 each month', trustDeltaPerRound: 1,
   },
   {
     id: 'pet-fish', kind: 'fish', price: 200, upkeepPerRound: 20,
-    effectLabelRu: 'Стресс −1/ход', effectLabelEn: 'Stress −1/round', stressDeltaPerRound: -1,
+    effectLabelRu: 'Стресс −1 каждый месяц', effectLabelEn: 'Stress −1 each month', stressDeltaPerRound: -1,
   },
   {
     id: 'pet-parrot', kind: 'parrot', price: 600, upkeepPerRound: 70,
-    effectLabelRu: '+5% дохода от контента', effectLabelEn: '+5% content income', contentIncomeMultiplier: 0.05,
+    effectLabelRu: '+20% только от блогов, курсов и контент-бизнесов', effectLabelEn: '+20% from blogs, courses and content businesses only', contentIncomeMultiplier: 0.20,
   },
   {
     id: 'pet-hamster', kind: 'hamster', price: 300, upkeepPerRound: 40,
-    effectLabelRu: '+$50/ход', effectLabelEn: '+$50/round', incomePerRound: 50,
+    effectLabelRu: '+$50 каждый месяц', effectLabelEn: '+$50 each month', incomePerRound: 50,
   },
   {
     id: 'pet-rabbit', kind: 'rabbit', price: 450, upkeepPerRound: 60,
@@ -58,7 +58,7 @@ export const PET_ECONOMY: readonly PetEconomyDefinition[] = [
   },
   {
     id: 'pet-turtle', kind: 'turtle', price: 350, upkeepPerRound: 30,
-    effectLabelRu: '+$25/ход', effectLabelEn: '+$25/round', incomePerRound: 25,
+    effectLabelRu: '+$25 каждый месяц', effectLabelEn: '+$25 each month', incomePerRound: 25,
   },
 ];
 

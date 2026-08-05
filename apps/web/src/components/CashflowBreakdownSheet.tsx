@@ -7,6 +7,7 @@ import {
 } from '../../../../packages/game-engine/src';
 import type { MatchState, PlayerState } from '../../../../packages/shared/src';
 import { getProfession } from '../../../../packages/shared/src';
+import { getPetEconomyDefinition } from '../../../../packages/shared/src/pets';
 import { BottomSheet } from './BottomSheet';
 import { liabilityNameRu } from '../lib/liabilities';
 
@@ -62,7 +63,13 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
   }
   const petIncome = petIncomePerRound(p);
   if (petIncome > 0) {
-    incomeItems.push({ icon: '🐾', label: 'Питомец', sub: 'Ежемесячный эффект', amount: petIncome });
+    const pet = p.pet ? getPetEconomyDefinition(p.pet.id) : undefined;
+    const contentAssets = p.assets.filter((asset) =>
+      asset.tags.includes('content') || asset.synergyKeys.includes('content_creation'));
+    const petSub = (pet?.contentIncomeMultiplier ?? 0) > 0
+      ? `${Math.round((pet?.contentIncomeMultiplier ?? 0) * 100)}% от: ${contentAssets.map((asset) => asset.name).join(', ') || 'нет подходящих активов'}`
+      : pet?.effectLabelRu ?? 'Ежемесячный эффект';
+    incomeItems.push({ icon: '🐾', label: pet?.kind === 'parrot' ? 'Попугай и контент' : 'Питомец', sub: petSub, amount: petIncome });
   }
 
   // ── expense items ────────────────────────────────────────────────────────────
@@ -91,7 +98,12 @@ export const CashflowBreakdownSheet: React.FC<Props> = ({ mode, engineMatch, loc
     if (lib.remainingPayments <= 0) continue;
     const payment = Math.round(lib.principal * lib.interestRate);
     if (payment <= 0) continue;
-    expenseItems.push({ icon: '🏦', label: liabilityNameRu(lib.creditor), sub: `${lib.remainingPayments} платежей`, amount: payment });
+    expenseItems.push({
+      icon: '🏦',
+      label: liabilityNameRu(lib.creditor),
+      sub: lib.manualPayoffOnly ? `остаток $${lib.principal.toLocaleString('ru-RU')} · до погашения` : `${lib.remainingPayments} платежей`,
+      amount: payment,
+    });
     knownRecurringExpenses += payment;
   }
   const flow = monthlyCashflow(engineMatch, p);

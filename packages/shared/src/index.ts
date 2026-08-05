@@ -134,6 +134,7 @@ export type EffectType =
   | 'avatar.state.set'
   | 'pet.state.set'
   | 'timeline.advance'
+  | 'outcome.schedule'
   | 'noop'
   // Placeholder slots — registered, warn-on-use, no economic effect until v1.5
   | 'bankruptcy.file'
@@ -246,10 +247,13 @@ export interface Asset {
 export interface Liability {
   id: string;
   kind: 'loan' | 'margin' | 'credit' | 'guarantee';
+  category?: 'mortgage' | 'education' | 'car' | 'equipment' | 'consumer' | 'business' | 'family' | 'bank';
   principal: number;
   interestRate: number;
   remainingPayments: number;
   creditor: string;
+  /** Starting obligations and game-bank loans remain until the player repays them. */
+  manualPayoffOnly?: boolean;
 }
 
 // ─── Contracts ──────────────────────────────────────────────────────────────
@@ -522,7 +526,7 @@ export type Command =
   | { type: 'accept_deal'; playerId: PlayerId; dealId: string }
   | { type: 'reject_deal'; playerId: PlayerId; dealId: string }
   | { type: 'take_loan'; playerId: PlayerId; amount: number }
-  | { type: 'repay_loan'; playerId: PlayerId; loanId: string }
+  | { type: 'repay_loan'; playerId: PlayerId; loanId: string; amount?: number }
   // Draft mode
   | { type: 'submit_draft'; playerId: PlayerId; peeks: number[]; claims: DraftClaim[] }
   | { type: 'draft_pick_option'; playerId: PlayerId; index: number; choiceIndex: number };
@@ -588,6 +592,16 @@ export interface StressSettlementResult {
   lostAssetId?: AssetId;
   lostAssetName?: string;
   lostAssetIncome?: number;
+}
+
+export interface ScheduledOutcome {
+  id: string;
+  sourceCardId: CardId;
+  playerId: PlayerId;
+  outcomeCardId: CardId;
+  createdRound: number;
+  dueRound: number;
+  status: 'pending' | 'revealed';
 }
 
 // ─── Match State ────────────────────────────────────────────────────────────
@@ -669,6 +683,8 @@ export interface MatchState {
   eventLog: GameEvent[];
   /** Most recent authoritative stress failures, rendered in the month report. */
   lastStressResults?: StressSettlementResult[];
+  /** Private, deterministic consequences promised by earlier decisions. */
+  scheduledOutcomes?: ScheduledOutcome[];
   version: number;
 
   // Phase 3: active interest window (null when none open)

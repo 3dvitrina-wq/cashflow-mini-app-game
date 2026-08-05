@@ -27,10 +27,12 @@ const asset = z.object({
 const liability = z.object({
   id: z.string(),
   kind: z.enum(['loan', 'margin', 'credit', 'guarantee']),
+  category: z.enum(['mortgage', 'education', 'car', 'equipment', 'consumer', 'business', 'family', 'bank']).optional(),
   principal: z.number(),
   interestRate: z.number(),
   remainingPayments: z.number(),
   creditor: z.string(),
+  manualPayoffOnly: z.boolean().optional(),
 });
 
 const contractTerms = z.object({
@@ -244,7 +246,7 @@ const command = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accept_deal'), playerId, dealId: z.string() }),
   z.object({ type: z.literal('reject_deal'), playerId, dealId: z.string() }),
   z.object({ type: z.literal('take_loan'), playerId, amount: z.number().positive() }),
-  z.object({ type: z.literal('repay_loan'), playerId, loanId: z.string() }),
+  z.object({ type: z.literal('repay_loan'), playerId, loanId: z.string(), amount: z.number().positive().optional() }),
   z.object({
     type: z.literal('submit_draft'),
     playerId,
@@ -296,6 +298,7 @@ const effectType = z.enum([
   'avatar.state.set',
   'pet.state.set',
   'timeline.advance',
+  'outcome.schedule',
   'noop',
   'bankruptcy.file',
   'bankruptcy.review',
@@ -432,6 +435,15 @@ export const SimulationMatchStateSchema = z.object({
     ])).max(3),
   }),
   eventLog: z.array(gameEvent),
+  scheduledOutcomes: z.array(z.object({
+    id: z.string(),
+    sourceCardId: cardId,
+    playerId,
+    outcomeCardId: cardId,
+    createdRound: z.number().int().min(1),
+    dueRound: z.number().int().min(1),
+    status: z.enum(['pending', 'revealed']),
+  })).optional(),
   version: z.number().int().min(1),
   activeInterestWindow: interestWindow.nullable().optional(),
   matchMode: z.enum(['classic', 'draft']).optional(),

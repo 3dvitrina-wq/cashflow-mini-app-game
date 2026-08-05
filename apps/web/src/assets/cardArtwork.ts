@@ -52,7 +52,7 @@ const GENERATED_CARD_ART = Object.fromEntries(
       import: 'default',
     }),
   ).map(([path, src]) => [
-    path.split('/').pop()?.replace(/\.png$/i, '') ?? path,
+    path.split('/').pop()?.replace(/\.(?:png|jpe?g|webp|avif)$/i, '') ?? path,
     src as string,
   ]),
 );

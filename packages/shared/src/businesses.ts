@@ -48,7 +48,7 @@ export const BUSINESS_ASSET_CATALOG: readonly BusinessAssetDefinition[] = [
     id: 'micro-coffee', name: 'Coffee', displayName: 'Кофейная стойка',
     category: 'business', kind: 'business', price: 1_000,
     incomePerRound: 200, upkeepPerRound: 10, slotsUsed: 1,
-    tags: ['service', 'local_business'], synergyKeys: ['hospitality'],
+    tags: ['service', 'local_business', 'food'], synergyKeys: ['hospitality'],
   },
   {
     id: 'micro-kiosk', name: 'Kiosk', displayName: 'Киоск у метро',
@@ -72,7 +72,7 @@ export const BUSINESS_ASSET_CATALOG: readonly BusinessAssetDefinition[] = [
     id: 'coffee', name: 'Кофейня', displayName: 'Кофейня',
     category: 'business', kind: 'business', price: 8_500,
     incomePerRound: 980, upkeepPerRound: 180, slotsUsed: 1,
-    tags: ['service', 'local_business'], synergyKeys: ['hospitality'],
+    tags: ['service', 'local_business', 'food'], synergyKeys: ['hospitality'],
   },
   {
     id: 'logistics', name: 'Логистика', displayName: 'Логистика',

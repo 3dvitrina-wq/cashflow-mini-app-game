@@ -106,7 +106,7 @@ interface AppState {
   createDeposit: (amount: number, lockPeriod?: number) => boolean;
   withdrawDeposit: (depositId: string) => boolean;
   takeLoan: (amount: number) => boolean;
-  repayLoan: (loanId: string) => boolean;
+  repayLoan: (loanId: string, amount?: number) => boolean;
   restructureDebt: (liabilityId: string) => boolean;
   takeSurvivalJob: (jobId: 'gig' | 'safe' | 'night') => boolean;
   acceptIncomingDeal: () => boolean;
@@ -150,11 +150,11 @@ function describeEffect(effect: Effect): string | null {
     case 'cash.set_zero':
       return '💸 Cash on hand goes to zero';
     case 'income.add':
-      return `💼 Active income +$${Math.abs(amount).toLocaleString()}/mo`;
+      return `💼 Active income ${amount >= 0 ? '+' : '-'}$${Math.abs(amount).toLocaleString()}/mo`;
     case 'passive.add':
-      return `🌱 Passive income +$${Math.abs(amount).toLocaleString()}/mo`;
+      return `🌱 Passive income ${amount >= 0 ? '+' : '-'}$${Math.abs(amount).toLocaleString()}/mo`;
     case 'expense.add':
-      return `🧾 Expenses +$${Math.abs(amount).toLocaleString()}/mo`;
+      return `🧾 Expenses ${amount >= 0 ? '+' : '-'}$${Math.abs(amount).toLocaleString()}/mo`;
     case 'stress.delta':
       return amount === 0 ? null : `${amount > 0 ? '😤 Stress +' : '😌 Stress -'}${Math.abs(amount)}`;
     case 'trust.delta':
@@ -171,6 +171,11 @@ function describeEffect(effect: Effect): string | null {
       return `🏢 Business capacity ${amount >= 0 ? '+' : ''}${amount}`;
     case 'assistant.hire':
       return '👷 Staff hired';
+    case 'outcome.schedule': {
+      const minDelay = Number(effect.payload?.minDelay ?? 3);
+      const maxDelay = Number(effect.payload?.maxDelay ?? minDelay);
+      return `⏳ Result in ${minDelay}${maxDelay > minDelay ? `–${maxDelay}` : ''} months`;
+    }
     case 'deal.window.open':
       return '🤝 Opens deal window';
     case 'futures.open':
@@ -288,7 +293,11 @@ function toUiPlayer(
     trust: Math.round(p.trust),
     debt: Math.round(p.debt),
     businessSlots: Math.min(10, Math.max(0, p.businessSlotsMax)),
+    businessSlotsUsed: Math.min(10, Math.max(0, p.businessSlotsUsed)),
     businesses,
+    hiredStaffIds: [...(p.hiredStaffIds ?? [])],
+    assistantSlotsUsed: p.assistantSlotsUsed,
+    assistantSlotsMax: p.assistantSlotsMax,
     protections: p.protections,
     isActive: activeIndex === index,
     isReady: true,
@@ -975,14 +984,14 @@ export const useStore = create<AppState>((set, get) => ({
     return !rejected;
   },
 
-  repayLoan: (loanId) => {
+  repayLoan: (loanId, amount) => {
     const st = get();
     if (!st.engineMatch) return false;
     const meP = st.engineMatch.players.find((p) => p.id === st.localPlayerId)
       ?? st.engineMatch.players.find((p) => !p.isBot)
       ?? st.engineMatch.players[0];
     if (!meP) return false;
-    const cmd: Command = { type: 'repay_loan', playerId: meP.id, loanId };
+    const cmd: Command = { type: 'repay_loan', playerId: meP.id, loanId, amount };
     if (st.isMultiplayer) {
       return wsClient.send({ type: 'command', command: cmd });
     }

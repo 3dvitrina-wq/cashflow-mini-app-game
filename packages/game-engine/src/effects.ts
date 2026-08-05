@@ -126,9 +126,48 @@ const REGISTRY: Partial<Record<EffectType, EffectResolver>> = {
       const staffId = e.value ?? `staff_${p.assistantSlotsUsed}`;
       p.hiredStaffIds ??= [];
       if (!p.hiredStaffIds.includes(staffId)) p.hiredStaffIds.push(staffId);
-      if (!p.businesses.includes(staffId)) p.businesses.push(staffId);
     }
     return [{ type: 'effect', playerId: p.id, effectType: 'assistant.hire', amount: e.amount }];
+  },
+
+  'outcome.schedule': (s, p, e) => {
+    const sourceCardId = String(e.payload?.sourceCardId ?? '');
+    const outcomeCardId = String(e.payload?.outcomeCardId ?? '');
+    const requiredStaffId = String(e.payload?.requiredStaffId ?? '');
+    const minDelay = Math.max(1, Math.round(Number(e.payload?.minDelay ?? 3)));
+    const maxDelay = Math.max(minDelay, Math.round(Number(e.payload?.maxDelay ?? minDelay)));
+    if (!sourceCardId || !outcomeCardId || (requiredStaffId && !p.hiredStaffIds?.includes(requiredStaffId))) {
+      return [{ type: 'warn', playerId: p.id, effectType: 'outcome.schedule', message: 'invalid or unmet scheduled outcome' }];
+    }
+    s.scheduledOutcomes ??= [];
+    if (s.scheduledOutcomes.some((item) => item.playerId === p.id && item.sourceCardId === sourceCardId && item.status !== 'revealed')) {
+      return [{ type: 'warn', playerId: p.id, effectType: 'outcome.schedule', message: 'scheduled outcome already pending' }];
+    }
+    const remainingRounds = s.maxRounds - s.round;
+    if (remainingRounds < minDelay) {
+      return [{ type: 'warn', playerId: p.id, effectType: 'outcome.schedule', message: 'not enough rounds left for scheduled outcome' }];
+    }
+    const boundedMaxDelay = Math.min(maxDelay, remainingRounds);
+    const playerSalt = [...p.id].reduce((sum, character) => sum + character.charCodeAt(0), 0);
+    const delay = minDelay + rngInt(s.seed, s.round * 104729 + playerSalt + sourceCardId.length * 97, boundedMaxDelay - minDelay + 1);
+    const dueRound = s.round + delay;
+    const scheduled = {
+      id: `outcome_${p.id}_${sourceCardId}_${s.round}`,
+      sourceCardId,
+      playerId: p.id,
+      outcomeCardId,
+      createdRound: s.round,
+      dueRound,
+      status: 'pending' as const,
+    };
+    s.scheduledOutcomes.push(scheduled);
+    return [{
+      type: 'effect',
+      playerId: p.id,
+      effectType: 'outcome.schedule',
+      message: `${outcomeCardId} due round ${dueRound}`,
+      payload: { ...scheduled },
+    }];
   },
 
   'stress.delta': (_s, p, e) => {

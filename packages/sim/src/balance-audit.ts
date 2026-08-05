@@ -605,7 +605,9 @@ function main(): void {
     return usage.totalMatches > 0 && measuredImpacts.every((impact) => Math.abs(impact) < 1e-9);
   });
   for (const usage of allZeroImpactCards) {
-    balanceFlags.push(`card ${usage.id} has all-zero authoritative state impact`);
+    balanceFlags.push(
+      `card ${usage.id} produced zero observed bot impact (skipped, unaffordable, dominated, or unwired)`,
+    );
   }
   for (const flag of balanceFlags) console.log(`  ⚠️ ${flag}`);
   if (balanceFlags.length === 0) {

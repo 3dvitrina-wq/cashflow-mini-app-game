@@ -19,6 +19,7 @@ export interface SynergyDef {
   bonusType: 'passive_income' | 'cost_reduction' | 'stress_reduction';
   bonusAmount: number;
   description: string;
+  descriptionRu?: string;
 }
 
 const SYNERGY_TABLE: SynergyDef[] = [
@@ -134,6 +135,68 @@ const SYNERGY_TABLE: SynergyDef[] = [
     bonusType: 'passive_income',
     bonusAmount: 180,
     description: 'Trading Bot + Crypto Asset: automated spread capture',
+  },
+  {
+    id: 'labor-chef-calm',
+    staffId: 'chef',
+    bonusType: 'stress_reduction',
+    bonusAmount: 1,
+    description: 'Chef: regular meals lower operational stress',
+    descriptionRu: 'Шеф-повар: стресс −1 каждый месяц',
+  },
+  {
+    id: 'labor-chef-food',
+    staffId: 'chef',
+    assetTags: ['food', 'hospitality'],
+    bonusType: 'passive_income',
+    bonusAmount: 250,
+    description: 'Chef + Food Business: a better menu raises repeat sales',
+    descriptionRu: 'Шеф-повар + еда: +$250/мес',
+  },
+  {
+    id: 'labor-coder-tech',
+    staffId: 'coder',
+    assetTags: ['tech', 'technology', 'software'],
+    bonusType: 'passive_income',
+    bonusAmount: 500,
+    description: 'Vibe-coder + Tech Product: faster releases raise revenue',
+    descriptionRu: 'Vibe-coder + IT-продукт: +$500/мес',
+  },
+  {
+    id: 'labor-marketer-content',
+    staffId: 'marketer',
+    assetTags: ['content', 'digital', 'content_creation'],
+    bonusType: 'passive_income',
+    bonusAmount: 300,
+    description: 'Marketer + Content Asset: distribution turns attention into sales',
+    descriptionRu: 'Маркетолог + контент: +$300/мес',
+  },
+  {
+    id: 'labor-welder-physical',
+    staffId: 'welder',
+    assetTags: ['physical', 'transport', 'logistics'],
+    bonusType: 'cost_reduction',
+    bonusAmount: 150,
+    description: 'Welder + Physical Business: fewer outside repair bills',
+    descriptionRu: 'Сварщик + физический бизнес: расходы −$150/мес',
+  },
+  {
+    id: 'labor-lawyer-business',
+    staffId: 'lawyer',
+    assetTags: ['local_business', 'real_estate', 'technology', 'crypto'],
+    bonusType: 'cost_reduction',
+    bonusAmount: 200,
+    description: 'Lawyer + Business: contracts prevent avoidable costs',
+    descriptionRu: 'Юрист + бизнес: расходы −$200/мес',
+  },
+  {
+    id: 'labor-accountant-business',
+    staffId: 'accountant',
+    assetTags: ['local_business', 'boring_business', 'real_estate'],
+    bonusType: 'cost_reduction',
+    bonusAmount: 250,
+    description: 'Accountant + Local Business: cleaner books cut recurring waste',
+    descriptionRu: 'Бухгалтер + локальный бизнес: расходы −$250/мес',
   },
 ];
 

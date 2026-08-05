@@ -14,11 +14,11 @@ describe('client state card copy', () => {
 
     expect(clientState).not.toBe(state);
     expect('currentCard' in state).toBe(false);
-    expect(clientState.currentCard?.title).toBe('ИНВЕСТИЦИЯ В СКЛАД');
+    expect(clientState.currentCard?.title).toBe('СКЛАДСКОЙ БОКС С АРЕНДАТОРОМ');
     expect(clientState.currentCard?.choices.map((choice) => choice.label)).toEqual([
-      'Купить за $3K',
-      'Найти партнёра',
-      'Пропустить',
+      'Купить — $3 000',
+      'Войти 50/50 — $1 500',
+      'Отказаться',
     ]);
   });
 
@@ -56,6 +56,40 @@ describe('client state card copy', () => {
 
     expect(toClientState(state, 'p1')?.businessMarket.personalOfferIds).toEqual({ p1: 'coffee' });
     expect(toClientState(state, 'p2')?.businessMarket.personalOfferIds).toEqual({ p2: 'storage' });
+  });
+
+  it('keeps promised follow-up outcomes private until they are dealt', () => {
+    const state = createMatch(46, [
+      { id: 'p1', name: 'One', outfit: 'office', isBot: false },
+      { id: 'p2', name: 'Two', outfit: 'trader', isBot: false },
+    ], { experienceMode: 'basic' });
+    state.scheduledOutcomes = [
+      {
+        id: 'outcome-private-1',
+        sourceCardId: 'staff-va',
+        playerId: 'p1',
+        outcomeCardId: 'followup-assistant-double-booking',
+        createdRound: 1,
+        dueRound: 4,
+        status: 'pending',
+      },
+      {
+        id: 'outcome-private-2',
+        sourceCardId: 'staff-social',
+        playerId: 'p2',
+        outcomeCardId: 'followup-social-viral-post',
+        createdRound: 1,
+        dueRound: 5,
+        status: 'pending',
+      },
+    ];
+
+    expect(toClientState(state, 'p1')?.scheduledOutcomes?.map((outcome) => outcome.id)).toEqual([
+      'outcome-private-1',
+    ]);
+    expect(toClientState(state, 'p2')?.scheduledOutcomes?.map((outcome) => outcome.id)).toEqual([
+      'outcome-private-2',
+    ]);
   });
 
   it('exposes lock status without leaking another player choice', () => {

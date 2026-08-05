@@ -60,6 +60,9 @@ export function toClientState(state: MatchState | null, viewerPlayerId?: string)
           || offer.toPlayerId === viewerPlayerId
           || (offer.audience === 'table' && offer.status === 'pending'))
       : state.personalCardOffers,
+    scheduledOutcomes: viewerPlayerId
+      ? (state.scheduledOutcomes ?? []).filter((outcome) => outcome.playerId === viewerPlayerId)
+      : state.scheduledOutcomes,
     businessMarket: viewerPlayerId
       ? {
           ...state.businessMarket,

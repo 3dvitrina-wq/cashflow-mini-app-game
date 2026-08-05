@@ -21,6 +21,8 @@ import assetCryptoMining from '../assets/generated/market-v2/asset-crypto-mining
 interface MarketBoardScreenProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenBank?: () => void;
+  onOpenBusinessSlots?: () => void;
 }
 
 const CATEGORY_LABELS: Record<BusinessCategory, string> = {
@@ -53,7 +55,7 @@ const CATEGORY_BACKDROPS: Record<BusinessCategory, string> = {
   crypto: 'radial-gradient(circle at 50% 8%, rgba(91,215,224,.14), transparent 44%), linear-gradient(180deg, rgba(21,26,40,.96), rgba(15,15,24,.98))',
 };
 
-export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, onClose }) => {
+export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, onClose, onOpenBank, onOpenBusinessSlots }) => {
   const buyAsset = useStore((s) => s.buyAsset);
   const searchBusinessMarket = useStore((s) => s.searchBusinessMarket);
   const engineMatch = useStore((s) => s.engineMatch);
@@ -129,6 +131,11 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
           <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
             Раз в два раунда стол получает три общих предложения. Каждый игрок может купить один актив; каждое предложение достаётся только одному. Если витрину разобрали — остаётся один платный личный поиск.
           </div>
+        </div>
+
+        <div className="market-player-strip" aria-label="Ваши возможности на рынке">
+          <span>Наличные <strong>${(me?.cash ?? 0).toLocaleString('ru-RU')}</strong></span>
+          <span>Бизнес-слоты <strong>{me?.businessSlotsUsed ?? 0}/{me?.businessSlotsMax ?? 0}</strong></span>
         </div>
 
         {!marketOpen && (
@@ -288,8 +295,12 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                   </div>
 
                   <button
-                    onClick={() => handleBuy(asset)}
-                    disabled={!canBuy}
+                    onClick={() => {
+                      if (!hasSlot) onOpenBusinessSlots?.();
+                      else if (!hasCash) onOpenBank?.();
+                      else handleBuy(asset);
+                    }}
+                    disabled={boughtThisWindow || (!canBuy && ((!hasCash && !onOpenBank) || (!hasSlot && !onOpenBusinessSlots)))}
                     style={{
                       width: '100%',
                       minHeight: 44,
@@ -301,10 +312,16 @@ export const MarketBoardScreen: React.FC<MarketBoardScreenProps> = ({ isOpen, on
                       fontWeight: 900,
                       textTransform: 'uppercase',
                       boxShadow: canBuy ? '0 8px 18px rgba(40, 199, 111, 0.26)' : 'none',
-                      opacity: canBuy ? 1 : 0.48,
+                      opacity: canBuy || (!hasCash && onOpenBank) || (!hasSlot && onOpenBusinessSlots) ? 1 : 0.48,
                     }}
                   >
-                    {boughtThisWindow ? 'Лимит: 1 актив' : !hasSlot ? 'Нет слота' : !hasCash ? 'Не хватает денег' : 'Купить актив'}
+                    {boughtThisWindow
+                      ? 'Лимит: 1 актив'
+                      : !hasSlot
+                        ? 'Освободить слот'
+                        : !hasCash
+                          ? `В банк · не хватает $${Math.max(0, asset.price - (me?.cash ?? 0)).toLocaleString('ru-RU')}`
+                          : 'Купить актив'}
                   </button>
                 </div>
               </div>

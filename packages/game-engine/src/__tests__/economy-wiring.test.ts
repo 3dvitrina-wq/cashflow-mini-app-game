@@ -1,6 +1,6 @@
 // Wave A wiring: hire cost+bonus, bot deal evaluation, bot outgoing invites.
 import { describe, it, expect } from 'vitest';
-import { createMatch, resolveCommand, advanceRound, openIntentWindow, resolveAllIntents, allIntentsSubmitted, monthlyCashflow, canAffordChoice, scoreBreakdown } from '../engine';
+import { createMatch, resolveCommand, advanceRound, openIntentWindow, resolveAllIntents, allIntentsSubmitted, monthlyCashflow, canAffordChoice, petIncomePerRound, scoreBreakdown } from '../engine';
 import { openFuturesPosition } from '../futures';
 import { botIntent, evaluateDeal, maybeProposeDeal } from '../bot';
 import { stateHash } from '../hash';
@@ -25,7 +25,7 @@ function makeDeal(over: Partial<PendingDeal['offer']>, proposerId: string, targe
 }
 
 describe('hire_staff economy', () => {
-  it('charges salary as a recurring expense and applies slot + income bonus', () => {
+  it('charges salary as a recurring expense and applies the canonical slot bonus', () => {
     const match = createMatch(7, [...PLAYERS]);
     const p1 = match.players.find((p) => p.id === 'p1')!;
     const expBefore = p1.expenses;
@@ -33,13 +33,13 @@ describe('hire_staff economy', () => {
     const passiveBefore = p1.passiveIncome;
 
     const r = resolveCommand(match, {
-      type: 'hire_staff', playerId: 'p1', staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 500 },
+      type: 'hire_staff', playerId: 'p1', staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 0 },
     });
     const p1after = r.state.players.find((p) => p.id === 'p1')!;
 
     expect(p1after.expenses - expBefore).toBe(1200);
     expect(p1after.businessSlotsMax - slotsBefore).toBe(3);
-    expect(p1after.passiveIncome - passiveBefore).toBe(500);
+    expect(p1after.passiveIncome - passiveBefore).toBe(0);
     expect(p1after.assistantSlotsUsed).toBe(1);
   });
 
@@ -172,6 +172,37 @@ describe('bank credit (take_loan)', () => {
     expect(after.liabilities.some((l) => l.id === loanId)).toBe(false); // load lifted
   });
 
+  it('lets the player make a partial principal payment and immediately lowers interest', () => {
+    let state = resolveCommand(createMatch(7, [...PLAYERS]), { type: 'take_loan', playerId: 'p1', amount: 1000 }).state;
+    const before = state.players.find((player) => player.id === 'p1')!;
+    const loan = before.liabilities.find((liability) => liability.creditor === 'Bank')!;
+    const cashBefore = before.cash;
+
+    state = resolveCommand(state, { type: 'repay_loan', playerId: 'p1', loanId: loan.id, amount: 400 }).state;
+    const after = state.players.find((player) => player.id === 'p1')!;
+    const reduced = after.liabilities.find((liability) => liability.id === loan.id)!;
+
+    expect(after.cash).toBe(cashBefore - 400);
+    expect(reduced.principal).toBe(600);
+    expect(Math.round(reduced.principal * reduced.interestRate)).toBe(60);
+    expect(after.debt).toBe(1);
+  });
+
+  it('keeps profession obligations until the player explicitly repays them', () => {
+    let state = createMatch(71, [
+      { id: 'p1', name: 'Student', outfit: 'creator', professionId: 'campus_student' },
+      PLAYERS[1],
+    ]);
+    const obligation = state.players.find((player) => player.id === 'p1')!.liabilities[0]!;
+    const termBefore = obligation.remainingPayments;
+
+    state = advanceRound(state).state;
+    const after = state.players.find((player) => player.id === 'p1')!.liabilities.find((liability) => liability.id === obligation.id)!;
+
+    expect(after.manualPayoffOnly).toBe(true);
+    expect(after.remainingPayments).toBe(termBefore);
+  });
+
   it('reports zero bank debt after the only Bank loan is repaid', () => {
     let state = createMatch(7, [...PLAYERS]);
     const p1 = state.players.find((p) => p.id === 'p1')!;
@@ -200,14 +231,14 @@ describe('bank credit (take_loan)', () => {
       PLAYERS[1],
     ]);
     const before = state.players.find((player) => player.id === 'p1')!;
-    before.cash = 2500;
     const obligation = before.liabilities[0]!;
+    before.cash = obligation.principal + 500;
     const expenseBefore = monthlyCashflow(state, before).expense;
 
     state = resolveCommand(state, { type: 'repay_loan', playerId: 'p1', loanId: obligation.id }).state;
     const after = state.players.find((player) => player.id === 'p1')!;
 
-    expect(after.cash).toBe(2500 - obligation.principal);
+    expect(after.cash).toBe(500);
     expect(after.liabilities.some((liability) => liability.id === obligation.id)).toBe(false);
     expect(monthlyCashflow(state, after).expense).toBe(expenseBefore - Math.round(obligation.principal * obligation.interestRate));
     expect(after.debt).toBe(0);
@@ -292,6 +323,36 @@ describe('pet economy', () => {
       amount: 50,
       message: 'pet-hamster monthly effect',
     }));
+  });
+
+  it('gives the parrot a visible bonus only when a real content asset exists', () => {
+    const state = createMatch(8, [...PLAYERS]);
+    const bought = resolveCommand(state, { type: 'buy_pet', playerId: 'p1', petId: 'pet-parrot' }).state;
+    const player = bought.players.find((p) => p.id === 'p1')!;
+    player.activeIncome = 0;
+    player.passiveIncome = 0;
+    player.expenses = 70;
+    player.stress = 0;
+    player.liabilities = [];
+    player.assets = [];
+    expect(petIncomePerRound(player)).toBe(0);
+
+    player.assets.push({
+      id: 'content-blog',
+      kind: 'content_channel',
+      name: 'Блог',
+      tags: ['digital', 'content'],
+      synergyKeys: ['content_creation'],
+      incomePerRound: 200,
+      upkeepPerRound: 0,
+      value: 500,
+      acquiredRound: 1,
+    });
+    expect(petIncomePerRound(player)).toBe(40);
+    const flow = monthlyCashflow(bought, player);
+    expect(flow.income).toBe(240);
+    expect(flow.expense).toBeGreaterThanOrEqual(70);
+    expect(flow.net).toBe(flow.income - flow.expense);
   });
 });
 

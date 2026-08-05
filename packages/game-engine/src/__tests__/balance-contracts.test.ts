@@ -22,7 +22,7 @@ const CANONICAL_STAFF = {
 const CANONICAL_CODER = {
   staffId: 'coder',
   salary: 1_200,
-  bonus: { slots: 3, income: 500 },
+  bonus: { slots: 3, income: 0 },
 } as const;
 
 const CANONICAL_STORAGE_ASSET = {

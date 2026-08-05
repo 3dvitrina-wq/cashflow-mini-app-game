@@ -66,7 +66,7 @@ export const EffectTypeSchema = z.enum([
   'protection.add', 'market.event.apply', 'choice.open', 'deal.window.open',
   'partnership.create', 'partnership.invoke', 'partnership.invite', 'expense.tag', 'synergy.check',
   'ai_host.cue', 'reaction.emit', 'avatar.state.set', 'pet.state.set',
-  'timeline.advance', 'noop',
+  'timeline.advance', 'outcome.schedule', 'noop',
   'bankruptcy.file', 'bankruptcy.review', 'contract.enforce', 'contract.breach',
   'macro.policy.apply', 'election.resolve', 'job.event.apply',
   'migration.status.set', 'region.move', 'internet.reliability.delta',
@@ -156,10 +156,12 @@ export const AssetSchema = z.object({
 export const LiabilitySchema = z.object({
   id: z.string(),
   kind: z.enum(['loan', 'margin', 'credit', 'guarantee']),
+  category: z.enum(['mortgage', 'education', 'car', 'equipment', 'consumer', 'business', 'family', 'bank']).optional(),
   principal: z.number(),
   interestRate: z.number(),
   remainingPayments: z.number(),
   creditor: z.string(),
+  manualPayoffOnly: z.boolean().optional(),
 });
 
 // ─── Contract ───────────────────────────────────────────────────────────────
@@ -465,7 +467,7 @@ export const CommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('accept_deal'), playerId: PlayerIdSchema, dealId: z.string() }),
   z.object({ type: z.literal('reject_deal'), playerId: PlayerIdSchema, dealId: z.string() }),
   z.object({ type: z.literal('take_loan'), playerId: PlayerIdSchema, amount: z.number().positive() }),
-  z.object({ type: z.literal('repay_loan'), playerId: PlayerIdSchema, loanId: z.string() }),
+  z.object({ type: z.literal('repay_loan'), playerId: PlayerIdSchema, loanId: z.string(), amount: z.number().positive().optional() }),
   z.object({
     type: z.literal('submit_draft'),
     playerId: PlayerIdSchema,
@@ -567,6 +569,15 @@ export const MatchStateSchema = z.object({
     personalOfferIds: z.record(z.string(), BusinessAssetIdSchema.nullable()).optional(),
   }),
   eventLog: z.array(GameEventSchema),
+  scheduledOutcomes: z.array(z.object({
+    id: z.string(),
+    sourceCardId: CardIdSchema,
+    playerId: PlayerIdSchema,
+    outcomeCardId: CardIdSchema,
+    createdRound: z.number().int().min(1),
+    dueRound: z.number().int().min(1),
+    status: z.enum(['pending', 'revealed']),
+  })).optional(),
   version: z.number().int().min(1),
   // Phase 3: active interest window (optional for backward-compat with serialized states)
   activeInterestWindow: InterestWindowSchema.nullable().optional(),

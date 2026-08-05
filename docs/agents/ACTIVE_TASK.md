@@ -2,8 +2,8 @@
 
 ## Session
 
-- Date: 2026-08-04
-- Session log: `docs/agents/sessions/2026-08-04.md`
+- Date: 2026-08-05
+- Session log: `docs/agents/sessions/2026-08-05.md`
 
 ## Task
 
@@ -273,6 +273,46 @@ night survival job. Do not “fix” this by removing losses.
   `dyor-focus-B0tjfKFG.js` plus `dyor-focus-index-B6iRWIrO.css`. A clean
   production tab at 402×874 opened on the new prelude; direct bundle probes find
   `Раздать 3 карты`, `ПРЕДЛОЖЕНИЕ СКРЫТО` and the local-dismiss explanation.
+
+- A 2026-08-05 truth pass repaired stale financial previews, manual obligations,
+  named monthly expense sources, partial debt repayment, staff visibility and
+  business-slot visibility. The `?` forecast now derives from the live engine
+  state after Bank, Market or hire actions instead of retaining the turn-open
+  snapshot.
+- Profession mortgages, car/education loans and other starting obligations use
+  realistic principals (`$5K–$200K`), remain visible until the player chooses a
+  partial or full payoff, and appear by name in the month report. Bank debt and
+  profession obligations remain separate so repaying the Bank cannot produce a
+  phantom Bank balance in recap.
+- Staff and pets now have conditional economic meaning rather than decorative
+  profile copy. The chef always reduces stress by one and adds `$250/month` only
+  with a food business; the vibe-coder adds `$500/month` only with an IT asset;
+  the marketer, welder, lawyer and accountant use similarly named asset
+  conditions. Fish reduce stress monthly. The parrot adds 20% only to income
+  from concrete blogs, courses and content assets, and the cashflow sheet names
+  those matching assets.
+- Hiring copy names both the condition and the amount in the candidate and
+  confirmation surfaces. The team appears as a compact count on the table and a
+  named list in the profile; it is no longer encoded as fake business inventory.
+- Six existing staff/AI investments now schedule one private deterministic
+  follow-up in 3–7 months. Scheduled outcomes are not part of the random deck,
+  cannot be burned/reserved, do not leak to other players and are consumed once.
+  This preserves deck variety while making earlier investment promises visible.
+- The month report is serialized ahead of the next private hand, names the
+  obligation, pet and active synergy sources, and keeps the table background in
+  place. The general action palette is a compact two-column sheet with Bank,
+  Business, Team and Pets kept reachable while the shared Market is active.
+- iPhone 16 Pro replay at 402×874 covered the prelude, three-card hand, live card,
+  compact action palette, Team candidate list, chef confirmation and Pets. The
+  confirmation fit inside the viewport; fish/parrot and staff conditions were
+  legible. Browser console contained no application errors; only Telegram 6.0
+  harness capability warnings appeared.
+- Verification for this pass: web/server TypeScript PASS; 282/282 Vitest tests
+  PASS; 2,000-match audit reports zero invariant breaks. Strategy win-rate flags
+  remain measurements, not a mandate to flatten the satire into identical bot
+  outcomes. Two cards still produce zero observed bot impact; their definitions
+  contain real asset branches, so the follow-up audit must distinguish skipped,
+  unaffordable and dominated choices rather than call them authoritatively empty.
 
 ## Next Step
 

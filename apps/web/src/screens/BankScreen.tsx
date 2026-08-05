@@ -63,13 +63,13 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
     showToast(`${money(amount)} зачислено · платёж −${money(nextMonthlyInterest)}/мес`, 'success');
   };
 
-  const handleRepay = (loanId: string, principal: number) => {
-    if (!repayLoan(loanId)) {
-      showToast('Не хватает наличных для полного погашения', 'error');
+  const handleRepay = (loanId: string, principal: number, payment = principal) => {
+    if (!repayLoan(loanId, payment)) {
+      showToast('Не хватает наличных для этого взноса', 'error');
       return;
     }
     setLiabilityPageIndex((current) => Math.min(current, Math.max(0, activeLiabilities.length - 2)));
-    showToast(`${money(principal)} выплачено · ежемесячная нагрузка снижена`, 'success');
+    showToast(`${money(payment)} выплачено · ежемесячная нагрузка снижена`, 'success');
   };
 
   const handleDeposit = (depositAmount: number, lockPeriod?: number) => {
@@ -138,8 +138,14 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                 </div>
                 {liabilityPage.item && (() => {
                   const loan = liabilityPage.item;
-                  const canRepay = (me?.cash ?? 0) >= loan.principal;
-                  const remainingTerm = isBankCreditor(loan.creditor)
+                  const cash = me?.cash ?? 0;
+                  const canRepay = cash >= loan.principal;
+                  const partialPayment = Math.min(
+                    loan.principal,
+                    cash,
+                    Math.max(500, Math.round((loan.principal * 0.1) / 100) * 100),
+                  );
+                  const remainingTerm = loan.manualPayoffOnly || isBankCreditor(loan.creditor)
                     ? 'до погашения'
                     : `${loan.remainingPayments} мес.`;
                   return (
@@ -149,9 +155,19 @@ export const BankScreen: React.FC<BankScreenProps> = ({ isOpen, onClose }) => {
                         <strong aria-label={`Остаток ${money(loan.principal)}`}>{money(loan.principal)}</strong>
                         <small>Платёж −{money(Math.round(loan.principal * loan.interestRate))}/мес · {remainingTerm}</small>
                       </div>
-                      <button type="button" onClick={() => handleRepay(loan.id, loan.principal)} disabled={!canRepay}>
-                        {canRepay ? 'Погасить' : 'Мало денег'}
-                      </button>
+                      <div className="bank-debt-actions">
+                        <button
+                          className="bank-secondary-action"
+                          type="button"
+                          onClick={() => handleRepay(loan.id, loan.principal, partialPayment)}
+                          disabled={partialPayment <= 0 || partialPayment >= loan.principal}
+                        >
+                          {partialPayment > 0 && partialPayment < loan.principal ? `Внести ${money(partialPayment)}` : 'Взнос недоступен'}
+                        </button>
+                        <button type="button" onClick={() => handleRepay(loan.id, loan.principal)} disabled={!canRepay}>
+                          {canRepay ? 'Погасить всё' : 'Мало денег'}
+                        </button>
+                      </div>
                     </div>
                   );
                 })()}

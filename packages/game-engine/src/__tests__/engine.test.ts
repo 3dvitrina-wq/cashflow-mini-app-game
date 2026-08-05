@@ -83,6 +83,23 @@ describe('createMatch', () => {
 });
 
 describe('profession starting balance', () => {
+  it('gives every profession a visible, realistic obligation that requires a manual payoff', () => {
+    for (const profession of getAllProfessions()) {
+      expect(profession.liabilities.length, profession.id).toBeGreaterThan(0);
+      for (const template of profession.liabilities) {
+        expect(template.principal, profession.id).toBeGreaterThanOrEqual(5_000);
+        expect(template.principal, profession.id).toBeLessThanOrEqual(200_000);
+        const player = createMatch(8_000, [{
+          id: 'p',
+          name: profession.name,
+          outfit: profession.avatarKey,
+          professionId: profession.id,
+        }]).players[0]!;
+        expect(player.liabilities[0]?.manualPayoffOnly, profession.id).toBe(true);
+      }
+    }
+  });
+
   it('gives every profession a comparable passive 15-round baseline', () => {
     const projectedScores = getAllProfessions().map((profession, index) => {
       const match = createMatch(9000 + index, [{

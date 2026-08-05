@@ -10,6 +10,7 @@ import { getLevelProgress } from '../lib/progression';
 import { ACHIEVEMENTS } from '../assets/achievementsCatalog';
 import { useStore } from '../store';
 import { showToast } from '../components/Toast';
+import { staffKindIcon, staffLabelRu } from '../lib/staffDisplay';
 import fishAquarium from '../assets/generated/pets-v2/containers/round_aquarium.webp';
 import starterRoomProfileScene from '../assets/generated/profile-scenes/starter-room-character-scene.webp';
 import { getProfession, TAX_BAND_LABELS } from '../../../../packages/shared/src';
@@ -487,7 +488,7 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
                       <span style={{ textAlign: 'left' }}>
                         <strong style={{ display: 'block', fontSize: 12 }}>{liability.creditor}</strong>
                         <span style={{ fontSize: 10, color: '#B8B6A9' }}>
-                          ${liability.principal.toLocaleString()} · {Math.round(liability.interestRate * 100)}%
+                          ${liability.principal.toLocaleString()} · −${Math.round(liability.principal * liability.interestRate)}/мес
                         </span>
                       </span>
                       <strong style={{ fontSize: 11, color: '#F5C524' }}>Смягчить</strong>
@@ -533,15 +534,18 @@ export const PlayerStatsScreen: React.FC<PlayerStatsScreenProps> = ({
               ))}
             </section>
             <section className="you-list-section">
-              <h3>Ассистенты</h3>
-              <div className="you-assistant-row">
-                <span>Найм</span>
-                <strong>+слоты / меньше рутины</strong>
-              </div>
-              <div className="you-assistant-row">
-                <span>Боты</span>
-                <strong>Авто-выходы и риск сбоев</strong>
-              </div>
+              <h3>Команда ({enginePlayer?.hiredStaffIds?.length ?? 0})</h3>
+              {(enginePlayer?.hiredStaffIds?.length ?? 0) > 0 ? enginePlayer?.hiredStaffIds?.map((staffId) => (
+                <div className="you-assistant-row" key={staffId}>
+                  <span>{staffKindIcon(staffId)} {staffLabelRu(staffId)}</span>
+                  <strong>работает на вас</strong>
+                </div>
+              )) : (
+                <div className="you-assistant-row">
+                  <span>Пока никого</span>
+                  <strong>нанять на рынке труда</strong>
+                </div>
+              )}
             </section>
           </article>
 

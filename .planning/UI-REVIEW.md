@@ -270,3 +270,96 @@ The queue deduplicates by key, persists connection state when requested, and ren
 - P1 priority clusters: **2**
 - P2 recommendations: **7**
 - Previous P0/P1 rows reclassified: **19**
+
+---
+
+## Live-table graphic and UX critic — 2026-08-05
+
+**Runtime baseline:** canonical production `https://cashflow-mini-app-game.pages.dev/?autostart=0`, in-app browser, **402×874**, offline BASIC table with three bots. The replay covered the match prelude, first three-card hand, `ИМПЕРИЯ ВЕНДИНГА`, the `?` forecast, first confirmation, round-two bot listing `ИНВЕСТИЦИЯ В СКЛАД`, Bank, open and closed Market, own profile/Team, Labor, and a second confirmation. No screenshots were written to the repository; `.planning/ui-reviews/.gitignore` was already present.
+
+**Important baseline note:** the local worktree contained edits from other agents before this audit. Findings below describe the live canonical table. File references are supporting traces in the current worktree; pending local Bank/team improvements need a production recheck after deployment.
+
+### Pillar scores
+
+| Pillar | Score | Live finding |
+|---|---:|---|
+| 1. Copywriting | **3/4** | The satire and transaction copy are strong, but unlabeled net values, mixed Russian/English and vague route names slow financial interpretation. |
+| 2. Visuals | **2/4** | The private card is a convincing focal point until overlays arrive; repeated fallback artwork and competing trays make distinct systems look identical. |
+| 3. Color | **3/4** | Red loss, green gain and cyan information are legible, but gold is simultaneously selection, confirmation, navigation focus and reward. |
+| 4. Typography | **2/4** | Main headlines read well; opponent names, HUD labels, market arithmetic and forecast labels fall to 7–8px. |
+| 5. Spacing | **2/4** | The core dock fits precisely, but the offer tray covers the card and Market/Labor spend the first viewport on framing before the useful objects. |
+| 6. Experience Design | **1/4** | The month report is bypassed in BASIC and business-slot management is unreachable from the live 402px turn table. |
+
+**Overall: 13/24**
+
+### Measured live geometry
+
+| Surface | Actual 402×874 geometry | What it means |
+|---|---|---|
+| Turn dock | `?` **44×58** at `x12/y806`; tools **44×58** at `x66/y806`; Confirm **270×58** at `x120/y806` | Excellent thumb geometry and a clear primary action. |
+| Player-card offer | About **378×296**, `x12`, `y418–714` over `НАЛОГОВЫЙ АПОКАЛИПСИС` | The second decision hides most of the first decision instead of queueing behind it. |
+| Bank | Sheet `x0/y347`, **402×528**; `scrollHeight === clientHeight === 527`; tabs **120×44**; primary **354×48** | This is the best compact sheet and should be the reference pattern. |
+| Open Market | Sheet `x0/y122`, **402×752**; `scrollHeight 1337` vs `clientHeight 751`; first two images **149×199**, third offer below fold | The active market opens as a long catalogue, not a quick table decision. |
+| Labor | Sheet `x0/y122`, **402×752**; `scrollHeight 1470` vs `clientHeight 751`; three personal-job buttons **111×83** at `y480`; first Hire only reaches `y782` | “Personnel” is visually subordinated to intro copy and an unrelated recovery-job block. |
+
+### What already works
+
+- The main-card hierarchy is immediate: signal → type → title → one-sentence joke → consequences. `ИМПЕРИЯ ВЕНДИНГА`, `НАЛОГОВЫЙ АПОКАЛИПСИС` and `КОНФЕРЕНЦИЯ` each read without inner card scrolling.
+- The bottom dock is stable across market-open and market-closed rounds. The 270×58 gold Confirm is unmistakable, and both utility buttons exceed the 44px touch target (`index.css:3023-3065`).
+- `?` is materially useful: for the vending choice it exposed Cash `$1.2K → $600`, Passive `$0 → $120`, Expenses `$415 → $416`, and Cashflow `$195 → $302`, rather than giving generic advice (`MainTurnTableScreen.tsx:2084-2129`).
+- Bank is compact and truthful: cash, flow and debt stay visible above three 44px tabs; credit shows both received cash and `−$100/мес` before the action (`BankScreen.tsx:91-199`).
+- `Не брать` plus the five-second `ВЕРНУТЬ` notice explains that a bot listing is hidden only for this viewer. That is unusually clear multiplayer copy.
+
+### Top three fixes
+
+1. **P0 — restore `ИТОГИ МЕСЯЦА` before the next BASIC hand.** Both confirmations jumped straight to a new three-card picker, so the player never saw what the previous month did.
+2. **P1 — expose current business capacity and its management route.** The Market says “Займёт 1 бизнес-слот”, but the active mobile table hides the only slots button and the general menu has no replacement.
+3. **P1 — serialize the personal card and bot listing.** A 296px `Стол возможностей` tray covered the live crisis card, player HUD and much of the decision context while the turn timer continued.
+
+### P0
+
+| Issue | Before | After | Why |
+|---|---|---|---|
+| BASIC month report is unreachable | Tap `Подтвердить` on the vending choice or tax crisis → the next `ЛИЧНАЯ РУКА · НОВЫЙ МЕСЯЦ` appears immediately. The report JSX exists at `MainTurnTableScreen.tsx:1422-1452`, but the personal-hand early return at `1385-1393` wins first. | While `roundTransition` is `waiting/summary`, render the old table and summary overlay even if the new hand is already pending; only render `PersonalCardPicker` after the 3.4–4.4s report ends. Concretely, move/guard the picker return with `!isAdvancingTime && !roundTransition`. | The game currently changes cash/flow without showing cause. This breaks the educational loop and contradicts the prior review’s claim that the ledger is visible. |
+
+### P1
+
+| Issue | Before | After | Why |
+|---|---|---|---|
+| Business slots disappear on the real phone table | The opener exists in `.you-hud-inventory` (`MainTurnTableScreen.tsx:1806-1813`), but active mobile CSS sets that container to `display:none` (`index.css:3514-3516`). The nine-item tool menu has Bank/Market/Labor but no Business (`MainTurnTableScreen.tsx:1315-1366`). | Add a first-level `Бизнес · 0/3` tool item that opens `BusinessSlotsScreen`, and repeat `0/3 свободно` in the Market header. Keep the hidden HUD inventory as optional desktop detail. | A player cannot inspect or manage the capacity that Market purchases consume. |
+| Bot offer steals the private decision | In round two, `Стол возможностей` occupied `x12/y418–714` over the tax crisis. The wrapper is fixed above the dock with up to `42dvh/390px` (`index.css:12770-12815`) while the personal choice remains live (`MainTurnTableScreen.tsx:2212-2226`). | Collapse the listing to a one-line chip: `Мажор-студент · Склад · $600`, then open a focused review sheet on tap; alternatively queue it until the personal choice is locked. Pause the timer whenever the expanded offer owns attention. | Two simultaneous money decisions create false urgency and hide the card the player is actually resolving. |
+| Card artwork resolver defeats its own exact art | The glob loads `*.webp` but strips only `.png` (`cardArtwork.ts:48-56`), so `opp-vending` cannot match `opp-vending.webp` and falls into the shared 19-image pool (`71-90`, `128-139`). Live result: the coffee shop represents vending; the purple AI desk repeats for NEON, Conference and Market’s Microstudio; the bank kiosk also represents Accountant Shield. | Strip `\.webp` (or any image extension) when building `GENERATED_CARD_ART`, then reserve each fallback image for one semantic family. Add an assertion that `opp-vending` resolves to `card-art-v2/opp-vending.webp`. | Repeated art erases card identity, makes unrelated systems look like duplicates, and makes the deck feel much smaller than it is. |
+| An “active” Market is a dead end for the current player | At round three the live player had `$1.1K`; offers were `$3K`, `$8.5K`, `$20K`, all green-but-disabled. The sheet shows only per-card slot cost (`MarketBoardScreen.tsx:244-285`), not current cash/slots or a financing route; the third offer is below the first viewport. | Put `Cash $1.1K · Slots 0/3` in a sticky header. If the cheapest item needs financing, replace dead `Не хватает денег` with `В банк · не хватает $1.9K`; otherwise guarantee one cash-reachable offer. Use one full-width card/pager so all three lots have equal exposure. | The pulsing green market entrance promises an actionable event but produces three refusals and no next move. |
+| Personnel starts with the wrong task | `Рынок труда` has a 1470px scroll body. The first viewport spends roughly 420px on hero copy and `Моя работа`; candidate one starts low and Hire reaches `y782`. The menu label is the abstract `Труд`, while the screen says team/hiring and mixes `coder`, `stress`, `trust` into Russian copy (`LaborMarketScreen.tsx:218-282`). | Rename the route `Команда`. Show `Нанято 0 · Свободно слотов 3` plus candidate one immediately; move `Гиг / Офис / Ночь` into a separate `Подработка` tab or crisis-only entry. Localize `coder/stress/trust`. | Opening personnel should reveal people, price and benefit—not another employment subsystem and a long preamble. |
+
+### P2
+
+| Issue | Before | After | Why |
+|---|---|---|---|
+| Coin and shop symbols carry too many meanings | The same coin appears for cash cost, passive income, option purchase and Bank/market decoration; the storefront icon means Market entry, business slot and several card subjects. | Keep coin for cash only, use sprout/chart for recurring flow, storefront for owned business, and distinct category art for market lots. Remove decorative duplicate coins inside one transaction cluster. | Semantic icons should let the player scan before reading numbers. |
+| The useful `?` is visually anonymous | A bare `?` opens a four-column panel with **8px** labels (`index.css:2955-3004`). The vending option itself showed `$600 · +$107/мес` without saying this was net cashflow, while the card said `+$120/мес` passive. | Label it `Прогноз` or add an eye/chart glyph. Use a 2×2 forecast at 10–11px and write `$600 · поток +$107/мес`; keep passive `+$120/мес` on the card. | The math is correct but looks contradictory until the user reverse-engineers stress and the extra expense. |
+| Mobile financial labels are below a safe reading floor | Opponent names are **7.4px**, HUD labels/risk rows **7px**, and Market gross/upkeep arithmetic **8px** (`index.css:3421-3429`, `3486-3511`; `MarketBoardScreen.tsx:280-285`). | Set 10px as the minimum for labels and 11–12px for financial facts; abbreviate content rather than shrinking it. | These values are core game state, not decorative microcopy. |
+| Nine utility rows become a second navigation system | On an open-market round the right menu contains Market, Rules, Help, Bank, Labor, Pets, Events, Bonus and Settings. Each row is at least 46px with an 8px gap (`index.css:1348-1379`), covering the card and Confirm area. | Keep `Рынок`, `Банк`, `Команда` as three direct actions; group Rules/Events/Bonus/Settings under `Ещё`. Show `Банк` as a persistent small HUD entry when debt exists. | High-frequency economic routes should not compete equally with rules, settings and a daily bonus mid-turn. |
+| Live Team/profile is visually rich but informationally empty | The 402px Team tab first shows the full bedroom hero, then a large empty Pets block and generic `Найм +слоты / меньше рутины` / `Боты Авто-выходы...`; it does not list actual staff. | Replace the hero on non-Status tabs with a 72px identity strip, then list hired staff with role, salary and effect; empty state CTA `Нанять на рынке труда`. | The most elaborate surface gives less actionable team information than the Labor candidate card. Pending local team-list work should be verified on the canonical host before closing this item. |
+
+### Boredom / false-hierarchy call
+
+The table is not visually boring at first contact: the satirical titles, characters and tactile dock carry it. It becomes flat through repetition and blocked action. Three unrelated cards sharing one purple workstation, three disabled Market buys, and a Team tab with an empty lower half turn novelty into catalogue fatigue. The remedy is not more glow or motion; it is one recognisable picture per object family, one actionable route per system, and one consequence beat before the next choice.
+
+### Files checked for this focused pass
+
+- Live canonical UI at 402×874: match prelude, personal hand, main table, forecast, bot offer, Bank, Market, Labor, own profile/Team.
+- `apps/web/src/screens/MainTurnTableScreen.tsx`
+- `apps/web/src/screens/BankScreen.tsx`
+- `apps/web/src/screens/MarketBoardScreen.tsx`
+- `apps/web/src/screens/LaborMarketScreen.tsx`
+- `apps/web/src/screens/BusinessSlotsScreen.tsx`
+- `apps/web/src/screens/PlayerStatsScreen.tsx`
+- `apps/web/src/assets/cardArtwork.ts`
+- `apps/web/src/index.css`
+
+### Recommendation count for 2026-08-05 pass
+
+- P0: **1**
+- P1: **5**
+- P2: **5**

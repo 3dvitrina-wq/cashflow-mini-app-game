@@ -24,11 +24,11 @@ export type AssetPurchaseConfig = BusinessAssetDefinition;
 const STAFF_CONFIGS: Readonly<Record<string, StaffConfig>> = {
   junior_dev: { staffId: 'junior_dev', salary: 800, bonus: { slots: 0, income: 0 } },
   welder: { staffId: 'welder', salary: 800, bonus: { slots: 2, income: 0 } },
-  coder: { staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 500 } },
+  coder: { staffId: 'coder', salary: 1200, bonus: { slots: 3, income: 0 } },
   chef: { staffId: 'chef', salary: 600, bonus: { slots: 1, income: 0 } },
   lawyer: { staffId: 'lawyer', salary: 1500, bonus: { slots: 0, income: 0 } },
   accountant: { staffId: 'accountant', salary: 900, bonus: { slots: 0, income: 0 } },
-  marketer: { staffId: 'marketer', salary: 1100, bonus: { slots: 0, income: 300 } },
+  marketer: { staffId: 'marketer', salary: 1100, bonus: { slots: 0, income: 0 } },
 };
 
 export function getCanonicalStaff(

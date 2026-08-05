@@ -52,6 +52,7 @@ export const TAX_BAND_LABELS: Record<TaxBand, { en: string; ru: string }> = {
 /** Initial liability template — id is generated at player creation. */
 export interface LiabilityTemplate {
   kind: 'loan' | 'credit' | 'margin' | 'guarantee';
+  category: 'mortgage' | 'education' | 'car' | 'equipment' | 'consumer' | 'business' | 'family';
   principal: number;
   interestRate: number;
   remainingPayments: number;
@@ -91,6 +92,31 @@ function power(
   return { id, name, nameRu, type, value, summary, summaryRu, detail, detailRu };
 }
 
+/**
+ * Realistic outstanding principal with a deliberately balanced monthly burden.
+ * The engine still derives the payment from principal × rate, so partial manual
+ * repayments immediately lower next month's expense without changing profession
+ * balance merely because the displayed debt now looks like a real debt.
+ */
+function requiredObligation(
+  category: LiabilityTemplate['category'],
+  principal: number,
+  paymentPerMonth: number,
+  creditor: string,
+): LiabilityTemplate {
+  const kind: LiabilityTemplate['kind'] = category === 'consumer' || category === 'equipment' || category === 'business'
+    ? 'credit'
+    : 'loan';
+  return {
+    kind,
+    category,
+    principal,
+    interestRate: Number((paymentPerMonth / principal).toFixed(6)),
+    remainingPayments: 999,
+    creditor,
+  };
+}
+
 export const PROFESSIONS: ProfessionDefinition[] = [
   {
     id: 'courier',
@@ -100,9 +126,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'hustler',
     baseSalary: 620,
     taxBand: 'a',
-    baseExpenses: 416,
+    baseExpenses: 366,
     startingCash: 1200,
-    liabilities: [],
+    liabilities: [requiredObligation('car', 12_000, 50, 'Courier Vehicle Loan')],
     travelCost: 50,
     heroTitle: 'Street Runner',
     heroTitleRu: 'Уличный раннер',
@@ -128,9 +154,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'creator',
     baseSalary: 550,
     taxBand: 'a',
-    baseExpenses: 377,
+    baseExpenses: 347,
     startingCash: 1200,
-    liabilities: [],
+    liabilities: [requiredObligation('consumer', 5_000, 30, 'Starter Credit Card')],
     travelCost: 30,
     heroTitle: 'Tip Magnet',
     heroTitleRu: 'Магнит для чаевых',
@@ -158,9 +184,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'a',
     baseExpenses: 468,
     startingCash: 1200,
-    liabilities: [
-      { kind: 'credit', principal: 600, interestRate: 0.06, remainingPayments: 18, creditor: 'Equipment Credit' },
-    ],
+    liabilities: [requiredObligation('equipment', 8_000, 36, 'Equipment Credit')],
     travelCost: 80,
     heroTitle: 'Portfolio Flip',
     heroTitleRu: 'Портфолио-флип',
@@ -188,9 +212,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 481,
     startingCash: 1200,
-    liabilities: [
-      { kind: 'loan', principal: 1500, interestRate: 0.05, remainingPayments: 24, creditor: 'Student Loan Fund' },
-    ],
+    liabilities: [requiredObligation('education', 18_000, 75, 'Student Loan Fund')],
     travelCost: 40,
     heroTitle: 'Trusted Adult',
     heroTitleRu: 'Надёжный взрослый',
@@ -218,9 +240,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 560,
     startingCash: 1500,
-    liabilities: [
-      { kind: 'loan', principal: 2000, interestRate: 0.05, remainingPayments: 30, creditor: 'Medical School Fund' },
-    ],
+    liabilities: [requiredObligation('education', 30_000, 100, 'Medical School Fund')],
     travelCost: 60,
     heroTitle: 'Night Shift Backbone',
     heroTitleRu: 'Ночная смена',
@@ -246,9 +266,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'nomad',
     baseSalary: 980,
     taxBand: 'b',
-    baseExpenses: 622,
+    baseExpenses: 552,
     startingCash: 1500,
-    liabilities: [],
+    liabilities: [requiredObligation('equipment', 12_000, 70, 'Field Equipment Credit')],
     travelCost: 200,
     heroTitle: 'Tax Leak',
     heroTitleRu: 'Налоговый слив',
@@ -276,9 +296,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 867,
     startingCash: 1500,
-    liabilities: [
-      { kind: 'loan', principal: 3000, interestRate: 0.04, remainingPayments: 36, creditor: 'Tech Academy' },
-    ],
+    liabilities: [requiredObligation('education', 25_000, 120, 'Tech Academy')],
     travelCost: 100,
     heroTitle: 'Automation Loop',
     heroTitleRu: 'Автоматизация',
@@ -306,9 +324,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 877,
     startingCash: 1500,
-    liabilities: [
-      { kind: 'loan', principal: 4000, interestRate: 0.04, remainingPayments: 48, creditor: 'Medical School Loan' },
-    ],
+    liabilities: [requiredObligation('education', 70_000, 160, 'Medical School Loan')],
     travelCost: 80,
     heroTitle: 'Emergency Protocol',
     heroTitleRu: 'Экстренный протокол',
@@ -336,9 +352,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 624,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'loan', principal: 5000, interestRate: 0.04, remainingPayments: 60, creditor: 'Mortgage Bank' },
-    ],
+    liabilities: [requiredObligation('mortgage', 120_000, 200, 'Mortgage Bank')],
     travelCost: 200,
     heroTitle: 'Exit Commission',
     heroTitleRu: 'Комиссия на выходе',
@@ -366,9 +380,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 856,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'loan', principal: 3500, interestRate: 0.04, remainingPayments: 48, creditor: 'Personal Loan' },
-    ],
+    liabilities: [requiredObligation('consumer', 35_000, 140, 'Personal Loan')],
     travelCost: 150,
     heroTitle: 'Conversion Spell',
     heroTitleRu: 'Конверсия',
@@ -396,9 +408,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 652,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'credit', principal: 4000, interestRate: 0.05, remainingPayments: 60, creditor: 'Venture Credit' },
-    ],
+    liabilities: [requiredObligation('business', 50_000, 200, 'Venture Credit')],
     travelCost: 400,
     heroTitle: 'Runway Wizard',
     heroTitleRu: 'Маг ранвея',
@@ -426,9 +436,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'd',
     baseExpenses: 1039,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'loan', principal: 2500, interestRate: 0.04, remainingPayments: 30, creditor: 'Prestige Club Financing' },
-    ],
+    liabilities: [requiredObligation('consumer', 60_000, 100, 'Prestige Club Financing')],
     travelCost: 300,
     heroTitle: 'Leverage Dial',
     heroTitleRu: 'Рычаг',
@@ -456,9 +464,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'd',
     baseExpenses: 1390,
     startingCash: 1800,
-    liabilities: [
-      { kind: 'loan', principal: 8000, interestRate: 0.03, remainingPayments: 72, creditor: 'Prestige Mortgage' },
-    ],
+    liabilities: [requiredObligation('mortgage', 200_000, 240, 'Prestige Mortgage')],
     travelCost: 500,
     heroTitle: 'Board Bonus',
     heroTitleRu: 'Бонус совета',
@@ -484,9 +490,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'trader',
     baseSalary: 2250,
     taxBand: 'd',
-    baseExpenses: 1307,
+    baseExpenses: 1067,
     startingCash: 1800,
-    liabilities: [],
+    liabilities: [requiredObligation('mortgage', 200_000, 240, 'Portfolio Mortgage')],
     travelCost: 400,
     heroTitle: 'Treasury Desk',
     heroTitleRu: 'Трежери-деск',
@@ -514,9 +520,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'operator',
     baseSalary: 610,
     taxBand: 'a',
-    baseExpenses: 411,
+    baseExpenses: 376,
     startingCash: 1200,
-    liabilities: [],
+    liabilities: [requiredObligation('consumer', 5_000, 35, 'Starter Credit Card')],
     travelCost: 30,
     heroTitle: 'Change Whisperer',
     heroTitleRu: 'Шёпот сдачи',
@@ -544,9 +550,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 696,
     startingCash: 1500,
-    liabilities: [
-      { kind: 'credit', principal: 1800, interestRate: 0.05, remainingPayments: 30, creditor: 'Lifestyle Card' },
-    ],
+    liabilities: [requiredObligation('consumer', 25_000, 90, 'Lifestyle Card')],
     travelCost: 120,
     heroTitle: 'Second Signature',
     heroTitleRu: 'Вторая подпись',
@@ -574,9 +578,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 425,
     startingCash: 1200,
-    liabilities: [
-      { kind: 'credit', principal: 1300, interestRate: 0.05, remainingPayments: 20, creditor: 'Credit Card' },
-    ],
+    liabilities: [requiredObligation('consumer', 8_000, 65, 'Credit Card')],
     travelCost: 45,
     heroTitle: 'Documentation Armor',
     heroTitleRu: 'Броня бумажек',
@@ -604,9 +606,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'a',
     baseExpenses: 258,
     startingCash: 1200,
-    liabilities: [
-      { kind: 'loan', principal: 1200, interestRate: 0.04, remainingPayments: 18, creditor: 'Parent Advance' },
-    ],
+    liabilities: [requiredObligation('family', 5_000, 48, 'Parent Advance')],
     travelCost: 70,
     heroTitle: 'Hype Scholarship',
     heroTitleRu: 'Стипендия за хайп',
@@ -634,9 +634,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 859,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'loan', principal: 2800, interestRate: 0.04, remainingPayments: 36, creditor: 'Flight School' },
-    ],
+    liabilities: [requiredObligation('education', 90_000, 112, 'Flight School')],
     travelCost: 260,
     heroTitle: 'Emergency Descent',
     heroTitleRu: 'Аварийное снижение',
@@ -662,9 +660,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'hustler',
     baseSalary: 1120,
     taxBand: 'b',
-    baseExpenses: 698,
+    baseExpenses: 618,
     startingCash: 1500,
-    liabilities: [],
+    liabilities: [requiredObligation('car', 18_000, 80, 'Patrol Car Loan')],
     travelCost: 60,
     heroTitle: 'Hard Ask',
     heroTitleRu: 'Жёсткий запрос',
@@ -690,9 +688,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'creator',
     baseSalary: 680,
     taxBand: 'a',
-    baseExpenses: 449,
+    baseExpenses: 399,
     startingCash: 1200,
-    liabilities: [],
+    liabilities: [requiredObligation('equipment', 8_000, 50, 'Studio Equipment Credit')],
     travelCost: 90,
     heroTitle: 'Resale Aura',
     heroTitleRu: 'Аура перепродажи',
@@ -720,9 +718,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'b',
     baseExpenses: 532,
     startingCash: 1500,
-    liabilities: [
-      { kind: 'loan', principal: 1900, interestRate: 0.05, remainingPayments: 28, creditor: 'Pedagogy Loan' },
-    ],
+    liabilities: [requiredObligation('education', 22_000, 95, 'Pedagogy Loan')],
     travelCost: 35,
     heroTitle: 'Calm Room',
     heroTitleRu: 'Спокойный класс',
@@ -750,9 +746,7 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     taxBand: 'c',
     baseExpenses: 824,
     startingCash: 1600,
-    liabilities: [
-      { kind: 'credit', principal: 2600, interestRate: 0.04, remainingPayments: 30, creditor: 'Business Card' },
-    ],
+    liabilities: [requiredObligation('business', 40_000, 104, 'Business Card')],
     travelCost: 220,
     heroTitle: 'Damage Control',
     heroTitleRu: 'Антикризис',
@@ -778,9 +772,9 @@ export const PROFESSIONS: ProfessionDefinition[] = [
     avatarKey: 'nomad',
     baseSalary: 1180,
     taxBand: 'b',
-    baseExpenses: 782,
+    baseExpenses: 682,
     startingCash: 1500,
-    liabilities: [],
+    liabilities: [requiredObligation('car', 25_000, 100, 'Relocation Car Loan')],
     travelCost: 210,
     heroTitle: 'Upgrade Whisper',
     heroTitleRu: 'Апгрейд-шёпот',

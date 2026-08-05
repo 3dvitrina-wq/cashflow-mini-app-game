@@ -57,7 +57,11 @@ export interface PlayerState {
   trust: number; // 0-10
   debt: number; // 0-10
   businessSlots: number; // 0-5
+  businessSlotsUsed?: number;
   businesses: string[];
+  hiredStaffIds?: string[];
+  assistantSlotsUsed?: number;
+  assistantSlotsMax?: number;
   protections: string[];
   isActive: boolean;
   isReady: boolean;

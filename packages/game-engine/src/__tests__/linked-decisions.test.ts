@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { CARDS, getCard } from '../cards';
+import { CARDS, getCard, getWeightedCardIds } from '../cards';
 import { checkEligibility } from '../conditions';
-import { createMatch } from '../engine';
+import { advanceRound, createMatch, openIntentWindow, resolveCommand } from '../engine';
 import { applyEffects } from '../effects';
 import { applySynergyBonuses, synergyCashflow } from '../synergy';
 
@@ -11,6 +11,70 @@ const PLAYERS = [
 ];
 
 describe('linked decision content', () => {
+  it('reveals a promised staff consequence exactly on its deterministic due round', () => {
+    let state = createMatch(801, PLAYERS, { experienceMode: 'basic', maxRounds: 15 });
+    const player = state.players[0]!;
+    applyEffects(state, player, [
+      { type: 'assistant.hire', value: 'virtual_assistant' },
+      { type: 'outcome.schedule', payload: {
+        sourceCardId: 'staff-va',
+        outcomeCardId: 'followup-assistant-double-booking',
+        requiredStaffId: 'virtual_assistant',
+        minDelay: 3,
+        maxDelay: 3,
+      } },
+    ]);
+    expect(state.scheduledOutcomes).toEqual([expect.objectContaining({ dueRound: 4, status: 'pending' })]);
+
+    state.round = 3;
+    state = advanceRound(state).state;
+    expect(state.round).toBe(4);
+    expect(state.personalCardIds?.p1).toBe('followup-assistant-double-booking');
+    expect(state.scheduledOutcomes?.[0]?.status).toBe('revealed');
+
+    state = openIntentWindow(state);
+    const ordinary = state.personalCardOptionIds?.p1?.find((cardId) => cardId !== 'followup-assistant-double-booking')!;
+    const rejected = resolveCommand(state, {
+      type: 'select_personal_cards',
+      playerId: 'p1',
+      activeCardId: ordinary,
+      reserveCardId: 'followup-assistant-double-booking',
+    });
+    expect(rejected.events.some((event) => event.type === 'command_rejected')).toBe(true);
+  });
+
+  it('keeps scheduled staff outcomes out of the random weighted deck', () => {
+    const weightedIds = new Set(getWeightedCardIds().map((card) => card.id));
+    const scheduledStaffOutcomes = [
+      'followup-junior-friday-deploy',
+      'followup-assistant-double-booking',
+      'followup-bookkeeper-refund',
+      'followup-social-viral-post',
+      'followup-cleaner-client-visit',
+      'followup-trading-bot-night',
+    ];
+    expect(scheduledStaffOutcomes.filter((id) => weightedIds.has(id))).toEqual([]);
+  });
+
+  it('shortens the random window near the finale without breaking the promised outcome', () => {
+    const state = createMatch(802, PLAYERS, { experienceMode: 'basic', maxRounds: 15 });
+    state.round = 11;
+    const player = state.players[0]!;
+    applyEffects(state, player, [
+      { type: 'assistant.hire', value: 'virtual_assistant' },
+      { type: 'outcome.schedule', payload: {
+        sourceCardId: 'staff-va',
+        outcomeCardId: 'followup-assistant-double-booking',
+        requiredStaffId: 'virtual_assistant',
+        minDelay: 3,
+        maxDelay: 5,
+      } },
+    ]);
+
+    expect(state.scheduledOutcomes?.[0]?.dueRound).toBeGreaterThanOrEqual(14);
+    expect(state.scheduledOutcomes?.[0]?.dueRound).toBeLessThanOrEqual(15);
+  });
+
   it('keeps staff follow-ups locked until the matching hire exists', () => {
     const state = createMatch(81, PLAYERS);
     state.round = 3;
@@ -65,6 +129,49 @@ describe('linked decision content', () => {
     expect(events.filter((event) => event.effectType === 'synergy.trigger')).toHaveLength(2);
     expect(player.passiveIncome).toBe(passiveBefore);
     expect(player.expenses).toBe(expensesBefore);
+  });
+
+  it('makes labor-market specialists useful only through understandable combinations', () => {
+    const state = createMatch(804, PLAYERS);
+    const player = state.players[0]!;
+    player.hiredStaffIds = ['chef', 'coder'];
+    player.stress = 5;
+
+    const withoutAssets = synergyCashflow(player);
+    expect(withoutAssets.income).toBe(0);
+    expect(withoutAssets.active.map((item) => item.id)).toContain('labor-chef-calm');
+
+    player.assets.push({
+      id: 'coffee-test',
+      kind: 'business',
+      name: 'Кофейня',
+      tags: ['food', 'local_business'],
+      synergyKeys: ['hospitality'],
+      incomePerRound: 500,
+      upkeepPerRound: 100,
+      value: 1_000,
+      acquiredRound: 1,
+    }, {
+      id: 'tech-test',
+      kind: 'technology',
+      name: 'IT-продукт',
+      tags: ['technology'],
+      synergyKeys: ['software'],
+      incomePerRound: 600,
+      upkeepPerRound: 100,
+      value: 2_000,
+      acquiredRound: 1,
+    });
+
+    const withAssets = synergyCashflow(player);
+    expect(withAssets.income).toBe(750);
+    expect(withAssets.active.map((item) => item.id)).toEqual(expect.arrayContaining([
+      'labor-chef-calm',
+      'labor-chef-food',
+      'labor-coder-tech',
+    ]));
+    applySynergyBonuses(state);
+    expect(player.stress).toBe(4);
   });
 
   it('unlocks a joint AI + junior outcome only after both setup decisions', () => {

@@ -248,10 +248,12 @@ export function createPlayer(p: NewPlayer): PlayerState {
     ? prof.liabilities.map((t, i) => ({
         id: `liab_${p.id}_${i}`,
         kind: t.kind,
+        category: t.category,
         principal: t.principal,
         interestRate: t.interestRate,
         remainingPayments: t.remainingPayments,
         creditor: t.creditor,
+        manualPayoffOnly: true,
       }))
     : [];
 
@@ -413,6 +415,7 @@ export function createMatch(
     businessMarket: businessMarketForRound(seed, 1),
 
     eventLog: [],
+    scheduledOutcomes: [],
     version: 1,
 
     activeInterestWindow: null,
@@ -481,9 +484,17 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
     }
 
     const hand: string[] = [];
+    const dueOutcome = (state.scheduledOutcomes ?? [])
+      .filter((outcome) => outcome.playerId === player.id && outcome.status === 'pending' && outcome.dueRound <= state.round)
+      .sort((a, b) => a.dueRound - b.dueRound || a.createdRound - b.createdRound)[0];
+    const scheduledCardId = dueOutcome && getCard(dueOutcome.outcomeCardId) ? dueOutcome.outcomeCardId : null;
+    if (dueOutcome && scheduledCardId) {
+      dueOutcome.status = 'revealed';
+      hand.push(scheduledCardId);
+    }
     const carried = previousReserves[player.id];
     carriedIds[player.id] = null;
-    if (carried) {
+    if (carried && hand.length < 3) {
       const carriedCard = getCard(carried);
       const stillEligible = carriedCard
         && carriedCard.type !== 'crisis'
@@ -508,6 +519,7 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       const allowedInBasic = candidate && candidate.type !== 'market_pulse' && candidate.type !== 'social';
       const alreadyHasCrisis = hand.some((cardId) => getCard(cardId)?.type === 'crisis');
       if (allowedInBasic
+        && !(scheduledCardId && candidate.type === 'crisis' && candidateId !== scheduledCardId)
         && !(candidate.type === 'crisis' && alreadyHasCrisis)
         && checkEligibility(state, player, candidate.eligibility)) {
         hand.push(candidateId);
@@ -523,6 +535,7 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
       if (!hand.includes(fallbackId)
         && !previousDiscards[player.id]?.includes(fallbackId)
         && fallback
+        && !(scheduledCardId && fallback.type === 'crisis' && fallbackId !== scheduledCardId)
         && !(fallback.type === 'crisis' && alreadyHasCrisis)) {
         hand.push(fallbackId);
       }
@@ -532,11 +545,12 @@ function dealPersonalCards(state: MatchState, startCursor: number): void {
     // hidden in reserve or burned by picking two nicer cards. The player still
     // chooses how to respond on the crisis card itself.
     const crisisCardId = hand.find((cardId) => getCard(cardId)?.type === 'crisis') ?? null;
-    const orderedHand = crisisCardId
-      ? [crisisCardId, ...hand.filter((cardId) => cardId !== crisisCardId)]
+    const forcedCardId = scheduledCardId ?? crisisCardId;
+    const orderedHand = forcedCardId
+      ? [forcedCardId, ...hand.filter((cardId) => cardId !== forcedCardId)]
       : hand;
-    const activeCardId = crisisCardId ?? orderedHand[0] ?? null;
-    const reserveCardId = orderedHand.find((cardId) => cardId !== activeCardId && getCard(cardId)?.type !== 'crisis') ?? null;
+    const activeCardId = forcedCardId ?? orderedHand[0] ?? null;
+    const reserveCardId = orderedHand.find((cardId) => cardId !== activeCardId && getCard(cardId)?.type !== 'crisis' && cardId !== scheduledCardId) ?? null;
     personal[player.id] = activeCardId;
     options[player.id] = orderedHand.slice(0, 3);
     reserves[player.id] = reserveCardId;
@@ -674,6 +688,17 @@ export function canAffordChoice(state: MatchState, playerId: string, choiceIndex
   const choice = choices[choiceIndex];
   const actor = decisionState.players.find((p) => p.id === playerId);
   if (!choice || !actor) return true; // not an affordability question
+  const hireEffect = choice.effects.find((effect) => effect.type === 'assistant.hire');
+  if (hireEffect && (
+    actor.assistantSlotsUsed >= actor.assistantSlotsMax
+    || Boolean(hireEffect.value && actor.hiredStaffIds?.includes(hireEffect.value))
+  )) {
+    return false;
+  }
+  const scheduledEffect = choice.effects.find((effect) => effect.type === 'outcome.schedule');
+  if (scheduledEffect && decisionState.round + Number(scheduledEffect.payload?.minDelay ?? 0) > decisionState.maxRounds) {
+    return false;
+  }
   if (decisionState.experienceMode === 'basic' && choice.effects.some((effect) => effect.type === 'partnership.invite' || effect.type === 'deal.resolve')) {
     return false;
   }
@@ -768,11 +793,16 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     if (!options.includes(cmd.activeCardId) || (cmd.reserveCardId && !options.includes(cmd.reserveCardId))) {
       return 'selected personal card is not in this hand';
     }
+    const forcedOutcomeId = state.scheduledOutcomes?.find((outcome) =>
+      outcome.playerId === player.id
+      && outcome.status === 'revealed'
+      && options.includes(outcome.outcomeCardId))?.outcomeCardId;
     const forcedCrisisId = options.find((cardId) => getCard(cardId)?.type === 'crisis');
-    if (forcedCrisisId && cmd.activeCardId !== forcedCrisisId) {
+    const forcedCardId = forcedOutcomeId ?? forcedCrisisId;
+    if (forcedCardId && cmd.activeCardId !== forcedCardId) {
       return 'crisis events must be resolved now';
     }
-    if (cmd.reserveCardId && getCard(cmd.reserveCardId)?.type === 'crisis') {
+    if (cmd.reserveCardId && (getCard(cmd.reserveCardId)?.type === 'crisis' || cmd.reserveCardId === forcedOutcomeId)) {
       return 'crisis events cannot be reserved';
     }
     return null;
@@ -1016,6 +1046,16 @@ export function validateCommand(state: MatchState, cmd: Command): string | null 
     // opportunity/protection/staff cards). Forced crises with no affordable option
     // still resolve via the clamp-to-zero damage model. See canAffordChoice.
     const actor = state.players.find((p) => p.id === cmd.playerId);
+    const hireEffect = choices[cmd.choiceIndex]?.effects.find((effect) => effect.type === 'assistant.hire');
+    if (actor && hireEffect) {
+      if (actor.assistantSlotsUsed >= actor.assistantSlotsMax) return 'no free assistant slots';
+      if (hireEffect.value && actor.hiredStaffIds?.includes(hireEffect.value)) return 'staff already hired';
+    }
+    const scheduledEffect = choices[cmd.choiceIndex]?.effects.find((effect) => effect.type === 'outcome.schedule');
+    const minDelay = Number(scheduledEffect?.payload?.minDelay ?? 0);
+    if (scheduledEffect && state.round + minDelay > state.maxRounds) {
+      return 'not enough rounds left for promised outcome';
+    }
     if (!canAffordChoice(state, cmd.playerId, cmd.choiceIndex)) {
       return 'insufficient cash for this option';
     }
@@ -1577,13 +1617,14 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
       const liability = player?.liabilities.find((item) => item.id === cmd.liabilityId);
       if (!player || !liability) break;
       const discount = restructureDiscount(player);
-      const fee = Math.max(50, Math.round(liability.principal * 0.08 * (1 - discount)));
+      const currentPayment = Math.round(liability.principal * liability.interestRate);
+      const fee = Math.max(50, Math.round(currentPayment * 2 * (1 - discount)));
       if (player.cash < fee) {
         events.push({ type: 'command_rejected', playerId: player.id, message: 'insufficient cash to restructure debt' });
         break;
       }
       player.cash -= fee;
-      liability.interestRate = Math.max(0.02, Number((liability.interestRate * (0.78 - discount * 0.4)).toFixed(3)));
+      liability.interestRate = Math.max(0.0001, Number((liability.interestRate * (0.78 - discount * 0.4)).toFixed(6)));
       liability.remainingPayments += 6;
       player.debt = Math.max(0, player.debt - 1);
       player.stress = Math.max(0, player.stress - 1);
@@ -1677,10 +1718,12 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
           player.liabilities.push({
             id: `loan_${state.round}_${state.rngCounter}_${player.liabilities.length}`,
             kind: 'loan',
+            category: 'bank',
             principal: cmd.amount,
             interestRate: 0.10,
             remainingPayments: 999, // interest-only until repaid (see repay_loan)
             creditor: 'Bank',
+            manualPayoffOnly: true,
           });
           events.push({ type: 'money', playerId: player.id, amount: cmd.amount, message: 'bank loan' });
           events.push({ type: 'effect', playerId: player.id, effectType: 'liability.add', amount: cmd.amount, message: 'bank loan' });
@@ -1699,14 +1742,21 @@ export function resolveCommand(prev: MatchState, cmd: Command): CommandResult {
         const loan = idx >= 0 ? player.liabilities[idx] : undefined;
         if (!loan) {
           events.push({ type: 'command_rejected', playerId: player.id, message: 'loan not found' });
-        } else if (player.cash < loan.principal) {
+        } else if ((cmd.amount ?? loan.principal) <= 0 || (cmd.amount ?? loan.principal) > loan.principal) {
+          events.push({ type: 'command_rejected', playerId: player.id, message: 'invalid repayment amount' });
+        } else if (player.cash < (cmd.amount ?? loan.principal)) {
           events.push({ type: 'command_rejected', playerId: player.id, message: 'insufficient cash to repay loan' });
         } else {
-          // Repay principal from cash and lift the recurring interest load.
-          player.cash -= loan.principal;
-          player.liabilities.splice(idx, 1);
-          if (isBankCreditor(loan.creditor)) player.debt = Math.max(0, player.debt - 1);
-          events.push({ type: 'money', playerId: player.id, amount: -loan.principal, message: 'loan repaid' });
+          // Players choose how aggressively to pay principal. A partial payment
+          // immediately lowers next month's interest; zero principal closes it.
+          const payment = roundMoney(cmd.amount ?? loan.principal);
+          player.cash = roundMoney(player.cash - payment);
+          loan.principal = roundMoney(loan.principal - payment);
+          if (loan.principal <= 0) {
+            player.liabilities.splice(idx, 1);
+            if (isBankCreditor(loan.creditor)) player.debt = Math.max(0, player.debt - 1);
+          }
+          events.push({ type: 'money', playerId: player.id, amount: -payment, message: loan.principal <= 0 ? 'loan repaid' : 'loan principal reduced' });
         }
       }
       break;
@@ -2155,6 +2205,7 @@ export function financialFreedomStatus(
 export function advanceRound(prev: MatchState): CommandResult {
   const state = clone(prev);
   const events: GameEvent[] = [];
+  state.scheduledOutcomes = (state.scheduledOutcomes ?? []).filter((outcome) => outcome.status !== 'revealed');
   state.lastStressResults = [];
 
   // ─── Settlement phase ─────────────────────────────────────────────────
@@ -2174,9 +2225,10 @@ export function advanceRound(prev: MatchState): CommandResult {
     // auditable source line and applies non-cash state deltas.
     events.push(...applyPetSettlementEffects(p));
 
-    // Age out amortising liabilities (profession debts expire; bank loans run until repaid).
+    // Only explicitly amortising obligations age out. Starting obligations and
+    // game-bank loans stay visible until the player deliberately pays them.
     for (const liab of p.liabilities) {
-      if (liab.remainingPayments > 0) liab.remainingPayments -= 1;
+      if (!liab.manualPayoffOnly && liab.remainingPayments > 0) liab.remainingPayments -= 1;
     }
 
     // Stress natural recovery/decay
@@ -2367,20 +2419,28 @@ export function advanceRound(prev: MatchState): CommandResult {
     // Draw next shared card (with eligibility check)
     state.deckCursor += 1;
     const currentActive = state.players[state.activePlayerIndex];
-    let cardFound = false;
-    for (let i = 0; i < state.deck.length && !cardFound; i++) {
-      const candidateIdx = (state.deckCursor + i) % state.deck.length;
-      const candidateId = state.deck[candidateIdx];
-      const candidate = getCard(candidateId);
-      if (candidate && checkEligibility(state, currentActive, candidate.eligibility)) {
-        state.currentCardId = candidateId;
-        state.deckCursor = candidateIdx;
-        cardFound = true;
+    const dueOutcome = (state.scheduledOutcomes ?? [])
+      .filter((outcome) => outcome.playerId === currentActive.id && outcome.status === 'pending' && outcome.dueRound <= state.round)
+      .sort((a, b) => a.dueRound - b.dueRound || a.createdRound - b.createdRound)[0];
+    if (dueOutcome && getCard(dueOutcome.outcomeCardId)) {
+      dueOutcome.status = 'revealed';
+      state.currentCardId = dueOutcome.outcomeCardId;
+    } else {
+      let cardFound = false;
+      for (let i = 0; i < state.deck.length && !cardFound; i++) {
+        const candidateIdx = (state.deckCursor + i) % state.deck.length;
+        const candidateId = state.deck[candidateIdx];
+        const candidate = getCard(candidateId);
+        if (candidate && checkEligibility(state, currentActive, candidate.eligibility)) {
+          state.currentCardId = candidateId;
+          state.deckCursor = candidateIdx;
+          cardFound = true;
+        }
       }
-    }
-    if (!cardFound) {
-      // Fallback: use next card regardless
-      state.currentCardId = state.deck[state.deckCursor % state.deck.length] ?? null;
+      if (!cardFound) {
+        // Fallback: use next card regardless
+        state.currentCardId = state.deck[state.deckCursor % state.deck.length] ?? null;
+      }
     }
   }
 

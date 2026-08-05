@@ -16,6 +16,7 @@ import {
 } from '../assets/Icons';
 import { getProfession } from '../../../../packages/shared/src';
 import { stressPassiveIncomePenalty } from '../../../../packages/game-engine/src';
+import { staffKindIcon, staffLabelRu } from '../lib/staffDisplay';
 
 interface PlayerProfileProps {
   isOpen: boolean;
@@ -101,7 +102,7 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
           </div>
         </dl>
 
-        {(player.businesses.length > 0 || player.protections.length > 0) && (
+        {(player.businesses.length > 0 || player.protections.length > 0 || (player.hiredStaffIds?.length ?? 0) > 0) && (
           <section className="player-profile-inventory">
             {player.businesses.length > 0 && (
               <div>
@@ -116,6 +117,14 @@ export const PlayerProfile: React.FC<PlayerProfileProps> = ({
                 <h3><IconShield size={16} />{locale === 'ru' ? 'Защита' : 'Protection'}</h3>
                 <div className="player-profile-chips player-profile-chips-protection">
                   {player.protections.map((protection) => <span key={protection}>{protection}</span>)}
+                </div>
+              </div>
+            )}
+            {(player.hiredStaffIds?.length ?? 0) > 0 && (
+              <div>
+                <h3><IconBriefcase size={16} />{locale === 'ru' ? 'Команда' : 'Team'} <span>{player.assistantSlotsUsed ?? player.hiredStaffIds?.length}/{player.assistantSlotsMax ?? 2}</span></h3>
+                <div className="player-profile-chips">
+                  {player.hiredStaffIds?.map((staffId) => <span key={staffId}>{staffKindIcon(staffId)} {staffLabelRu(staffId)}</span>)}
                 </div>
               </div>
             )}

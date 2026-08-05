@@ -57,7 +57,7 @@ export function getSoundVolume(): number {
 export function setSoundVolume(next: number): void {
   volume = Math.max(0, Math.min(1, next));
   if (effectsBus && ctx) effectsBus.gain.setTargetAtTime(volume, ctx.currentTime, 0.02);
-  if (musicBus && ctx) musicBus.gain.setTargetAtTime(volume * 0.22, ctx.currentTime, 0.08);
+  if (musicBus && ctx) musicBus.gain.setTargetAtTime(volume * 0.42, ctx.currentTime, 0.08);
   try {
     window.localStorage?.setItem(VOLUME_KEY, String(volume));
   } catch {
@@ -89,7 +89,9 @@ function getCtx(): AudioContext | null {
     effectsBus = ctx.createGain();
     musicBus = ctx.createGain();
     effectsBus.gain.value = volume;
-    musicBus.gain.value = volume * 0.22;
+    // The old mix landed around -45 dB and was effectively inaudible through an
+    // iPhone speaker inside Telegram. Keep it behind effects, but audible.
+    musicBus.gain.value = volume * 0.42;
     effectsBus.connect(ctx.destination);
     musicBus.connect(ctx.destination);
   }
@@ -153,7 +155,7 @@ const AMBIENT_NOTES = [220, 277.18, 329.63, 415.3, 329.63, 246.94, 293.66, 369.9
 function scheduleAmbientBar(): void {
   if (!musicEnabled || typeof document === 'undefined' || document.hidden) return;
   AMBIENT_NOTES.forEach((frequency, index) => {
-    note(frequency, index * 0.72, 520, index % 3 === 0 ? 'sine' : 'triangle', 0.035, 'music');
+    note(frequency, index * 0.72, 520, index % 3 === 0 ? 'sine' : 'triangle', 0.075, 'music');
   });
 }
 
@@ -181,14 +183,22 @@ export function installAudioExperience(): () => void {
     const target = event.target instanceof Element ? event.target.closest('button') : null;
     if (target && !(target as HTMLButtonElement).disabled) playSound('tap');
   };
+  // Telegram's iOS WebView does not consistently treat PointerEvent as the
+  // audio-unlocking gesture. Resume again from native touch/click gestures;
+  // startAmbientMusic is idempotent, so hybrid devices cannot create two loops.
+  const handleFallbackGesture = () => unlockAudioExperience();
   const handleVisibility = () => {
     if (document.hidden) stopAmbientMusic();
     else if (musicEnabled) unlockAudioExperience();
   };
   document.addEventListener('pointerdown', handlePointerDown, { passive: true });
+  document.addEventListener('touchend', handleFallbackGesture, { passive: true, capture: true });
+  document.addEventListener('click', handleFallbackGesture, { passive: true, capture: true });
   document.addEventListener('visibilitychange', handleVisibility);
   return () => {
     document.removeEventListener('pointerdown', handlePointerDown);
+    document.removeEventListener('touchend', handleFallbackGesture, true);
+    document.removeEventListener('click', handleFallbackGesture, true);
     document.removeEventListener('visibilitychange', handleVisibility);
     stopAmbientMusic();
   };

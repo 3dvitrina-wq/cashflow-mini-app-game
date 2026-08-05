@@ -44,8 +44,8 @@ const ALL_WORKERS: Worker[] = [
     age: 45,
     experience: '12 лет опыта',
     salary: 800,
-    bonus: '+2 бизнес-слота',
-    quote: 'Может починить что угодно',
+    bonus: '+2 слота · при физическом бизнесе расходы −$150/мес',
+    quote: 'Чинит оборудование — но экономит только там, где есть что чинить',
     image: welderPortrait,
     slots: 2,
     incomeBonus: 0,
@@ -61,11 +61,11 @@ const ALL_WORKERS: Worker[] = [
     age: 28,
     experience: 'AI-натив',
     salary: 1200,
-    bonus: '+3 слота, +$500/мес',
-    quote: 'Кодит промтами за еду',
+    bonus: '+3 слота · при IT-продукте +$500/мес',
+    quote: 'Ускоряет релизы, если у вас уже есть IT-продукт',
     image: coderPortrait,
     slots: 3,
-    incomeBonus: 500,
+    incomeBonus: 0,
     isNew: true,
     bids: 2,
     accent: '#A78BFA',
@@ -78,8 +78,8 @@ const ALL_WORKERS: Worker[] = [
     age: 35,
     experience: '5 лет на кухне',
     salary: 600,
-    bonus: '+1 бизнес-слот',
-    quote: 'Готовит и для контента',
+    bonus: '+1 слот · стресс −1 · при бизнесе с едой +$250/мес',
+    quote: 'Снижает стресс всегда, а выручку — только у бизнеса с едой',
     image: chefPortrait,
     slots: 1,
     incomeBonus: 0,
@@ -95,8 +95,8 @@ const ALL_WORKERS: Worker[] = [
     age: 45,
     experience: '15 лет практики',
     salary: 1500,
-    bonus: 'Редкий специалист',
-    quote: 'Лучше заплатить сейчас',
+    bonus: 'При действующем бизнесе расходы −$200/мес',
+    quote: 'Договоры экономят деньги только там, где уже есть бизнес',
     image: lawyerPortrait,
     slots: 0,
     incomeBonus: 0,
@@ -112,8 +112,8 @@ const ALL_WORKERS: Worker[] = [
     age: 50,
     experience: '20 лет цифр',
     salary: 900,
-    bonus: 'Редкий специалист',
-    quote: 'Налоги — не страшно',
+    bonus: 'При локальном бизнесе расходы −$250/мес',
+    quote: 'Наводит порядок в цифрах действующего локального бизнеса',
     image: accountantPortrait,
     slots: 0,
     incomeBonus: 0,
@@ -129,11 +129,11 @@ const ALL_WORKERS: Worker[] = [
     age: 32,
     experience: '8 лет кампаний',
     salary: 1100,
-    bonus: '+$300/мес',
-    quote: 'Продам даже снег',
+    bonus: 'При контент-бизнесе +$300/мес',
+    quote: 'Разгоняет аудиторию только у блога, курса или контент-продукта',
     image: marketerPortrait,
     slots: 0,
-    incomeBonus: 300,
+    incomeBonus: 0,
     isNew: false,
     bids: 0,
     accent: '#E84B2A',
@@ -160,6 +160,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [selectedWorker, setSelectedWorker] = useState<Worker | null>(null);
   const [showArrival, setShowArrival] = useState(false);
+  const [showSurvivalJobs, setShowSurvivalJobs] = useState(false);
   const [rotation, setRotation] = useState(0);
   const me = (localPlayerId ? engineMatch?.players.find((p) => p.id === localPlayerId) : null)
     ?? engineMatch?.players.find((p) => !p.isBot)
@@ -216,7 +217,7 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
   };
 
   return (
-    <BottomSheet isOpen={isOpen} onClose={onClose} title="Рынок труда">
+    <BottomSheet isOpen={isOpen} onClose={onClose} title="Команда">
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <div
           style={{
@@ -233,52 +234,76 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
             Подбирай людей, которые реально меняют темп партии
           </div>
           <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9' }}>
-            Сварщик даёт слоты, coder ускоряет рост, бухгалтер и юрист держат тебя подальше от катастроф.
+            Сварщик даёт слоты, разработчик ускоряет рост, бухгалтер и юрист удерживают бизнес от катастроф.
           </div>
         </div>
 
         <div
           style={{
-            padding: 14,
-            borderRadius: 18,
-            background: 'linear-gradient(135deg, rgba(91, 215, 224, 0.12), rgba(245, 197, 36, 0.08))',
-            border: '1px solid rgba(91, 215, 224, 0.24)',
+            padding: 10,
+            borderRadius: 14,
+            background: 'linear-gradient(135deg, rgba(91, 215, 224, 0.10), rgba(245, 197, 36, 0.06))',
+            border: '1px solid rgba(91, 215, 224, 0.2)',
           }}
         >
-          <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: '.06em', color: '#5BD7E0', textTransform: 'uppercase', marginBottom: 4 }}>
-            Моя работа
-          </div>
-          <div style={{ fontSize: 16, fontWeight: 900, color: '#F5F4ED', marginBottom: 6 }}>
-            {profession ? `${profession.nameRu} · ${profession.heroTitleRu}` : 'Режим личной занятости'}
-          </div>
-          <div style={{ fontSize: 12, lineHeight: 1.35, color: '#B8B6A9', marginBottom: 10 }}>
-            {profession
-              ? `${profession.startHookRu} Налог: ${TAX_BAND_LABELS[profession.taxBand].ru}.`
-              : 'Если поток просел, здесь можно взять ugly job и пережить плохой месяц.'}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {[
-              { id: 'gig' as const, label: 'Гиг', text: '+$250 сейчас · +$180/мес · stress +1' },
-              { id: 'safe' as const, label: 'Офис', text: '+$120 сейчас · +$260/мес · trust +1' },
-              { id: 'night' as const, label: 'Ночь', text: '+$350 сейчас · +$420/мес · stress +2' },
-            ].map((job) => (
-              <button
-                key={job.id}
-                onClick={() => handleTakeSurvivalJob(job.id, job.label)}
-                style={{
-                  padding: '10px 8px',
-                  borderRadius: 12,
-                  background: 'rgba(255,255,255,.05)',
-                  border: '1px solid rgba(255,255,255,.1)',
-                  color: '#F5F4ED',
-                  textAlign: 'left',
-                }}
-              >
-                <div style={{ fontSize: 13, fontWeight: 900, marginBottom: 4 }}>{job.label}</div>
-                <div style={{ fontSize: 10, lineHeight: 1.25, color: '#B8B6A9' }}>{job.text}</div>
-              </button>
-            ))}
-          </div>
+          <button
+            type="button"
+            aria-expanded={showSurvivalJobs}
+            onClick={() => setShowSurvivalJobs((open) => !open)}
+            style={{
+              width: '100%',
+              minHeight: 42,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 10,
+              border: 0,
+              background: 'transparent',
+              color: '#F5F4ED',
+              padding: '0 4px',
+              textAlign: 'left',
+            }}
+          >
+            <span>
+              <small style={{ display: 'block', color: '#5BD7E0', fontSize: 9, fontWeight: 900, letterSpacing: '.06em' }}>ПОДРАБОТКА НА НОЧЬ</small>
+              <strong style={{ display: 'block', marginTop: 2, fontSize: 12 }}>
+                {profession ? `${profession.nameRu} · ${TAX_BAND_LABELS[profession.taxBand].ru}` : 'Пережить плохой месяц'}
+              </strong>
+            </span>
+            <span style={{ color: '#83E8EF', fontWeight: 900 }}>{showSurvivalJobs ? '−' : '+'}</span>
+          </button>
+          {showSurvivalJobs && (
+            <div style={{ marginTop: 8 }}>
+              <div style={{ fontSize: 11, lineHeight: 1.35, color: '#B8B6A9', margin: '0 4px 8px' }}>
+                {profession
+                  ? profession.startHookRu
+                  : 'Если поток просел, здесь можно взять ugly job и пережить плохой месяц.'}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                {[
+                  { id: 'gig' as const, label: 'Гиг', text: '+$250 · +$180/мес · стресс +1' },
+                  { id: 'safe' as const, label: 'Офис', text: '+$120 · +$260/мес · доверие +1' },
+                  { id: 'night' as const, label: 'Ночь', text: '+$350 · +$420/мес · стресс +2' },
+                ].map((job) => (
+                  <button
+                    key={job.id}
+                    onClick={() => handleTakeSurvivalJob(job.id, job.label)}
+                    style={{
+                      padding: '9px 7px',
+                      borderRadius: 10,
+                      background: 'rgba(255,255,255,.05)',
+                      border: '1px solid rgba(255,255,255,.1)',
+                      color: '#F5F4ED',
+                      textAlign: 'left',
+                    }}
+                  >
+                    <div style={{ fontSize: 12, fontWeight: 900, marginBottom: 3 }}>{job.label}</div>
+                    <div style={{ fontSize: 9, lineHeight: 1.25, color: '#B8B6A9' }}>{job.text}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {showArrival && (
@@ -324,7 +349,9 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
 
         {!showArrival &&
           workers.map((worker, index) => {
-            const statusStyle = STATUS_CONFIG[worker.status];
+            const isHired = me?.hiredStaffIds?.includes(worker.id) ?? false;
+            const visibleStatus = isHired ? 'hired' : worker.status;
+            const statusStyle = STATUS_CONFIG[visibleStatus];
             return (
               <div
                 key={worker.id}
@@ -488,22 +515,25 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
 
                 <button
                   onClick={() => handleBid(worker)}
-                  disabled={worker.status === 'hired' || worker.status === 'scarce'}
+                  aria-label={visibleStatus === 'hired'
+                    ? `${worker.name} уже в команде`
+                    : `Нанять ${worker.name}, ${worker.profession}, $${worker.salary} в месяц`}
+                  disabled={visibleStatus === 'hired' || visibleStatus === 'scarce'}
                   style={{
                     alignSelf: 'center',
                     minHeight: 44,
                     padding: '11px 14px',
                     borderRadius: 12,
                     background:
-                      worker.status === 'available'
+                      visibleStatus === 'available'
                         ? 'linear-gradient(180deg, #28C76F, #1EA35A)'
-                        : worker.status === 'contested'
+                        : visibleStatus === 'contested'
                           ? 'linear-gradient(180deg, #F5C524, #E09A12)'
                           : 'rgba(255, 255, 255, 0.06)',
                     color:
-                      worker.status === 'available'
+                      visibleStatus === 'available'
                         ? '#fff'
-                        : worker.status === 'contested'
+                        : visibleStatus === 'contested'
                           ? '#1A1207'
                           : '#7D7B6F',
                     fontSize: 11,
@@ -511,14 +541,14 @@ export const LaborMarketScreen: React.FC<LaborMarketScreenProps> = ({ isOpen, on
                     textTransform: 'uppercase',
                     whiteSpace: 'nowrap',
                     boxShadow:
-                      worker.status === 'available'
+                      visibleStatus === 'available'
                         ? '0 8px 18px rgba(40, 199, 111, 0.26)'
-                        : worker.status === 'contested'
+                        : visibleStatus === 'contested'
                           ? '0 8px 18px rgba(245, 197, 36, 0.24)'
                           : 'none',
                   }}
                 >
-                  {worker.status === 'contested' ? 'Торги' : worker.status === 'scarce' ? 'Нет' : 'Нанять'}
+                  {visibleStatus === 'hired' ? 'Уже в команде' : visibleStatus === 'contested' ? 'Торги' : visibleStatus === 'scarce' ? 'Нет' : 'Нанять'}
                 </button>
               </div>
             );
