@@ -313,6 +313,10 @@ night survival job. Do not “fix” this by removing losses.
   outcomes. Two cards still produce zero observed bot impact; their definitions
   contain real asset branches, so the follow-up audit must distinguish skipped,
   unaffordable and dominated choices rather than call them authoritatively empty.
+- Source release `9c041f5` is pushed to `origin/main`. Wrangler Pages deployment
+  `c136e335` is live, and the canonical host serves
+  `dyor-focus-DGHetZok.js` plus `dyor-focus-index-CQENRuCw.css`. A clean
+  production replay at 402×874 opened the paused match prelude successfully.
 
 ## Next Step
 
