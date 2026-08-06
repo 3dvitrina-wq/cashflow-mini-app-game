@@ -2,8 +2,8 @@
 
 ## Session
 
-- Date: 2026-08-05
-- Session log: `docs/agents/sessions/2026-08-05.md`
+- Date: 2026-08-06
+- Session log: `docs/agents/sessions/2026-08-06.md`
 
 ## Task
 
@@ -317,6 +317,16 @@ night survival job. Do not “fix” this by removing losses.
   `c136e335` is live, and the canonical host serves
   `dyor-focus-DGHetZok.js` plus `dyor-focus-index-CQENRuCw.css`. A clean
   production replay at 402×874 opened the paused match prelude successfully.
+- Telegram iOS exposed a cold/cache failure where the private-hand text rendered
+  but all three CSS background illustrations stayed black. The picker now uses
+  eager semantic `<img>` elements with a visible category fallback and hides a
+  broken image without leaving an empty rectangle. The bot menu URL is versioned
+  (`release=20260806b`) so Telegram opens the current Pages document instead of a
+  cached bundle that references retired hashed media.
+- Wrangler Pages deployment `5a91361f` is live. Canonical production serves
+  `dyor-focus-DW8gMXci.js` and `dyor-focus-index-C28Yo9vK.css`; a clean 402×874
+  replay rendered all three private-hand images and logged zero application
+  errors.
 
 ## Next Step
 

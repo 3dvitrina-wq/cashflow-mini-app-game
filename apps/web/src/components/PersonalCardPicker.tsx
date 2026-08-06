@@ -31,6 +31,16 @@ const TYPE_LABELS_EN: Record<string, string> = {
   life_event: 'LIFE',
 };
 
+const TYPE_ART_FALLBACK: Record<string, string> = {
+  opportunity: '◆',
+  crisis: '!',
+  protection: '◇',
+  staff: '✦',
+  modern_earning: '↗',
+  expense_to_asset: '＋',
+  life_event: '●',
+};
+
 export const PersonalCardPicker: React.FC<PersonalCardPickerProps> = ({ optionIds, returningCardId, onConfirm }) => {
   const { locale } = useI18n();
   const forcedEventId = useMemo(
@@ -105,15 +115,26 @@ export const PersonalCardPicker: React.FC<PersonalCardPickerProps> = ({ optionId
             >
               <span
                 className="personal-draft-art"
-                style={{
-                  background: art.background,
-                  backgroundImage: `linear-gradient(90deg, transparent 46%, rgba(7,9,13,.94) 100%), url(${art.src})`,
-                  backgroundSize: art.fit === 'contain' ? 'auto 92%' : 'cover',
-                  backgroundPosition: art.position ?? 'center',
-                  backgroundRepeat: 'no-repeat',
-                }}
                 aria-hidden="true"
-              />
+              >
+                <span className="personal-draft-art-fallback">
+                  {TYPE_ART_FALLBACK[card.type] ?? '◆'}
+                </span>
+                <img
+                  src={art.src}
+                  alt=""
+                  loading="eager"
+                  decoding="async"
+                  style={{
+                    objectFit: art.fit === 'contain' ? 'contain' : 'cover',
+                    objectPosition: art.position ?? 'center',
+                  }}
+                  onError={(event) => {
+                    event.currentTarget.hidden = true;
+                  }}
+                />
+                <span className="personal-draft-art-shade" />
+              </span>
               <span className="personal-draft-copy">
                 <span className="personal-draft-type">
                   {(locale === 'ru' ? TYPE_LABELS_RU : TYPE_LABELS_EN)[card.type] ?? card.type}
